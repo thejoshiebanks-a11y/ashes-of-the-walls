@@ -1,0 +1,75 @@
+{
+ "morning": {
+  "title": "An ordinary morning",
+  "kind": "main",
+  "act": "prologue",
+  "sequential": true,
+  "summary": "Fetch the bread and meet {anchor} at the gate square.",
+  "objectives": [
+   {
+    "id": "talk_anchor",
+    "text": "Talk to {anchor} at home",
+    "marker": "anchor_home",
+    "on": "talk:anchor_morning"
+   },
+   {
+    "id": "bread",
+    "text": "Get the bread from Marta in the Old Square",
+    "marker": "marta",
+    "on": "talk:marta_bread"
+   },
+   {
+    "id": "gate",
+    "text": "Meet {anchor} at the gate square",
+    "marker": "anchor_gate",
+    "on": "talk:anchor_gate"
+   }
+  ],
+  "onComplete": [
+   {
+    "op": "scene",
+    "id": "breach"
+   }
+  ]
+ },
+ "dreamers": {
+  "title": "Three dreamers",
+  "kind": "side",
+  "act": "prologue",
+  "summary": "Marta says three children keep playing near the plaza.",
+  "objectives": [
+   {
+    "id": "kids",
+    "text": "Find the children by the plaza",
+    "marker": "kids",
+    "on": "talk:kids_canal"
+   }
+  ],
+  "onComplete": [
+   {
+    "op": "toast",
+    "text": "Journal updated: Three dreamers"
+   }
+  ]
+ },
+ "duty": {
+  "title": "Duty, technically",
+  "kind": "side",
+  "act": "prologue",
+  "summary": "{anchor} mentioned the Garrison would be at the gate.",
+  "objectives": [
+   {
+    "id": "hannes",
+    "text": "Speak to the soldier at the gate",
+    "marker": "hannes",
+    "on": "talk:hannes_gate"
+   }
+  ],
+  "onComplete": [
+   {
+    "op": "toast",
+    "text": "Journal updated: Duty, technically"
+   }
+  ]
+ }
+}

@@ -3,7 +3,8 @@
  * already expects, then starts engine.js -> viewer.js -> game.js in order. */
 (function () {
   'use strict';
-  const VERSION = '0.1.0';            // bump on every release to bust the GitHub Pages cache
+  const VERSION = '0.2.0';
+  window.__APP_VERSION = VERSION;            // bump on every release to bust the GitHub Pages cache
   const $ = id => document.getElementById(id);
   const say = (m, p) => {
     const e = $('msg'); if (e) e.textContent = m;
@@ -60,8 +61,10 @@
       window.__MODELS[k] = { meta: m.meta, bin: modelPack[k + '.bin'], tex };
     }
 
-    // scripts must run in order: engine -> viewer (starts E.load) -> game
-    for (const f of ['js/engine.js', 'js/viewer.js', 'js/game.js']) {
+    // scripts must run in order: engine -> viewer (starts E.load) -> game -> story layer
+    const SCRIPTS = ['js/engine.js', 'js/viewer.js', 'js/game.js',
+      'js/story/core.js', 'js/story/dialogue.js', 'js/story/world.js', 'js/story/save.js', 'js/story/ui.js', 'js/story/main.js'];
+    for (const f of SCRIPTS) {
       await new Promise((res, rej) => {
         const s = document.createElement('script');
         s.src = U(f); s.onload = res; s.onerror = () => rej(new Error('failed to load ' + f));

@@ -1,0 +1,129 @@
+{
+ "title": "Ashes of the Walls",
+ "tagline": "You were born behind the walls. You will die for what lies beyond them.",
+ "factionColors": {
+  "civilian": "#8c969e",
+  "garrison": "#b58a52",
+  "survey": "#6f9462",
+  "military_police": "#7aa39b",
+  "child": "#b39ad0",
+  "anchor": "#d2ad62",
+  "player": "#8fb2cc",
+  "narr": "#8c969e"
+ },
+ "bloodlines": [
+  {
+   "id": "common",
+   "name": "Common Eldian",
+   "tag": "Balanced",
+   "text": "No penalties and no surprises. The best way to learn the world on a first playthrough.",
+   "mods": {}
+  },
+  {
+   "id": "ackerman",
+   "name": "Ackerman-blooded",
+   "tag": "Rare",
+   "text": "Something old sleeps in your blood. Later, it wakes as a huge burst of speed and strength, and you carry heavier trauma and stress for it.",
+   "mods": {
+    "stress": 1
+   }
+  },
+  {
+   "id": "scholar",
+   "name": "Scholar's child",
+   "tag": "Mind over blade",
+   "text": "Slower in combat at the start, but you unlock research, tactics and the highest Command potential.",
+   "mods": {
+    "tactics": 2,
+    "speed": -1
+   }
+  }
+ ],
+ "anchorRelations": [
+  {
+   "id": "sibling",
+   "name": "A brother or sister"
+  },
+  {
+   "id": "parent",
+   "name": "A parent figure"
+  },
+  {
+   "id": "friend",
+   "name": "Your closest friend"
+  }
+ ],
+ "genders": [
+  {
+   "id": "f",
+   "name": "She / her"
+  },
+  {
+   "id": "m",
+   "name": "He / him"
+  },
+  {
+   "id": "x",
+   "name": "They / them"
+  }
+ ],
+ "builds": [
+  "Slight",
+  "Average",
+  "Sturdy"
+ ],
+ "hair": [
+  "#2b2118",
+  "#5a3a22",
+  "#8a6a3b",
+  "#c9b27a",
+  "#1c1c22",
+  "#7a2f24"
+ ],
+ "skin": [
+  "#f1d3b8",
+  "#e0b48f",
+  "#c58f65",
+  "#9a6a48",
+  "#6e4a33"
+ ],
+ "scars": [
+  "None",
+  "Brow",
+  "Cheek",
+  "Ear"
+ ],
+ "difficulties": [
+  {
+   "id": "cadet",
+   "name": "Cadet",
+   "text": "A gentler road. More supplies, forgiving enemies."
+  },
+  {
+   "id": "soldier",
+   "name": "Soldier",
+   "text": "The intended experience. Scarce gas, real consequences.",
+   "default": true
+  },
+  {
+   "id": "veteran",
+   "name": "Veteran",
+   "text": "Named allies who fall stay dead."
+  },
+  {
+   "id": "legend",
+   "name": "Legend",
+   "text": "One life per chapter. Fail and the chapter starts over."
+  }
+ ],
+ "tips": [
+  "Gas is life. Spend it on movement, not on show.",
+  "A dull blade is a dead soldier. Know your count before you jump.",
+  "Titans are slow to read and deadly up close. Never fight one you cannot leave.",
+  "Your Anchor remembers what you choose.",
+  "Canon events always happen. Your place in them does not."
+ ],
+ "start": {
+  "hour": 9.2
+ }
+}

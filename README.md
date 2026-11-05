@@ -17,7 +17,13 @@ Local: `python3 -m http.server 8000` then open http://localhost:8000
     js/game.js          ODM, Titans, Levi avatar, combat, HUD
     data/               JSON: district layout, model metadata
     assets/             binary packs (textures, models, animations, district geometry)
-    docs/               blueprint, storyline, credits, changelog
+    js/story/           story layer: core, dialogue, world, save, ui, main
+    data/story/         story content as JSON (dialogue, quests, world, credits)
+    tests/              node tests for the story logic and boot
+    docs/               blueprint, storyline, credits, changelog, story guide, asset wishlist
 
 ## Releasing
 Every release: bump `VERSION` in js/boot.js (busts the cache), add a line to docs/CHANGELOG.md.
+
+## Tests
+`node tests/story_logic.test.js && node tests/story_smoke.test.js && node tests/boot.test.js`

@@ -23,6 +23,11 @@ Skinned models are stored in a custom deflate-compressed binary plus meta JSON (
 inverse bind matrices) and webp textures. New characters must go through a converter (glTF/FBX -> this format).
 That converter is the next tooling task.
 
+## Story layer (v0.2.0)
+Loaded after game.js: core (events, state machine, expressions, quests), dialogue, world, save, ui, main. See docs/STORY_SYSTEMS.md.
+The story layer drives the game through window flags: `__freeze`, `__noOdm`, `__noTitan`, `__hideAvatar`, and reads `__world`, `__st`, `__E.vp`, `ODM`.
+The player avatar is still the Levi model until the model converter and character models arrive.
+
 ## Known debt
 - game.js is one 130 KB file; split into player / titan / fx / hud / world as features land.
-- No audio, saves, dialogue, quests or story state yet.
+- No audio yet. Story NPCs are markers until character models are converted. Title-shot camera and NPC spots need a tuning pass in a real browser.

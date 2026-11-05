@@ -1,0 +1,44 @@
+{
+ "hannes": {
+  "name": "Hannes",
+  "faction": "garrison",
+  "tier": 2,
+  "mono": "H",
+  "bio": "Garrison soldier on gate duty."
+ },
+ "marta": {
+  "name": "Marta",
+  "faction": "civilian",
+  "tier": 3,
+  "mono": "M",
+  "bio": "Baker in the Old Square."
+ },
+ "oswin": {
+  "name": "Oswin",
+  "faction": "civilian",
+  "tier": 3,
+  "mono": "O",
+  "bio": "Old man who keeps the well."
+ },
+ "eren": {
+  "name": "Eren",
+  "faction": "child",
+  "tier": 1,
+  "mono": "E",
+  "bio": "A restless boy who wants to see the world."
+ },
+ "armin": {
+  "name": "Armin",
+  "faction": "child",
+  "tier": 1,
+  "mono": "A",
+  "bio": "A quiet boy with a book about the sea."
+ },
+ "mikasa": {
+  "name": "Mikasa",
+  "faction": "child",
+  "tier": 1,
+  "mono": "M",
+  "bio": "A watchful girl in a red scarf."
+ }
+}

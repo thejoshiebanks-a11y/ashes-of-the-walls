@@ -1,0 +1,56 @@
+{
+ "disclaimer": "Ashes of the Walls is an unofficial, non-commercial fan project. It is not affiliated with or endorsed by the creators or publishers of Attack on Titan.",
+ "director": "",
+ "sections": [
+  {
+   "title": "Models",
+   "items": [
+    {
+     "what": "Torhaus gate (Shiganshina gate)",
+     "who": "Nico Maier (kafudev)",
+     "lic": "CC-BY 4.0"
+    },
+    {
+     "what": "Levi Ackerman rig",
+     "who": "Prime Slayer3D (Sketchfab)",
+     "lic": "CC-BY 4.0"
+    },
+    {
+     "what": "AOTWA Fat Titan",
+     "who": "Prime Slayer3D (Sketchfab)",
+     "lic": "CC-BY 4.0"
+    }
+   ]
+  },
+  {
+   "title": "Animation",
+   "items": [
+    {
+     "what": "Character animation clips",
+     "who": "Mixamo",
+     "lic": "Mixamo terms"
+    }
+   ]
+  },
+  {
+   "title": "Typefaces",
+   "items": [
+    {
+     "what": "Spectral, Barlow, Barlow Condensed",
+     "who": "Google Fonts",
+     "lic": "SIL OFL"
+    }
+   ]
+  },
+  {
+   "title": "Engine and story code",
+   "items": [
+    {
+     "what": "Custom WebGL2 engine, story systems",
+     "who": "Built with Claude by Anthropic",
+     "lic": ""
+    }
+   ]
+  }
+ ]
+}

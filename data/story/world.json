@@ -1,0 +1,157 @@
+{
+ "start": {
+  "x": -179.5,
+  "z": -185.0,
+  "face": {
+   "x": -174.0,
+   "z": -178.0
+  },
+  "hour": 9.2
+ },
+ "titleShot": {
+  "x": 0,
+  "z": -58,
+  "yaw": 0,
+  "pitch": 0.2,
+  "hour": 17.3
+ },
+ "points": [
+  {
+   "id": "anchor_home",
+   "char": "anchor",
+   "x": -174.0,
+   "z": -177.0,
+   "r": 4.5,
+   "label": "Talk",
+   "talk": [
+    {
+     "if": "not talked_anchor_morning",
+     "conv": "anchor_morning"
+    },
+    {
+     "if": "quest.morning=='active'",
+     "conv": "anchor_idle"
+    }
+   ]
+  },
+  {
+   "id": "oswin",
+   "char": "oswin",
+   "x": -168.0,
+   "z": -195.0,
+   "r": 4.5,
+   "label": "Talk",
+   "talk": [
+    {
+     "if": "not talked_oswin_well",
+     "conv": "oswin_well"
+    },
+    {
+     "conv": "oswin_idle"
+    }
+   ]
+  },
+  {
+   "id": "marta",
+   "char": "marta",
+   "x": -66.0,
+   "z": -83.0,
+   "r": 4.5,
+   "label": "Talk",
+   "talk": [
+    {
+     "if": "obj.morning.talk_anchor and not talked_marta_bread",
+     "conv": "marta_bread"
+    },
+    {
+     "if": "talked_marta_bread",
+     "conv": "marta_idle"
+    },
+    {
+     "conv": "marta_early"
+    }
+   ]
+  },
+  {
+   "id": "kids",
+   "char": "eren",
+   "x": -80.0,
+   "z": -92.0,
+   "r": 5,
+   "label": "Talk",
+   "talk": [
+    {
+     "if": "not talked_kids_canal",
+     "conv": "kids_canal"
+    },
+    {
+     "conv": "kids_idle"
+    }
+   ]
+  },
+  {
+   "id": "hannes",
+   "char": "hannes",
+   "x": 7.0,
+   "z": -42.0,
+   "r": 4.5,
+   "label": "Talk",
+   "talk": [
+    {
+     "if": "not talked_hannes_gate",
+     "conv": "hannes_gate"
+    },
+    {
+     "conv": "hannes_idle"
+    }
+   ]
+  },
+  {
+   "id": "anchor_gate",
+   "char": "anchor",
+   "x": -5.0,
+   "z": -46.0,
+   "r": 4.5,
+   "label": "Talk",
+   "show": "obj.morning.bread",
+   "talk": [
+    {
+     "if": "obj.morning.bread and not talked_anchor_gate",
+     "conv": "anchor_gate"
+    }
+   ]
+  }
+ ],
+ "zones": [
+  {
+   "id": "gate_square",
+   "x": 0,
+   "z": -38,
+   "r": 22,
+   "once": true,
+   "fx": [
+    {
+     "op": "emit",
+     "event": "enter:gate_square"
+    }
+   ]
+  },
+  {
+   "id": "old_square",
+   "x": -72,
+   "z": -86,
+   "r": 24,
+   "once": true,
+   "fx": [
+    {
+     "op": "toast",
+     "text": "The Old Square"
+    },
+    {
+     "op": "emit",
+     "event": "enter:old_square"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,677 @@
+{
+ "prologue_open": {
+  "start": "p1",
+  "nodes": {
+   "p1": {
+    "s": "narr",
+    "t": "Shiganshina District, Wall Maria. Year 845.",
+    "next": "p2"
+   },
+   "p2": {
+    "s": "narr",
+    "t": "For a hundred years the walls have held. People stop noticing a thing like that. They simply live inside it.",
+    "end": true
+   }
+  }
+ },
+ "anchor_morning": {
+  "start": "a1",
+  "nodes": {
+   "a1": {
+    "s": "anchor",
+    "t": "There you are. I was about to come in with a bucket of water.",
+    "next": "a2"
+   },
+   "a2": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“I had that dream again. The one about the outside.”",
+      "next": "a_dream",
+      "fx": [
+       {
+        "op": "set",
+        "key": "temperament",
+        "value": "dreamer"
+       },
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "“Is there bread? I’m starving.”",
+      "next": "a_bread",
+      "fx": [
+       {
+        "op": "set",
+        "key": "temperament",
+        "value": "steady"
+       }
+      ]
+     },
+     {
+      "t": "“Sorry. I’ll be ready in a minute.”",
+      "next": "a_duty",
+      "fx": [
+       {
+        "op": "set",
+        "key": "temperament",
+        "value": "dutiful"
+       },
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     }
+    ]
+   },
+   "a_dream": {
+    "s": "anchor",
+    "t": "The outside. Of course it is. You know most people on this street would call that a nightmare.",
+    "next": "a4"
+   },
+   "a_bread": {
+    "s": "anchor",
+    "t": "Spoken like someone with sense. Which is exactly why you’re going to fetch some.",
+    "next": "a4"
+   },
+   "a_duty": {
+    "s": "anchor",
+    "t": "No need to apologise. Just move.",
+    "next": "a4"
+   },
+   "a4": {
+    "s": "anchor",
+    "t": "Marta in the Old Square is holding a loaf for us. We owe her for last week, so be polite and don’t count the change.",
+    "next": "a4b"
+   },
+   "a4b": {
+    "s": "anchor",
+    "t": "I’ll meet you at the gate square before noon. The Garrison is gathering a crowd for something.",
+    "next": "a5",
+    "fx": [
+     {
+      "op": "quest.start",
+      "id": "duty"
+     }
+    ]
+   },
+   "a5": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Why the gate? Has something happened?”",
+      "next": "a6q"
+     },
+     {
+      "t": "“I’ll go. Don’t be late.”",
+      "next": "a6go",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     }
+    ]
+   },
+   "a6q": {
+    "s": "anchor",
+    "t": "Nothing’s happened. That’s the whole point of the Garrison, isn’t it? Nothing ever happens.",
+    "next": "a7"
+   },
+   "a6go": {
+    "s": "anchor",
+    "t": "Me? Late? Go, before the bread’s gone.",
+    "next": "a7"
+   },
+   "a7": {
+    "s": "anchor",
+    "t": "Stay on the main streets. This district is bigger than it feels.",
+    "next": "a8"
+   },
+   "a8": {
+    "branch": [
+     {
+      "if": "player.anchor.rel=='sibling'",
+      "next": "a8s"
+     },
+     {
+      "if": "player.anchor.rel=='parent'",
+      "next": "a8p"
+     },
+     {
+      "next": "a8f"
+     }
+    ]
+   },
+   "a8s": {
+    "s": "anchor",
+    "t": "And {player}, whatever the Garrison says today, stay where I can find you.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Follow the marker to the Old Square."
+     }
+    ],
+    "end": true
+   },
+   "a8p": {
+    "s": "anchor",
+    "t": "And {player}, don’t wander. I mean it.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Follow the marker to the Old Square."
+     }
+    ],
+    "end": true
+   },
+   "a8f": {
+    "s": "anchor",
+    "t": "And try not to get lost staring at the sky again.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Follow the marker to the Old Square."
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "anchor_idle": {
+  "start": "i1",
+  "nodes": {
+   "i1": {
+    "s": "anchor",
+    "t": "The bread won’t fetch itself. Old Square. Go on.",
+    "end": true
+   }
+  }
+ },
+ "oswin_well": {
+  "start": "o1",
+  "nodes": {
+   "o1": {
+    "s": "oswin",
+    "t": "Mind the bucket. This well has been in a mood since spring.",
+    "next": "o2"
+   },
+   "o2": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Do you ever think about what’s past the wall?”",
+      "next": "o3"
+     },
+     {
+      "t": "“Just passing through.”",
+      "next": "o_bye"
+     }
+    ]
+   },
+   "o3": {
+    "s": "oswin",
+    "t": "Past the wall? I think about my knees. What’s out there is the Titans’ business, and they can keep it.",
+    "next": "o4"
+   },
+   "o4": {
+    "s": "oswin",
+    "t": "A hundred years, and not one has climbed that gate. That’s the only fact an old man needs.",
+    "fx": [
+     {
+      "op": "set",
+      "key": "heard_century",
+      "value": true
+     }
+    ],
+    "end": true
+   },
+   "o_bye": {
+    "s": "oswin",
+    "t": "Everybody is. Mind the bucket.",
+    "end": true
+   }
+  }
+ },
+ "oswin_idle": {
+  "start": "i1",
+  "nodes": {
+   "i1": {
+    "s": "oswin",
+    "t": "Still here. So is the well.",
+    "end": true
+   }
+  }
+ },
+ "marta_early": {
+  "start": "i1",
+  "nodes": {
+   "i1": {
+    "s": "marta",
+    "t": "Not now, dear, my hands are full of dough. Come back when someone’s sent you.",
+    "end": true
+   }
+  }
+ },
+ "marta_idle": {
+  "start": "i1",
+  "nodes": {
+   "i1": {
+    "s": "marta",
+    "t": "Go on, they’ll be waiting for that loaf.",
+    "end": true
+   }
+  }
+ },
+ "marta_bread": {
+  "start": "m1",
+  "nodes": {
+   "m1": {
+    "s": "marta",
+    "t": "There’s my best customer’s best runner. Let me guess. Bread, on credit?",
+    "next": "m2"
+   },
+   "m2": {
+    "branch": [
+     {
+      "if": "bond.anchor>=1",
+      "next": "m2a"
+     },
+     {
+      "next": "m2b"
+     }
+    ]
+   },
+   "m2a": {
+    "s": "marta",
+    "t": "{anchor} must have been kind to you this morning. You look like someone who was asked nicely.",
+    "next": "m3"
+   },
+   "m2b": {
+    "s": "marta",
+    "t": "{anchor} sent you off in a hurry, I suppose. Never mind. Hand me the basket.",
+    "next": "m3"
+   },
+   "m3": {
+    "s": "marta",
+    "t": "One loaf, still warm. And tell them the debt is forgiven until harvest. I am not made of stone.",
+    "next": "m4",
+    "fx": [
+     {
+      "op": "quest.start",
+      "id": "dreamers"
+     }
+    ]
+   },
+   "m4": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Thank you, Marta. I’ll tell them.”",
+      "next": "m5a",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "marta",
+        "value": 1
+       },
+       {
+        "op": "set",
+        "key": "marta_kind",
+        "value": true
+       }
+      ]
+     },
+     {
+      "t": "“Could I have a second loaf?”",
+      "next": "m5b",
+      "fx": [
+       {
+        "op": "set",
+        "key": "extra_bread",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "m5a": {
+    "s": "marta",
+    "t": "Go on, then. And if you see those three children by the plaza, tell them to stay out of the canal.",
+    "end": true
+   },
+   "m5b": {
+    "s": "marta",
+    "t": "Greedy! Half a loaf, then, for whoever’s standing in the sun at the gate. Don’t tell anyone.",
+    "end": true
+   }
+  }
+ },
+ "kids_canal": {
+  "start": "k1",
+  "nodes": {
+   "k1": {
+    "s": "narr",
+    "t": "Three children sit on the edge of the plaza with a battered book open between them.",
+    "next": "k2"
+   },
+   "k2": {
+    "s": "armin",
+    "t": "…and the sea is salt water. Not a river, not a lake. A whole sea, bigger than all the land inside the walls.",
+    "next": "k3"
+   },
+   "k3": {
+    "s": "eren",
+    "t": "Say it again. Slower. Then tell me why nobody here wants to see it.",
+    "next": "k4"
+   },
+   "k4": {
+    "s": "mikasa",
+    "t": "Because they’re afraid. Eren, you’re being loud again.",
+    "next": "k5"
+   },
+   "k5": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“I’d like to see it too.”",
+      "next": "k6a",
+      "fx": [
+       {
+        "op": "set",
+        "key": "kids_ally",
+        "value": true
+       },
+       {
+        "op": "bond",
+        "id": "eren",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "“The walls are safe. Why leave?”",
+      "next": "k6b"
+     },
+     {
+      "t": "“What’s in the book?”",
+      "next": "k6c"
+     }
+    ]
+   },
+   "k6a": {
+    "s": "eren",
+    "t": "Then you’re one of us. Don’t tell the adults.",
+    "next": "k8"
+   },
+   "k6b": {
+    "s": "mikasa",
+    "t": "Safe isn’t the same as free.",
+    "next": "k7b"
+   },
+   "k7b": {
+    "s": "eren",
+    "t": "Exactly! See? She gets it.",
+    "next": "k8"
+   },
+   "k6c": {
+    "s": "armin",
+    "t": "Drawings. Ships. A place where the water burns orange at sunset. I’ve read it so many times the spine is giving up.",
+    "next": "k8"
+   },
+   "k8": {
+    "s": "narr",
+    "t": "The children go back to their argument, quieter now. For a moment the plaza feels very small.",
+    "end": true
+   }
+  }
+ },
+ "kids_idle": {
+  "start": "i1",
+  "nodes": {
+   "i1": {
+    "s": "armin",
+    "t": "Shh. I’m at the good part.",
+    "end": true
+   }
+  }
+ },
+ "hannes_gate": {
+  "start": "h1",
+  "nodes": {
+   "h1": {
+    "s": "hannes",
+    "t": "Hic. Oh. Don’t look at me like that, I’m on duty. Technically.",
+    "next": "h2"
+   },
+   "h2": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Is it true nothing ever comes over the wall?”",
+      "next": "h3"
+     },
+     {
+      "t": "“Should you be drinking at the gate?”",
+      "next": "h_no"
+     }
+    ]
+   },
+   "h3": {
+    "s": "hannes",
+    "t": "True? It’s the only thing that’s ever been true. A hundred years of nothing. You know what that does to a man? Makes him very, very thirsty.",
+    "next": "h4"
+   },
+   "h4": {
+    "s": "hannes",
+    "t": "If one ever did show up, I’d like to think I’d be sober enough to do something about it. I’d like to think a lot of things.",
+    "fx": [
+     {
+      "op": "set",
+      "key": "hannes_doubt",
+      "value": true
+     }
+    ],
+    "end": true
+   },
+   "h_no": {
+    "s": "hannes",
+    "t": "Should I? No. Do I? Every day. Don’t tell the Commander.",
+    "end": true
+   }
+  }
+ },
+ "hannes_idle": {
+  "start": "i1",
+  "nodes": {
+   "i1": {
+    "s": "hannes",
+    "t": "Move along, move along. Nothing to see. Nothing ever happens.",
+    "end": true
+   }
+  }
+ },
+ "anchor_gate": {
+  "start": "g1",
+  "nodes": {
+   "g1": {
+    "s": "narr",
+    "t": "{anchor} is waiting near the gate with a hand over {anchor.his} eyes, looking up at the wall.",
+    "next": "g2"
+   },
+   "g2": {
+    "s": "anchor",
+    "t": "Bread? Good. Now look up. Really look.",
+    "next": "g3"
+   },
+   "g3": {
+    "s": "narr",
+    "t": "Fifty metres of grey stone. The Garrison says it will outlast everything. Nobody asks what it is meant to outlast.",
+    "next": "g4"
+   },
+   "g4": {
+    "s": "anchor",
+    "t": "Do you ever feel it? That we’re not living here. We’re being kept.",
+    "next": "g5"
+   },
+   "g5": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“It’s home. That’s enough.”",
+      "next": "g6a",
+      "fx": [
+       {
+        "op": "set",
+        "key": "wall_view",
+        "value": "home"
+       },
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "“Someday I’ll go past it.”",
+      "next": "g6b",
+      "fx": [
+       {
+        "op": "set",
+        "key": "wall_view",
+        "value": "beyond"
+       },
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 2
+       }
+      ]
+     },
+     {
+      "t": "“Let’s just eat.”",
+      "next": "g6c",
+      "fx": [
+       {
+        "op": "set",
+        "key": "wall_view",
+        "value": "deflect"
+       }
+      ]
+     }
+    ]
+   },
+   "g6a": {
+    "s": "anchor",
+    "t": "Maybe it is. I’d like it to be.",
+    "next": "g7"
+   },
+   "g6b": {
+    "s": "anchor",
+    "t": "Then I’m coming with you. Don’t argue.",
+    "next": "g7"
+   },
+   "g6c": {
+    "s": "anchor",
+    "t": "You and your stomach. Fine. Sit.",
+    "next": "g7"
+   },
+   "g7": {
+    "s": "narr",
+    "t": "Somewhere above you, the light changes.",
+    "end": true
+   }
+  }
+ },
+ "breach_fate": {
+  "start": "b1",
+  "nodes": {
+   "b1": {
+    "s": "narr",
+    "t": "The ground jumps. Dust falls from the gate’s arch like flour from a torn sack.",
+    "next": "b2"
+   },
+   "b2": {
+    "s": "narr",
+    "t": "Above the wall, where there was sky, there is a face.",
+    "next": "b3"
+   },
+   "b3": {
+    "s": "anchor",
+    "t": "Don’t stand there! Run!",
+    "next": "b4",
+    "mood": "fear"
+   },
+   "b4": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "Seize {anchor}’s hand and run for the boats.",
+      "next": "b5",
+      "fx": [
+       {
+        "op": "set",
+        "key": "breach_choice",
+        "value": "hand"
+       }
+      ]
+     },
+     {
+      "t": "Run, and shout for {anchor} to follow.",
+      "next": "b5",
+      "fx": [
+       {
+        "op": "set",
+        "key": "breach_choice",
+        "value": "ahead"
+       }
+      ]
+     },
+     {
+      "t": "Stand still. Your legs will not move.",
+      "next": "b5",
+      "fx": [
+       {
+        "op": "set",
+        "key": "breach_choice",
+        "value": "frozen"
+       }
+      ]
+     }
+    ]
+   },
+   "b5": {
+    "s": "narr",
+    "t": "This is as far as the current build goes. The escape through Shiganshina is built next, and your choice has been saved.",
+    "fx": [
+     {
+      "op": "set",
+      "key": "prologue_part1_done",
+      "value": true
+     },
+     {
+      "op": "save"
+     }
+    ],
+    "end": true
+   }
+  }
+ }
+}

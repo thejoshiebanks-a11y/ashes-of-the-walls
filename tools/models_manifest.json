@@ -1,0 +1,13 @@
+{"models": {
+ "armin":      {"path": "Human, civilians and scout regiment /aotwa_armin_arlelt_rig/scene.gltf", "role": "human"},
+ "eren":       {"path": "Human, civilians and scout regiment /aotwa_eren_yeager/scene.gltf", "role": "human"},
+ "mikasa":     {"path": "Human, civilians and scout regiment /aotwa_mikasa_ackerman/scene.gltf", "role": "human"},
+ "sasha":      {"path": "Human, civilians and scout regiment /aot_sasha_braus_rig/scene.gltf", "role": "human"},
+ "reiner":     {"path": "Titan shifters /aotwa_reiner_braun_season_4/scene.gltf", "role": "human"},
+ "annie":      {"path": "Titan shifters /aotwa_annie_leonhart/scene.gltf", "role": "human"},
+ "bertholdt":  {"path": "Titan shifters /aotwa_bertholdt_hoover/scene.gltf", "role": "human"},
+ "fuse_woman": {"path": "Human, civilians and scout regiment /fuse_woman_1.glb", "rename": "mixamo", "role": "civilian"},
+ "fuse_man":   {"path": "Human, civilians and scout regiment /fuse_civilian_2.glb", "rename": "mixamo", "role": "civilian"},
+ "colossal":   {"path": "Titans/aotwa_colossal_titan/scene.gltf", "role": "titan"},
+ "armored":    {"path": "Titans/aotwa_armored_titan/scene.gltf", "role": "titan"}
+}}

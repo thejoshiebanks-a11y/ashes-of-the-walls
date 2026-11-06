@@ -211,7 +211,7 @@ function groundFix(M,mm,gy,standing,sc){sc=sc||1;if(!M.low)return;let mn=1e9;for
 const ZMASK=new Float32Array(128);
 function drawModel(M,model,mode,S,mask,skipRe){if(!M)return;gl.useProgram(gp.p);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,M.bt);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,4,M.J,gl.RGBA,gl.FLOAT,S||M.S);gl.uniform1i(gp.u.umode,mode||0);gl.uniform4fv(gp.u.mk,mask||ZMASK);
  gl.uniform1i(gp.u.bones,1);gl.uniform1i(gp.u.tex,0);gl.uniformMatrix4fv(gp.u.vp,false,E.vp);gl.uniformMatrix4fv(gp.u.model,false,model);gl.uniform3fv(gp.u.sun,E.sunDir||[.4,.8,.3]);{const L=E.light||{};gl.uniform3fv(gp.u.sunC,L.sunC||[2,2,2]);gl.uniform3fv(gp.u.ambS,L.ambS||[.4,.5,.7]);gl.uniform3fv(gp.u.ambG,L.ambG||[.4,.3,.2])}gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);
- for(const p of M.prims){if(skipRe&&skipRe.test(p.mat))continue;gl.activeTexture(gl.TEXTURE0);const t=p.tex!==null&&p.tex!==undefined?M.tex[p.tex]:null;gl.bindTexture(gl.TEXTURE_2D,t||M.tex[0]);gl.uniform1f(gp.u.hasT,t?1:0);gl.uniform3f(gp.u.col,.07,.06,.06);gl.bindVertexArray(p.vao);gl.drawElements(gl.TRIANGLES,p.ni,p.ty,0)}gl.bindVertexArray(null)}
+ for(const p of M.prims){if(skipRe&&skipRe.test(p.mat))continue;gl.activeTexture(gl.TEXTURE0);const t=p.tex!==null&&p.tex!==undefined?M.tex[p.tex]:null;gl.bindTexture(gl.TEXTURE_2D,t||M.tex[0]);gl.uniform1f(gp.u.hasT,t?1:0);gl.uniform3f(gp.u.col,.07,.06,.06);{const tt=M.tintFn?M.tintFn(p.mat):null;gl.uniform3f(gp.u.tint,tt?tt[0]:1,tt?tt[1]:1,tt?tt[2]:1);gl.uniform1f(gp.u.tmode,tt&&tt[3]?1:0)}gl.bindVertexArray(p.vao);gl.drawElements(gl.TRIANGLES,p.ni,p.ty,0)}gl.bindVertexArray(null)}
 function modelMat(R,U,F,o,sc){const s=sc||1;return new Float32Array([R[0]*s,R[1]*s,R[2]*s,0,U[0]*s,U[1]*s,U[2]*s,0,F[0]*s,F[1]*s,F[2]*s,0,o[0],o[1],o[2],1])}
 function initSkin(){const sh=(t,c)=>{const x=gl.createShader(t);gl.shaderSource(x,c);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(x));return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,`#version 300 es
@@ -219,10 +219,10 @@ in vec3 p;in vec3 n;in vec2 uv;in uvec4 jj;in vec4 ww;uniform mat4 vp,model;unif
 mat4 B(uint j){int r=int(j);return mat4(texelFetch(bones,ivec2(0,r),0),texelFetch(bones,ivec2(1,r),0),texelFetch(bones,ivec2(2,r),0),texelFetch(bones,ivec2(3,r),0));}
 void main(){mat4 s=B(jj.x)*ww.x+B(jj.y)*ww.y+B(jj.z)*ww.z+B(jj.w)*ww.w;vec4 w=model*(s*vec4(p,1.));vn=mat3(model)*(mat3(s)*n);vu=uv;float m=0.;for(int k=0;k<4;k++){int j=int(jj[k]);m+=ww[k]*mk[j>>2][j&3];}vmk=m;gl_Position=vp*w;}`));
  gl.attachShader(p,sh(gl.FRAGMENT_SHADER,`#version 300 es
-precision mediump float;in vec3 vn;in vec2 vu;in float vmk;uniform int umode;uniform sampler2D tex;uniform vec3 sun,col,sunC,ambS,ambG;uniform float hasT;out vec4 o;
-void main(){if(umode==1&&vmk>.5)discard;if(umode==2&&vmk<.5)discard;vec4 c=hasT>.5?texture(tex,vu):vec4(col,1.);if(c.a<.4)discard;vec3 N=normalize(vn);if(!gl_FrontFacing)N=-N;float d=dot(N,normalize(sun));float wr=clamp(d*.5+.5,0.,1.);float b=.42+.62*wr*wr;vec3 amb=mix(ambG,ambS,N.y*.5+.5);float rim=pow(1.-clamp(abs(N.z)*.0+.35,0.,1.),2.)*0.;o=vec4(c.rgb*(b*sunC*.36+amb*.7+.05),1.);}`));
+precision mediump float;in vec3 vn;in vec2 vu;in float vmk;uniform int umode;uniform sampler2D tex;uniform vec3 sun,col,sunC,ambS,ambG;uniform float hasT;uniform vec3 tint;uniform float tmode;out vec4 o;
+void main(){if(umode==1&&vmk>.5)discard;if(umode==2&&vmk<.5)discard;vec4 c=hasT>.5?texture(tex,vu):vec4(col,1.);if(c.a<.4)discard;if(tmode>.5){float l_=dot(c.rgb,vec3(.299,.587,.114));c.rgb=tint*(l_*1.6+.05);}else c.rgb*=tint;vec3 N=normalize(vn);if(!gl_FrontFacing)N=-N;float d=dot(N,normalize(sun));float wr=clamp(d*.5+.5,0.,1.);float b=.42+.62*wr*wr;vec3 amb=mix(ambG,ambS,N.y*.5+.5);float rim=pow(1.-clamp(abs(N.z)*.0+.35,0.,1.),2.)*0.;o=vec4(c.rgb*(b*sunC*.36+amb*.7+.05),1.);}`));
  gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))console.error(gl.getProgramInfoLog(p));
- gp={p,a:{},u:{}};for(const k of['p','n','uv','jj','ww'])gp.a[k]=gl.getAttribLocation(p,k);for(const k of['vp','model','bones','tex','sun','col','hasT','sunC','ambS','ambG','umode','mk'])gp.u[k]=gl.getUniformLocation(p,k);
+ gp={p,a:{},u:{}};for(const k of['p','n','uv','jj','ww'])gp.a[k]=gl.getAttribLocation(p,k);for(const k of['vp','model','bones','tex','sun','col','hasT','sunC','ambS','ambG','umode','mk','tint','tmode'])gp.u[k]=gl.getUniformLocation(p,k);gl.useProgram(p);gl.uniform3f(gp.u.tint,1,1,1);gl.uniform1f(gp.u.tmode,0);
  loadAnims().then(()=>loadModel('levi')).then(()=>loadModel('titan')).then(setupTitan).catch(e=>console.error('model load',e))}
 
 let dodgeSide=1,yankT=0,armedT=0,armK=0,limbs=[],LVHIDE=null,trail=[],lastLeviMM=null;
@@ -512,6 +512,61 @@ function drawAvatar(dt){const M=MD.levi;if(!M||!AN)return drawBoxes(dt);const sp
  const k=(grab||grounded||LV.one||cling>0)?0:Math.min(.55,Math.max(0,(sp-6)/30)),vh=sp>1?nrm(v):[0,1,0],tU=(grab&&grab.fr)?grab.fr.U:nrm([vh[0]*k,(1-k)+vh[1]*k,vh[2]*k]),bt=Math.min(1,dt*(grab?14:8));bu=nrm([bu[0]+(tU[0]-bu[0])*bt,bu[1]+(tU[1]-bu[1])*bt,bu[2]+(tU[2]-bu[2])*bt]);
  let fl=(grab&&grab.fr)?grab.fr.Fl:nrm([face[0],0,face[2]]);const U=bu,cd=[fl[0]*(1-k),fl[1]*(1-k)-k,fl[2]*(1-k)],dd=dot(cd,U);let F=nrm([cd[0]-U[0]*dd,cd[1]-U[1]*dd,cd[2]-U[2]*dd]);if(len(F)<.3)F=nrm(cross(U,[1,0,0]));const R=nrm(cross(U,F));
  BAS=[R,U,F];const pz=LV.get(dt,flightProc);if(!pz)return drawBoxes(dt);armedT=Math.max(0,armedT-dt);if(titan&&!titan.dead&&Math.hypot(H[0]-titan.x,H[2]-titan.z)<42)armedT=Math.max(armedT,2.5);if(grab)armedT=Math.max(armedT,2);{const was=armK>.35;armK+=((armedT>0?1:0)-armK)*Math.min(1,dt*(armedT>0?9:5));if(!was&&armK>.35&&armedT>0){const hp_=[H[0],H[1]+.1,H[2]];burst(hp_,[0,1,0],[.9,.95,1],5,2.5,.05,.25,0,.9,.3,4)}handCurl(M,dt)}if(!grounded&&!swimming&&LV.one&&!grab&&!/Crash|Climb|Impact|Carried|Roll|Death|Landing|Hanging/.test(LV.cur||''))overlayLegs(pz,.55);pz.k=(grounded&&!grab&&LV.cur&&/Idle|Walk|Jog|Sprint|GAIT/.test(LV.cur))?1:0;const dirs0=toDirs(pz,pz.k);M.pose(dirs0);const o=[H[0]-U[0]*HH,H[1]-U[1]*HH,H[2]-U[2]*HH],mm_=relModel(R.map(x=>x*PLS),U.map(x=>x*PLS),F.map(x=>x*PLS),o,pz,.9);if(grounded&&!grab&&!vlt)groundFixL(M,mm_,H[1]-HH,!(LV.one&&/Flip|Corkscrew|Jump|Crash|Climb/.test(LV.cur||'')),PLS,pz.k===1&&!LV.one,dt);secondary(M,mm_,dirs0,dt);lastLeviMM=mm_;if(!(camDist<.75)&&!(grab&&grab.eaten)){drawModel(M,mm_,LVHIDE?1:0,null,LVHIDE,armK>.4?null:/Sword/);if(grab&&LVHIDE)drawLeviStumps(M,mm_)}trailStep(dt,M,mm_)}
+
+// ================= story actors: NPCs, the child player, static props (Colossal) =================
+// Any model converted by tools/convert_model.py can be posed with the shared Mixamo-derived clip set.
+const ACTORS=[];let ACT_ID=1;
+const ACT_GEAR=/weapon|sword|odm|gangsheng|quiver|bow|heixian|juren|pifeng|wuqi|zhuangbei|xinhao|jianto|gongjian/i;
+function actClass(a,mat){const m=mat.toLowerCase();
+ if(/hair|beard|moustache|mustache|brow|lash/.test(m))return'hair';
+ if(a.kind==='fuse'){if(/^body$/.test(m))return'skin';if(/shoe|boot/.test(m))return'shoes';if(/bottom|pant|trouser/.test(m))return'bottom';return'top'}
+ if(/face|skin/.test(m))return'skin';if(/foot|boot|shoe/.test(m))return'shoes';return'top'}
+function actTint(a){return mat=>{const L=a.look;if(!L)return null;const c=actClass(a,mat),col=L[c];if(!col)return null;return c==='skin'?[col[0],col[1],col[2],0]:[col[0],col[1],col[2],1]}}
+function actorClip(a,sp){
+ if(a.pose==='crouch')return['L:Crouch Idle',1];
+ if(a.pose==='fall')return[AN.meta.clips['L:Falling Idle']?'L:Falling Idle':'L:Unarmed Idle',1];
+ if(sp>3.4)return['L:Sprint',Math.min(1.5,.55+sp/7)];
+ if(sp>1.5)return['L:Jog Forward',Math.min(1.4,.5+sp/4.5)];
+ if(sp>.25)return['L:Standard Walk',Math.min(1.5,.4+sp/1.7)];
+ return[a.idle||'L:Unarmed Idle',1]}
+function drawActors(dt){
+ if(!AN||!gl||!ACTORS.length)return;dt=Math.min(.05,dt||.016);
+ for(const a of ACTORS){
+  const M=MD[a.key];if(!M||a.hidden)continue;
+  if(a.isPlayer){const sp=Math.hypot(v[0],v[2]);a.x=H[0];a.z=H[2];a.gy=H[1]-HH;
+    if(sp>.4){const ty=Math.atan2(v[0],v[2]);let d=ty-a.yaw;while(d>Math.PI)d-=6.2832;while(d<-Math.PI)d+=6.2832;a.yaw+=d*Math.min(1,dt*9)}
+    a.speed=grounded?sp:0;if(!grounded&&!swimming)a.pose='fall';else if(a.pose==='fall')a.pose=null}
+  else{
+   if(a.path&&a.path.length&&!a.talking){const w=a.path[a.pi%a.path.length];
+    if(a.wait>0){a.wait-=dt;a.speed=0}else{const dx=w[0]-a.x,dz=w[1]-a.z,d=Math.hypot(dx,dz);
+     if(d<.35){a.pi++;a.wait=w[2]||0;a.speed=0}else{const sp=a.walk||1.1,st=Math.min(d,sp*dt);a.x+=dx/d*st;a.z+=dz/d*st;a.speed=sp;let q=Math.atan2(dx,dz)-a.yaw;while(q>Math.PI)q-=6.2832;while(q<-Math.PI)q+=6.2832;a.yaw+=q*Math.min(1,dt*6)}}}
+   else a.speed=0;
+   if(a.lookAt){let q=Math.atan2(a.lookAt[0]-a.x,a.lookAt[1]-a.z)-a.yaw;while(q>Math.PI)q-=6.2832;while(q<-Math.PI)q+=6.2832;a.yaw+=q*Math.min(1,dt*4)}
+   a.gy=a.gy===undefined?gh(a.x,a.z):a.gy+(gh(a.x,a.z)-a.gy)*Math.min(1,dt*10)}
+  if(Math.hypot(a.x-H[0],a.z-H[2])>170&&!a.isPlayer)continue;
+  if(!a.static){
+   if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
+   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);
+   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;
+   if(a.talking){const t=a.ph=(a.ph||0)+dt;const g=Math.sin(t*2.3)*.5+.5;const r=AN.pi['Bip001 R Forearm'];if(r!==undefined&&a.talkGest!==false){const i=r*3;pz.d[i+1]+=g*.45;pz.d[i]-=g*.18}}
+   const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;
+   if(hs!==1&&hi>=0){sv=M.loc.slice(hi*16,hi*16+12);for(let k=0;k<12;k++)if(k%4<3)M.loc[hi*16+k]*=hs}
+   M.pose(toDirs(pz,1));if(sv)M.loc.set(sv,hi*16);
+   const sc=a.scale,wd=a.wide||1,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),o=[a.x,a.gy,a.z];
+   const mm=relModel(R.map(x=>x*sc*wd),U.map(x=>x*sc),F.map(x=>x*sc*wd),o,pz,M.py);groundFix(M,mm,a.gy,true,sc);
+   M.tintFn=a.tintFn||(a.tintFn=actTint(a));drawModel(M,mm,0,null,null,a.skipRe||(a.kind==='aot'?ACT_GEAR:null));
+  }else{
+   M.pose({});const sc=a.scale,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),mm=modelMat(R,U,F,[a.x,a.y||0,a.z],sc);
+   M.tintFn=null;drawModel(M,mm,0,null,null,a.skipRe||null)}}}
+window.__actors={
+ list:ACTORS,
+ add(d){const a=Object.assign({id:ACT_ID++,x:0,z:0,yaw:0,scale:PLS,kind:'aot',look:null,pi:0,wait:0,speed:0},d);ACTORS.push(a);return a},
+ remove(id){const i=ACTORS.findIndex(a=>a.id===id);if(i>=0)ACTORS.splice(i,1)},
+ clear(keepPlayer){for(let i=ACTORS.length-1;i>=0;i--)if(!(keepPlayer&&ACTORS[i].isPlayer))ACTORS.splice(i,1)},
+ has:k=>!!MD[k],keys:()=>Object.keys(MD),
+ bodyHeight:k=>MD[k]&&MD[k].bodyHeight,
+ loadModel:async(key)=>{const M=await loadModel(key);return M},
+ PLS,HH,LEVI_H:1.62};
 function cyl(c,r,h,Rx,Ux,Fx,col,seg){seg=seg||8;const pt=(a,y)=>{const cx=Math.cos(a)*r,cz=Math.sin(a)*r;return[c[0]+Rx[0]*cx+Ux[0]*y+Fx[0]*cz,c[1]+Rx[1]*cx+Ux[1]*y+Fx[1]*cz,c[2]+Rx[2]*cx+Ux[2]*y+Fx[2]*cz]};
  for(let i=0;i<seg;i++){const a0=i/seg*6.2832,a1=(i+1)/seg*6.2832,am=(a0+a1)/2,n=[Rx[0]*Math.cos(am)+Fx[0]*Math.sin(am),Rx[1]*Math.cos(am)+Fx[1]*Math.sin(am),Rx[2]*Math.cos(am)+Fx[2]*Math.sin(am)];quad(pt(a0,-h),pt(a1,-h),pt(a1,h),pt(a0,h),col,n);tri(pt(a0,h),pt(a1,h),[c[0]+Ux[0]*h,c[1]+Ux[1]*h,c[2]+Ux[2]*h],col,1)}}
 function drawBoatDetails(){const E_=E,xs=E_.boatXf;if(!xs||!xs.length)return;const t=performance.now()*.001;
@@ -678,7 +733,7 @@ function hudUpdate(dt){const sp=len(v);dodgeCD=Math.max(0,dodgeCD-dt);supplyCD=M
 function init(){E=window.__E;st=window.__st;ui();setTimeout(()=>setOn(true),60);const R0=E.render.bind(E);
  E.render=function(c,dt){if(!on)return R0(c,dt);dt=Math.min(.05,dt);tick++;if(slowT>0){slowT-=dt;if(slowT<=0)slow=1}const fz=!!window.__freeze,gd=fz?0:dt*slow;if(!fz){tod(dt);lockStep(dt)}if(hp<=0){hp=hpMax;msg='DOWN — back to the gate';msgT=2.5;respawn();blades=4;dur=100}
   if(grab||fz){}else{const n=gd>.026?2:1;for(let i=0;i<n;i++)step(gd/n)}
-  if(!fz){if(!window.__noTitan)titanUpdate(gd);camUpdate(gd)}if(!window.__noR0)R0(cam,dt);if(!window.__hideAvatar)drawAvatar(gd);if(titan&&!window.__noTitan){const T=titan,cn=Object.keys(T.cut).filter(k=>T.cut[k]).map(k=>CUTB[k]),hm=cn.length?T.M.mask(cn):null;drawModel(T.M,T.mm,hm?1:0,null,hm);drawStumps(T);drawWounds(T,gd)}if(!fz)limbStep(gd);drawLimbs();drawFx(gd);flush();hudUpdate(dt)}}
+  if(!fz){if(!window.__noTitan)titanUpdate(gd);camUpdate(gd)}{const cn=window.__cine;if(cn&&cn.on){cam.pos=cn.pos.slice();cam.target=cn.target.slice();cam.fov=cn.fov||cam.fov;fov=cn.fov||fov}}if(!window.__noR0)R0(cam,dt);if(!window.__hideAvatar)drawAvatar(gd);try{drawActors(dt)}catch(e){if(!window.__actErr){window.__actErr=1;console.error('[actors]',e)}}if(titan&&!window.__noTitan){const T=titan,cn=Object.keys(T.cut).filter(k=>T.cut[k]).map(k=>CUTB[k]),hm=cn.length?T.M.mask(cn):null;drawModel(T.M,T.mm,hm?1:0,null,hm);drawStumps(T);drawWounds(T,gd)}if(!fz)limbStep(gd);drawLimbs();drawFx(gd);flush();hudUpdate(dt)}}
 if(typeof document!=='undefined'){const iv=setInterval(()=>{if(window.__ready&&window.__E){clearInterval(iv);init()}},250);window.__gfTest=(spd,secs)=>{const M=MD.levi,o=newPose(),sv_=v,pg=gaitPh,out=[];v=[0,0,spd];for(let i=0;i<secs*60;i++){gaitPh+=gaitRate(spd/PLS)*(1/60);gaitProc(o);o.k=1;M.pose(toDirs(o,1));const mm=relModel([PLS,0,0],[0,PLS,0],[0,0,PLS],[0,HH*0,0],o,.9);groundFixL(M,mm,0,true,PLS,true,1/60);const g=n=>{const w=M.W[M.id('Bip001 '+n)];return mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13]};out.push([g('Pelvis'),g('L Foot'),g('R Foot'),g('Head')])}v=sv_;gaitPh=pg;return out};window.__world={FB:()=>{if(!FB)buildFB();return FB},setV:q=>{v=q},cast:(o,d,t)=>cast(o,d,t),gh:(x,z)=>gh(x,z),inCanal:(x,z)=>inCanal(x,z),A:()=>A,E:()=>E,H:()=>H,setH:p=>{H=p;v=[0,0,0]},V:()=>v,swim:()=>swimming,gr:()=>grounded,J:()=>E.J};window.__gaitTest=(ph,spd)=>{const M=MD.levi,o=newPose(),sv_=v,pg=gaitPh;gaitPh=ph;v=[0,0,spd];gaitProc(o);v=sv_;gaitPh=pg;o.k=1;M.pose(toDirs(o,1));const g=n=>{const w=M.W[M.id('Bip001 '+n)];return[w[12],w[13],w[14]].map(x=>+x.toFixed(4))};return{LF:g('L Foot'),RF:g('R Foot'),LT:g('L Toe0'),RT:g('R Toe0'),LK:g('L Calf'),RK:g('R Calf'),LTh:g('L Thigh'),RTh:g('R Thigh'),P:g('Pelvis'),H:g('Head'),py:M.py,LH:g('L Hand'),RH:g('R Hand')}};window.ODM={tst:{gp:()=>grab?gripPoint():null,pm:()=>titan.palmMid,hb:n=>titanBone(n),SPH,titan:()=>titan,T_:T,lh:()=>{const M=MD.levi;if(!M||!lastLeviMM)return null;const mm=lastLeviMM,w=M.W[M.id('Bip001 Head')];return{head:mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13],feet:H[1]-HH,gp:gaitPh}},cast:(o,d,m)=>cast(o,d,m),floorY,inCanal,canalD,sw:()=>swimming,hh:()=>H,K,setH:p=>{H=p;v=[0,0,0]},setV:q=>{v=q.slice()},fire,slash:()=>slash(),relHook,getHK:()=>hk,grabNow:k=>{const T=titan;T.state='grab';T.atk=null;grab={t:0,esc:0,kind:k,n:0,m:0};LVHIDE=null;hk=[{on:false},{on:false}]},gt:t=>{if(grab)grab.t=t},sliceTag:(tag,sp)=>{const q=SPH.find(s=>s.tag===tag);if(!q)return 'no sphere';sliceAt(titan,q,[0,0,1],sp,()=>{});return titan.cut},clipPose,newPose,toDirs,get AN(){return AN},TN,LV,face:()=>face,setYaw:y=>{st.wyaw=y},setHour:h=>{hour=h},palmPos,mouthPos,titanBone,get cam(){return cam},get grab(){return grab}},P,md:MD,get ready(){return!!titan},get titan(){return titan},get grab(){return grab},set hour(h){hour=h},get hour(){return hour},get spheres(){return SPH},get limbs(){return limbs},get blades(){return blades},get kills(){return kills},get state(){return{H,v,gas,hk}}}}
 if(typeof module!=='undefined')module.exports={setE:(e,s)=>{E=e;st=s},build,cast,step,respawn,get:()=>({H,v,gas,hk,grounded}),fire,setCam:c=>{cam=c},K,P,gh};
 })();

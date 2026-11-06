@@ -1,24 +1,24 @@
 {
- "disclaimer": "Ashes of the Walls is an unofficial, non-commercial fan project. It is not affiliated with or endorsed by the creators or publishers of Attack on Titan.",
+ "disclaimer": "Ashes of the Walls is an unofficial, non-commercial fan project, not affiliated with or endorsed by the creators or publishers of Attack on Titan.",
  "director": "",
  "sections": [
   {
    "title": "Models",
    "items": [
     {
+     "what": "Levi, Eren, Mikasa, Armin, Sasha, Annie, Reiner, Bertholdt, Colossal and Armored Titans, Fat Titan",
+     "who": "Prime Slayer3D (ianadrielbravo), Sketchfab",
+     "lic": "CC-BY 4.0"
+    },
+    {
      "what": "Torhaus gate (Shiganshina gate)",
      "who": "Nico Maier (kafudev)",
      "lic": "CC-BY 4.0"
     },
     {
-     "what": "Levi Ackerman rig",
-     "who": "Prime Slayer3D (Sketchfab)",
-     "lic": "CC-BY 4.0"
-    },
-    {
-     "what": "AOTWA Fat Titan",
-     "who": "Prime Slayer3D (Sketchfab)",
-     "lic": "CC-BY 4.0"
+     "what": "Civilian characters",
+     "who": "Adobe Mixamo Fuse",
+     "lic": "Mixamo terms"
     }
    ]
   },
@@ -43,10 +43,20 @@
    ]
   },
   {
+   "title": "Sound and music",
+   "items": [
+    {
+     "what": "Generated live in your browser",
+     "who": "Original synthesis",
+     "lic": ""
+    }
+   ]
+  },
+  {
    "title": "Engine and story code",
    "items": [
     {
-     "what": "Custom WebGL2 engine, story systems",
+     "what": "Custom WebGL2 engine and story systems",
      "who": "Built with Claude by Anthropic",
      "lic": ""
     }

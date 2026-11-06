@@ -1,17 +1,16 @@
 # Credits (feeds the in-game credits scene)
 
-Crediting is required by CC-BY licences, but a credit is not a licence by itself. Assets ripped from
-games or anime stay copyrighted by their owners, so keep the repo private until they are replaced.
+A credit satisfies CC-BY, but it does not license a model ripped from a game or anime. Keep the repo private until those are replaced.
 
 | Asset | Author / source | Licence | Status |
 |---|---|---|---|
-| Gate: "[3ds Max] Attack on Titan Torhaus" | Nico Maier (kafudev) | CC-BY-4.0 | OK, credit required |
-| Medieval house models (8 types) | UNKNOWN, fill in | UNKNOWN | needs source |
-| Eren's home, market stalls, cart, sacks, well, cannons, boulders ("second pack") | UNKNOWN, fill in | UNKNOWN | needs source |
-| Plaza houses, trees, barrels, cart ("stage file") | UNKNOWN, fill in | UNKNOWN | needs source |
-| Levi Ackerman rig | Prime Slayer3D (Sketchfab), as credited in the game menu | CC-BY 4.0 | the uploader may not own the source model, so replace before public release |
-| AOTWA Fat Titan | Prime Slayer3D (Sketchfab), as credited in the game menu | CC-BY 4.0 | same caution as above |
-| Animations ("uploaded Mixamo packs") | Mixamo / Adobe | Mixamo terms | check terms |
-| Fonts: Spectral, Barlow, Barlow Condensed | Google Fonts | OFL | OK |
+| Eren, Mikasa, Armin, Sasha, Annie, Reiner, Bertholdt, Levi, Colossal and Armored Titans, Fat Titan | Prime Slayer3D (ianadrielbravo), Sketchfab | CC-BY 4.0 | credited; the uploads look like game rips, so replace before a public release |
+| Torhaus gate (Shiganshina gate) | Nico Maier (kafudev) | CC-BY 4.0 | OK, credit required |
+| Fuse civilian man and woman | Adobe Mixamo Fuse | Mixamo terms | check terms |
+| Animation clips | Mixamo | Mixamo terms | check terms |
+| Medieval houses, Eren's home, market stalls, cart, plaza houses and trees in the district | UNKNOWN, fill in | UNKNOWN | needs source |
+| Hannes, Mina, Carla, 7 Titans (FBX, not in the game yet) | UNKNOWN | UNKNOWN | needs source |
+| Fonts: Spectral, Barlow, Barlow Condensed | Google Fonts | SIL OFL | OK |
+| Music and sound | generated live in the browser | n/a | original |
 
-The in-game credits scene and opening sequence read data/story/credits.json. Update it whenever this table changes.
+The credits scene, opening ticker and splash read data/story/credits.json. Update it whenever this table changes.

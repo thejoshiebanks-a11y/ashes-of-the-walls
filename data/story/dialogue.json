@@ -193,7 +193,7 @@
   "nodes": {
    "i1": {
     "s": "anchor",
-    "t": "The bread won’t fetch itself. Old Square. Go on.",
+    "t": "Go on. I’ll be here. I’m always here.",
     "end": true
    }
   }
@@ -670,6 +670,756 @@
       "op": "save"
      }
     ],
+    "end": true
+   }
+  }
+ },
+ "anchor_dinner": {
+  "start": "d1",
+  "nodes": {
+   "d1": {
+    "s": "narr",
+    "t": "The lamp is lit by the time you reach home. {anchor} is stirring something that smells like onions and patience.",
+    "next": "d2"
+   },
+   "d2": {
+    "s": "anchor",
+    "t": "You’re late, and you’re warm, which means you took the long way. Give me the bread.",
+    "next": "d3"
+   },
+   "d3": {
+    "branch": [
+     {
+      "if": "extra_bread",
+      "next": "d3x"
+     },
+     {
+      "next": "d4"
+     }
+    ]
+   },
+   "d3x": {
+    "s": "anchor",
+    "t": "Half a loaf extra? Marta’s been giving you things. What did you do, charm her?",
+    "next": "d4"
+   },
+   "d4": {
+    "s": "anchor",
+    "t": "Sit. Eat. Tell me one thing you saw today that wasn’t on the way to anywhere.",
+    "next": "d5"
+   },
+   "d5": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“The children by the plaza. They’re reading about the sea.”",
+      "next": "d6a",
+      "fx": [
+       {
+        "op": "set",
+        "key": "told_sea",
+        "value": true
+       }
+      ]
+     },
+     {
+      "t": "“Hannes, asleep on his feet at the gate.”",
+      "next": "d6b",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "“Nothing. It was a normal day.”",
+      "next": "d6c"
+     }
+    ]
+   },
+   "d6a": {
+    "s": "anchor",
+    "t": "The sea. Salt water, all the way to the edge of the world. I used to dream about that, too.",
+    "next": "d7"
+   },
+   "d6b": {
+    "s": "anchor",
+    "t": "Asleep on duty? Then thank the stones they’ve never been tested.",
+    "next": "d7"
+   },
+   "d6c": {
+    "s": "anchor",
+    "t": "A normal day. Hold on to that phrase. Most people don’t know it’s a gift until it’s gone.",
+    "next": "d7"
+   },
+   "d7": {
+    "s": "narr",
+    "t": "You eat. The lamp ticks. Outside, the district settles into its evening noises, and the wall stands over all of it, patient as a mountain.",
+    "next": "d8"
+   },
+   "d8": {
+    "s": "anchor",
+    "t": "Bed. Tomorrow I need you at the gate before the heat. Go.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Day 1 complete. Sleep to begin Day 2."
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "anchor_day2": {
+  "start": "a1",
+  "nodes": {
+   "a1": {
+    "s": "anchor",
+    "t": "Up. Good. There’s something I need you to carry for me.",
+    "next": "a2"
+   },
+   "a2": {
+    "s": "anchor",
+    "t": "Hannes at the gate forgot his lunch again. Take him this pail. Don’t let him share it with the pigeons.",
+    "next": "a3",
+    "fx": [
+     {
+      "op": "quest.start",
+      "id": "whispers"
+     }
+    ]
+   },
+   "a3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Why me?”",
+      "next": "a4q"
+     },
+     {
+      "t": "“He won’t say thank you.”",
+      "next": "a4t"
+     },
+     {
+      "t": "“I’ll go now.”",
+      "next": "a4g",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     }
+    ]
+   },
+   "a4q": {
+    "s": "anchor",
+    "t": "Because you’re the only one in this house who walks fast and listens slowly. It’s a useful combination.",
+    "next": "a5"
+   },
+   "a4t": {
+    "s": "anchor",
+    "t": "He won’t. But he’ll remember who brought it. Soldiers are like cats that way.",
+    "next": "a5"
+   },
+   "a4g": {
+    "s": "anchor",
+    "t": "That’s my {player}. Off you go.",
+    "next": "a5"
+   },
+   "a5": {
+    "s": "anchor",
+    "t": "And if Oswin at the well wants to talk, let him. He says the wall hums at night. Nobody else will listen.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Day 2. Take the lunch pail to Hannes at the gate."
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "hannes_lunch": {
+  "start": "h1",
+  "nodes": {
+   "h1": {
+    "s": "hannes",
+    "t": "Is that, ah. Is that cabbage? Bless whoever sent it. Bless you, too, you walk-on-water little postman.",
+    "next": "h2"
+   },
+   "h2": {
+    "s": "hannes",
+    "t": "Sit a minute. Watch the gate with me. It’s the best view in the district for nothing happening.",
+    "next": "h3"
+   },
+   "h3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Why is there a second watch tonight?”",
+      "next": "h4a"
+     },
+     {
+      "t": "“Do you ever get bored?”",
+      "next": "h4b"
+     },
+     {
+      "t": "“What do you do if something happens?”",
+      "next": "h4c"
+     }
+    ]
+   },
+   "h4a": {
+    "s": "hannes",
+    "t": "Doubled, is it? Orders. Somebody up the chain got a bad feeling. Don’t let it rattle you, kid. Chains get bad feelings every spring.",
+    "next": "h5"
+   },
+   "h4b": {
+    "s": "hannes",
+    "t": "Every day. Boredom is the soldier’s whole job. The rest of it is waiting for the day boredom stops, and praying it doesn’t.",
+    "next": "h5"
+   },
+   "h4c": {
+    "s": "hannes",
+    "t": "Happens? Then I do the thing I trained for. And I find out whether the training was worth it. I’d rather not find out.",
+    "next": "h5"
+   },
+   "h5": {
+    "s": "hannes",
+    "t": "Go on. Stand by the gate a while if you want. Look at it properly. It’s older than any of us.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Linger near the gate and watch."
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "hannes_hum": {
+  "start": "h1",
+  "nodes": {
+   "h1": {
+    "s": "hannes",
+    "t": "Hum? From the wall? Who’s been telling you that, old Oswin?",
+    "next": "h2"
+   },
+   "h2": {
+    "s": "hannes",
+    "t": "…We hear it. Night watch hears it. Low, like a cart a long way off that never arrives. Command says it’s the stone settling.",
+    "next": "h3"
+   },
+   "h3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Is it the stone?”",
+      "next": "h4a"
+     },
+     {
+      "t": "“Should someone be told?”",
+      "next": "h4b"
+     }
+    ]
+   },
+   "h4a": {
+    "s": "hannes",
+    "t": "Stone doesn’t usually settle on a rhythm. I’m going to go on telling myself it does.",
+    "next": "h5"
+   },
+   "h4b": {
+    "s": "hannes",
+    "t": "Someone was told. That’s why the watch doubled. Don’t repeat it, all right?",
+    "next": "h5",
+    "fx": [
+     {
+      "op": "set",
+      "key": "hannes_admits",
+      "value": true
+     }
+    ]
+   },
+   "h5": {
+    "s": "hannes",
+    "t": "Tell Oswin he’s not mad. Don’t tell him I said so.",
+    "end": true
+   }
+  }
+ },
+ "kids_day2": {
+  "start": "k1",
+  "nodes": {
+   "k1": {
+    "s": "armin",
+    "t": "You were at the gate? Did you see how many soldiers are on the wall?",
+    "next": "k2"
+   },
+   "k2": {
+    "s": "eren",
+    "t": "Doesn’t matter how many. A hundred soldiers sitting on a wall is still just a hundred people sitting.",
+    "next": "k3"
+   },
+   "k3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Twice as many as usual, and they’re nervous.”",
+      "next": "k4a",
+      "fx": [
+       {
+        "op": "set",
+        "key": "reported_nervous",
+        "value": true
+       },
+       {
+        "op": "bond",
+        "id": "armin",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "“The usual. Bored, mostly.”",
+      "next": "k4b"
+     },
+     {
+      "t": "“Hannes says the wall hums at night.”",
+      "next": "k4c",
+      "fx": [
+       {
+        "op": "set",
+        "key": "told_hum",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "k4a": {
+    "s": "armin",
+    "t": "Nervous. Of what? I read that the Garrison hasn’t drawn a blade in anger in a century.",
+    "next": "k5"
+   },
+   "k4b": {
+    "s": "armin",
+    "t": "Bored. That’s what I wrote down too. Oh well.",
+    "next": "k5"
+   },
+   "k4c": {
+    "s": "mikasa",
+    "t": "A humming wall. …Eren, stop grinning, it isn’t a joke.",
+    "next": "k5"
+   },
+   "k5": {
+    "s": "eren",
+    "t": "I don’t care what it hums. One day I’m going to be on the other side, and then I’ll know.",
+    "next": "k6"
+   },
+   "k6": {
+    "s": "armin",
+    "t": "Come on. Your {anchor.rel} will be waiting. It’ll be dark soon.",
+    "end": true
+   }
+  }
+ },
+ "anchor_evening2": {
+  "start": "e1",
+  "nodes": {
+   "e1": {
+    "s": "narr",
+    "t": "{anchor} is on the doorstep when you get home, one hand shading the last of the light.",
+    "next": "e2"
+   },
+   "e2": {
+    "s": "anchor",
+    "t": "You’re quiet. That’s either hunger or thinking. Which is it?",
+    "next": "e3"
+   },
+   "e3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Thinking. The gate felt different today.”",
+      "next": "e4a",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       },
+       {
+        "op": "set",
+        "key": "shared_unease",
+        "value": true
+       }
+      ]
+     },
+     {
+      "t": "“Hunger.”",
+      "next": "e4b"
+     }
+    ]
+   },
+   "e4a": {
+    "s": "anchor",
+    "t": "Different how? No. Don’t answer. Come in, eat, and tell me with food in you. Things look smaller that way.",
+    "next": "e5"
+   },
+   "e4b": {
+    "s": "anchor",
+    "t": "Good. A simple answer. I almost wish I had one of those.",
+    "next": "e5"
+   },
+   "e5": {
+    "s": "anchor",
+    "t": "Tomorrow there’s the market. Marta’s promised me ribbons for the stall. And then the whole district will be out. Get some rest.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Day 2 complete."
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "oswin_whisper": {
+  "start": "o1",
+  "nodes": {
+   "o1": {
+    "s": "oswin",
+    "t": "You. Child. Come here. Listen, no, not with your ears. Put your hand on the stone.",
+    "next": "o2"
+   },
+   "o2": {
+    "s": "oswin",
+    "t": "Feel that? No? Then wait for night. The wall hums. Low. Like a very large animal breathing.",
+    "next": "o3"
+   },
+   "o3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Maybe it’s the wind.”",
+      "next": "o4a"
+     },
+     {
+      "t": "“I’ll ask the soldiers.”",
+      "next": "o4b",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "oswin",
+        "value": 1
+       }
+      ]
+     }
+    ]
+   },
+   "o4a": {
+    "s": "oswin",
+    "t": "Wind. Wind comes and goes. This one stays. Think it over.",
+    "next": "o5"
+   },
+   "o4b": {
+    "s": "oswin",
+    "t": "Would you? Good. They’ll lie to you politely, but ask anyway.",
+    "next": "o5"
+   },
+   "o5": {
+    "s": "oswin",
+    "t": "If anyone knows, it’s the man who stands by that gate every day. Ask Hannes.",
+    "end": true
+   }
+  }
+ },
+ "oswin_after": {
+  "start": "o1",
+  "nodes": {
+   "o1": {
+    "s": "oswin",
+    "t": "Well?",
+    "next": "o2"
+   },
+   "o2": {
+    "branch": [
+     {
+      "if": "hannes_admits",
+      "next": "o3a"
+     },
+     {
+      "next": "o3b"
+     }
+    ]
+   },
+   "o3a": {
+    "s": "oswin",
+    "t": "He admitted it? Then I’m not mad. Thank you, child. I’ve waited a month for somebody to say that.",
+    "next": "o4"
+   },
+   "o3b": {
+    "s": "oswin",
+    "t": "He said it was the stone? Of course he did. Well, stone’s patient.",
+    "next": "o4"
+   },
+   "o4": {
+    "s": "oswin",
+    "t": "Keep your eyes open, whatever it is. There are worse things than being thought a fool by sensible people.",
+    "fx": [
+     {
+      "op": "bond",
+      "id": "oswin",
+      "value": 1
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "anchor_day3": {
+  "start": "a1",
+  "nodes": {
+   "a1": {
+    "s": "narr",
+    "t": "Market day. The street outside is already loud with carts and bargaining, and for once the sky is the clean blue of a well-washed plate.",
+    "next": "a2"
+   },
+   "a2": {
+    "s": "anchor",
+    "t": "Marta has ribbons set aside for the stall. Go and get them. Then I want you to find those three children, the dreamers.",
+    "next": "a3"
+   },
+   "a3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Why them?”",
+      "next": "a4a"
+     },
+     {
+      "t": "“I’ll bring them something to eat.”",
+      "next": "a4b",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "anchor",
+        "value": 1
+       }
+      ]
+     }
+    ]
+   },
+   "a4a": {
+    "s": "anchor",
+    "t": "Because it’s a good day to be near people who still want something from the world.",
+    "next": "a5"
+   },
+   "a4b": {
+    "s": "anchor",
+    "t": "Of course you will. Don’t go empty-handed. People remember small kindnesses longer than large ones.",
+    "next": "a5"
+   },
+   "a5": {
+    "s": "anchor",
+    "t": "Then meet me at the gate square when the sun is high. We’ll watch the crowd together.",
+    "fx": [
+     {
+      "op": "toast",
+      "text": "Day 3. Buy the ribbons from Marta."
+     }
+    ],
+    "end": true
+   }
+  }
+ },
+ "marta_day3": {
+  "start": "m1",
+  "nodes": {
+   "m1": {
+    "s": "marta",
+    "t": "Ribbons! Blue, red, and a green one I’m not sure about. Take them all. Take two loaves for the children. They always look hungry.",
+    "next": "m2"
+   },
+   "m2": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Thank you, Marta. For everything.”",
+      "next": "m3a",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "marta",
+        "value": 1
+       },
+       {
+        "op": "set",
+        "key": "thanked_marta",
+        "value": true
+       }
+      ]
+     },
+     {
+      "t": "“Is there anything you need?”",
+      "next": "m3b"
+     }
+    ]
+   },
+   "m3a": {
+    "s": "marta",
+    "t": "Silly. I only bake bread. Go on, don’t let it cool.",
+    "next": "m4"
+   },
+   "m3b": {
+    "s": "marta",
+    "t": "Need? A bigger oven and a smaller creditor. Otherwise I’m a lucky woman.",
+    "next": "m4"
+   },
+   "m4": {
+    "s": "marta",
+    "t": "The whole district’s out today. It feels like a festival. Funny. It always feels like that just before something.",
+    "end": true
+   }
+  }
+ },
+ "kids_day3": {
+  "start": "k1",
+  "nodes": {
+   "k1": {
+    "s": "narr",
+    "t": "The three of them are sitting on the plaza steps in the sun. The book is open between them again.",
+    "next": "k2"
+   },
+   "k2": {
+    "s": "armin",
+    "t": "You brought bread! Eren, move your boots, there’s a person here.",
+    "next": "k3"
+   },
+   "k3": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "Share the bread out evenly.",
+      "next": "k4a",
+      "fx": [
+       {
+        "op": "set",
+        "key": "shared_bread",
+        "value": true
+       },
+       {
+        "op": "bond",
+        "id": "eren",
+        "value": 1
+       },
+       {
+        "op": "bond",
+        "id": "armin",
+        "value": 1
+       },
+       {
+        "op": "bond",
+        "id": "mikasa",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "Give Mikasa the biggest piece.",
+      "next": "k4b",
+      "fx": [
+       {
+        "op": "bond",
+        "id": "mikasa",
+        "value": 2
+       }
+      ]
+     },
+     {
+      "t": "Hold some back. You may need it.",
+      "next": "k4c"
+     }
+    ]
+   },
+   "k4a": {
+    "s": "mikasa",
+    "t": "Thank you. Everyone has the same. That’s fair.",
+    "next": "k5"
+   },
+   "k4b": {
+    "s": "mikasa",
+    "t": "…Thank you. You’ve noticed I haven’t eaten.",
+    "next": "k5"
+   },
+   "k4c": {
+    "s": "eren",
+    "t": "Cheapskate! Kidding. Everyone does that when they’re scared of running out.",
+    "next": "k5"
+   },
+   "k5": {
+    "s": "armin",
+    "t": "When I get to the sea I’m going to send a message back. A real one, in a bottle. Maybe you’ll find it.",
+    "next": "k6"
+   },
+   "k6": {
+    "s": "eren",
+    "t": "He’s not going alone. None of us is. Right?",
+    "next": "k7"
+   },
+   "k7": {
+    "s": "player",
+    "t": "",
+    "choices": [
+     {
+      "t": "“Right. All of us.”",
+      "next": "k8a",
+      "fx": [
+       {
+        "op": "set",
+        "key": "promised_sea",
+        "value": true
+       },
+       {
+        "op": "bond",
+        "id": "eren",
+        "value": 1
+       }
+      ]
+     },
+     {
+      "t": "“If we survive that long.”",
+      "next": "k8b"
+     }
+    ]
+   },
+   "k8a": {
+    "s": "mikasa",
+    "t": "Then it’s a promise. I don’t forget promises.",
+    "next": "k9"
+   },
+   "k8b": {
+    "s": "eren",
+    "t": "That’s the most depressing thing anyone’s ever said to me. Great. Thanks.",
+    "next": "k9"
+   },
+   "k9": {
+    "s": "narr",
+    "t": "The sun is warm on the stones. For a moment, there is nothing in the world but four people and a loaf of bread.",
     "end": true
    }
   }

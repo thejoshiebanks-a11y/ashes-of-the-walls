@@ -11,46 +11,22 @@
   "player": "#8fb2cc",
   "narr": "#8c969e"
  },
- "bloodlines": [
+ "voices": [
   {
-   "id": "common",
-   "name": "Common Eldian",
-   "tag": "Balanced",
-   "text": "No penalties and no surprises. The best way to learn the world on a first playthrough.",
-   "mods": {}
+   "id": "gentle",
+   "name": "Gentle"
   },
   {
-   "id": "ackerman",
-   "name": "Ackerman-blooded",
-   "tag": "Rare",
-   "text": "Something old sleeps in your blood. Later, it wakes as a huge burst of speed and strength, and you carry heavier trauma and stress for it.",
-   "mods": {
-    "stress": 1
-   }
+   "id": "steady",
+   "name": "Steady"
   },
   {
-   "id": "scholar",
-   "name": "Scholar's child",
-   "tag": "Mind over blade",
-   "text": "Slower in combat at the start, but you unlock research, tactics and the highest Command potential.",
-   "mods": {
-    "tactics": 2,
-    "speed": -1
-   }
-  }
- ],
- "anchorRelations": [
-  {
-   "id": "sibling",
-   "name": "A brother or sister"
+   "id": "bold",
+   "name": "Bold"
   },
   {
-   "id": "parent",
-   "name": "A parent figure"
-  },
-  {
-   "id": "friend",
-   "name": "Your closest friend"
+   "id": "sharp",
+   "name": "Sharp"
   }
  ],
  "genders": [
@@ -67,31 +43,48 @@
    "name": "They / them"
   }
  ],
- "builds": [
-  "Slight",
-  "Average",
-  "Sturdy"
+ "bodies": [
+  {
+   "id": "fuse_man",
+   "name": "Boy"
+  },
+  {
+   "id": "fuse_woman",
+   "name": "Girl"
+  }
  ],
- "hair": [
-  "#2b2118",
-  "#5a3a22",
-  "#8a6a3b",
-  "#c9b27a",
-  "#1c1c22",
-  "#7a2f24"
- ],
- "skin": [
-  "#f1d3b8",
-  "#e0b48f",
-  "#c58f65",
-  "#9a6a48",
-  "#6e4a33"
+ "eyes": [
+  [
+   "#3b2a1e",
+   "Dark brown"
+  ],
+  [
+   "#6a4a2b",
+   "Hazel"
+  ],
+  [
+   "#4f7a5a",
+   "Green"
+  ],
+  [
+   "#5a7fa0",
+   "Blue"
+  ],
+  [
+   "#7c8a92",
+   "Grey"
+  ]
  ],
  "scars": [
   "None",
   "Brow",
   "Cheek",
-  "Ear"
+  "Chin"
+ ],
+ "wear": [
+  "Clean",
+  "Lived-in",
+  "Weathered"
  ],
  "difficulties": [
   {
@@ -124,6 +117,6 @@
   "Canon events always happen. Your place in them does not."
  ],
  "start": {
-  "hour": 9.2
+  "hour": 7.0
  }
 }

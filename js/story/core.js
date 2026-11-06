@@ -15,7 +15,7 @@
 
   /* ---------- state ---------- */
   S.data = { config: {}, characters: {}, quests: {}, dialogue: {}, world: {}, credits: {} };
-  const fresh = () => ({ v: S.VERSION, player: null, flags: {}, bonds: {}, quests: {}, clock: { hour: 9.2 }, pos: null, act: 'prologue', playSec: 0, created: Date.now() });
+  const fresh = () => ({ v: S.VERSION, player: null, flags: {}, bonds: {}, quests: {}, clock: { hour: 7.0 }, day: 1, pos: null, act: 'prologue', playSec: 0, created: Date.now() });
   S.state = fresh();
   S.reset = () => { S.state = fresh(); S.emit('state:reset'); };
   S.load = (snap) => { S.state = Object.assign(fresh(), JSON.parse(JSON.stringify(snap))); S.emit('state:loaded'); };
@@ -44,7 +44,7 @@
 
   /* ---------- pronouns / speakers ---------- */
   const PRON = { m: { he: 'he', him: 'him', his: 'his', He: 'He' }, f: { he: 'she', him: 'her', his: 'her', He: 'She' }, x: { he: 'they', him: 'them', his: 'their', He: 'They' } };
-  const REL = { sibling: { m: 'brother', f: 'sister', x: 'sibling' }, parent: { m: 'father', f: 'mother', x: 'parent' }, friend: { m: 'friend', f: 'friend', x: 'friend' } };
+  const REL = { sibling: { m: 'brother', f: 'sister', x: 'sibling' }, parent: { m: 'father', f: 'mother', x: 'parent' }, friend: { m: 'friend', f: 'friend', x: 'friend' }, cousin: { m: 'cousin', f: 'cousin', x: 'cousin' } };
   S.pron = (g, k) => (PRON[g] || PRON.x)[k];
   const anchorOf = () => (S.state.player && S.state.player.anchor) || { name: 'Anchor', rel: 'friend', gender: 'x' };
   S.speaker = id => {
@@ -108,6 +108,7 @@
       case 'obj': { const q = st.quests[p[1]]; return !!(q && q.done && q.done[p[2]]); }
       case 'player': { const pl = st.player || {}; return p[1] === 'anchor' ? (pl.anchor || {})[p[2]] : pl[p[1]]; }
       case 'hour': return st.clock.hour;
+      case 'day': return st.day;
       case 'act': return st.act;
       default: { const v = st.flags[path]; return v === undefined ? false : v; }
     }
@@ -150,6 +151,7 @@
   FX['quest.obj'] = e => S.quests.objDone(e.id, e.obj);
   FX['quest.done'] = e => S.quests.complete(e.id);
   FX['quest.fail'] = e => S.quests.fail(e.id);
+  FX.day = e => { S.state.day = e.value; S.state.clock.hour = (S.data.config.start || {}).hour || 7; S.emit('day:change', e.value); };
   FX.hour = e => { S.state.clock.hour = e.value; S.emit('clock', e.value); };
   // UI-level ops (card, toast, scene, save, shake…) are registered by the UI/main layer.
 

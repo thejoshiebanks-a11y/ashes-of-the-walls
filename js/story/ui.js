@@ -49,13 +49,17 @@
     UI.talk = h('button', { class: 'sv-talk', type: 'button', hidden: true, onclick: () => UI._talkCb && UI._talkCb() }, h('span', { class: 'sv-talk-k' }, 'G'), h('span', { class: 'sv-talk-t' })); R.appendChild(UI.talk);
     UI.btns = h('div', { class: 'sv-hudbtns', hidden: true },
       btn(h('span', { class: 'sv-ico sv-ico-pause' }), () => UI._cb('pause'), { 'aria-label': 'Menu', class: 'sv-hb sv-hb-pause' }),
-      btn(h('span', { class: 'sv-ico sv-ico-book' }), () => UI._cb('journal'), { 'aria-label': 'Journal', class: 'sv-hb sv-hb-book' }));
+      btn(h('span', { class: 'sv-ico sv-ico-book' }), () => UI._cb('journal'), { 'aria-label': 'Journal', class: 'sv-hb sv-hb-book' }),
+      btn(h('span', { class: 'sv-ico sv-ico-map' }), () => UI._cb('map'), { 'aria-label': 'Map', class: 'sv-hb sv-hb-map' }));
     R.appendChild(UI.btns);
     UI.toastBox = h('div', { class: 'sv-toasts', 'aria-live': 'polite' }); R.appendChild(UI.toastBox);
     UI.bars = h('div', { class: 'sv-bars' }, h('i'), h('i')); R.appendChild(UI.bars);
     UI.flashEl = h('div', { class: 'sv-flash' }); R.appendChild(UI.flashEl);
     UI.cardEl = h('div', { class: 'sv-card', hidden: true }, h('h2'), h('p')); R.appendChild(UI.cardEl);
     UI.fade = h('div', { class: 'sv-fade' }); R.appendChild(UI.fade);
+    UI.emberCv = h('canvas', { class: 'sv-embers', hidden: true, 'aria-hidden': 'true' }); R.insertBefore(UI.emberCv, R.firstChild);
+    UI.tickerEl = h('p', { class: 'sv-ticker', 'aria-live': 'off' }); R.appendChild(UI.tickerEl);
+    UI.stampEl = h('div', { class: 'sv-stamp', hidden: true }, h('h1'), h('p')); R.appendChild(UI.stampEl);
 
     // dialogue plate
     UI.dlg = h('div', { class: 'sv-dlg', hidden: true, role: 'dialog', 'aria-label': 'Conversation' },
@@ -146,26 +150,42 @@
     for (const id in markEls) if (!seen[id]) { markEls[id].remove(); delete markEls[id]; }
   };
 
-  /* ---------- opening sequence (credits while loading) ---------- */
-  UI.intro = function (cr) {
-    return new Promise(res => {
-      const s = screens.intro, box = s.querySelector('.sv-intro-box'); UI.show('intro');
-      const slides = [{ k: 'note', t: cr.disclaimer }];
-      for (const sec of cr.sections || []) slides.push({ k: 'sec', sec });
-      let i = 0, timer = 0, ended = false;
-      const end = () => { if (ended) return; ended = true; clearTimeout(timer); s.onpointerdown = null; res(); };
-      const next = () => {
-        if (ended) return;
-        if (i >= slides.length) return end();
-        const sl = slides[i++]; box.classList.remove('in'); void box.offsetWidth; box.textContent = '';
-        if (sl.k === 'note') box.append(h('p', { class: 'sv-intro-note', text: sl.t }));
-        else box.append(h('h3', { text: sl.sec.title }), ...sl.sec.items.map(it => h('p', { class: 'sv-intro-it' }, h('b', { text: it.what }), h('span', { text: [it.who, it.lic].filter(Boolean).join(', ') }))));
-        box.classList.add('in'); timer = setTimeout(next, sl.k === 'note' ? 4200 : 2600);
-      };
-      s.onpointerdown = () => { clearTimeout(timer); next(); };
-      s.querySelector('.sv-skip').onclick = e => { e.stopPropagation(); end(); };
-      next();
-    });
+  /* ---------- splash: parchment, ash and embers; audio is unlocked by the first tap ---------- */
+  UI.addScreen = screen;
+  let emberRaf = 0, embers = [];
+  UI.embers = function (on) {
+    const c = UI.emberCv; if (!c) return; cancelAnimationFrame(emberRaf); c.hidden = !on; if (!on || !c.getContext) return;
+    const g = c.getContext('2d'); let W = 0, Hh = 0;
+    const fit = () => { const r = c.getBoundingClientRect ? c.getBoundingClientRect() : { width: 800, height: 400 }; W = c.width = Math.max(2, Math.round((r.width || 800) / 2)); Hh = c.height = Math.max(2, Math.round((r.height || 400) / 2)); };
+    fit(); embers = Array.from({ length: 46 }, () => ({ x: Math.random() * W, y: Math.random() * Hh, v: 4 + Math.random() * 10, r: 0.6 + Math.random() * 1.8, a: Math.random() * 6.3, ash: Math.random() < 0.6 }));
+    let last = performance.now();
+    const tick = now => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now; g.clearRect(0, 0, W, Hh);
+      for (const e of embers) {
+        e.y -= e.v * dt * (e.ash ? 0.5 : 1); e.x += Math.sin(e.a += dt * 0.8) * 6 * dt + 3 * dt; if (e.y < -4) { e.y = Hh + 4; e.x = Math.random() * W; } if (e.x > W + 4) e.x = -4;
+        g.globalAlpha = e.ash ? 0.35 : 0.5 + 0.4 * Math.sin(e.a * 2); g.fillStyle = e.ash ? '#cfc8b8' : '#f0a24a'; g.beginPath(); g.arc(e.x, e.y, e.r, 0, 6.3); g.fill();
+      }
+      emberRaf = requestAnimationFrame(tick);
+    };
+    emberRaf = requestAnimationFrame(tick);
+  };
+  UI.splash = {
+    gate(cb, legal) {                                       // "Tap to begin": the user gesture that starts audio
+      const s = screens.splash, box = s.querySelector('.sv-splash-box'); UI.show('splash'); UI.embers(true); box.classList.remove('in');
+      box.textContent = ''; box.append(h('h1', { text: 'Ashes of the Walls' }), h('p', { class: 'sv-splash-tap', text: 'Tap to begin' }), h('p', { class: 'sv-splash-legal', text: legal || '' })); void box.offsetWidth; box.classList.add('in');
+      let done = false; const go = () => { if (done) return; done = true; s.onpointerdown = null; s.onkeydown = null; cb(); }; s.onpointerdown = go; s.tabIndex = 0; s.onkeydown = e => { if (e.code === 'Enter' || e.code === 'Space') go(); }; s.focus && s.focus();
+    },
+    say(text, ms, cls) {                                    // a line that fades in and out on the parchment
+      return new Promise(res => { const box = screens.splash.querySelector('.sv-splash-box'); box.classList.remove('in'); box.textContent = ''; box.append(h('p', { class: 'sv-splash-line ' + (cls || ''), text })); void box.offsetWidth; box.classList.add('in'); setTimeout(() => { box.classList.remove('in'); setTimeout(res, 900); }, ms || 2600); });
+    }
+  };
+  UI.stamp = function (text, sub) {                          // the title card slams onto a black screen
+    const e = UI.stampEl; e.querySelector('h1').textContent = text; e.querySelector('p').textContent = sub || ''; e.hidden = false; e.classList.remove('slam', 'out'); void e.offsetWidth; e.classList.add('slam');
+  };
+  UI.unstamp = function () { const e = UI.stampEl; e.classList.add('out'); setTimeout(() => { e.hidden = true; e.classList.remove('slam', 'out'); }, 900); };
+  UI.setTicker = function (lines) {
+    const t = UI.tickerEl; if (!t) return; clearInterval(UI._tickIv); if (!lines || !lines.length) { t.textContent = ''; return; } let i = 0;
+    const show = () => { t.classList.add('out'); setTimeout(() => { t.textContent = lines[i++ % lines.length]; t.classList.remove('out'); }, 500); }; t.textContent = lines[i++ % lines.length]; UI._tickIv = setInterval(show, 4200);
   };
 
   /* ---------- credits scene ---------- */
@@ -183,65 +203,62 @@
     s.querySelector('.sv-back').onclick = onBack;
   };
 
-  /* ---------- title ---------- */
+  /* ---------- title: chiselled stone menu over the dawn district ---------- */
   UI.title = function (info) {
-    const s = screens.title;
-    s.querySelector('.sv-ver').textContent = 'Prototype build ' + (info.version || '');
-    const cont = s.querySelector('[data-act=continue]');
-    cont.hidden = !info.latest;
+    const s = screens.title, menu = s.querySelector('.sv-menu');
+    s.querySelector('.sv-ver').textContent = 'Prototype ' + (info.version || '');
+    const cont = s.querySelector('[data-act=continue]'); cont.hidden = !info.latest;
     if (info.latest) cont.querySelector('small').textContent = [info.latest.name, info.latest.quest || 'Prologue', fmtTime(info.latest.playSec)].filter(Boolean).join(', ');
-    UI.show('title');
-    const first = (!cont.hidden ? cont : s.querySelector('[data-act=new]')); first.setAttribute('data-focus', ''); setTimeout(() => first.focus({ preventScroll: true }), 40);
+    UI.show('title'); UI.embers(true);
+    const first = !cont.hidden ? cont : menu.querySelector('[data-act=new]'); first.setAttribute('data-focus', ''); setTimeout(() => first.focus && first.focus({ preventScroll: true }), 60);
+    s.classList.remove('rise'); void s.offsetWidth; s.classList.add('rise');
   };
 
-  /* ---------- character creator ---------- */
-  UI.creator = function (cfg, onDone, onCancel) {
-    const s = screens.creator, body = s.querySelector('.sv-cr-body'), side = s.querySelector('.sv-steps');
-    const d = { name: '', gender: 'f', build: 1, hair: 0, skin: 1, scar: 0, bloodline: 'common', anchor: { rel: 'sibling', name: '', gender: 'm' }, difficulty: 'soldier' };
-    const steps = ['Who you are', 'Your blood', 'Your Anchor', 'Your resolve'];
-    let step = 0;
-    const chips = (opts, val, set, key) => h('div', { class: 'sv-chips', role: 'radiogroup' }, opts.map((o, i) => {
-      const id = o.id !== undefined ? o.id : i, label = o.name || o;
-      return h('button', { type: 'button', role: 'radio', class: 'sv-chip', 'aria-checked': String(val === id), onclick: () => { set(id); render(); } }, label);
-    }));
-    const swatches = (cols, val, set) => h('div', { class: 'sv-chips' }, cols.map((c, i) => h('button', { type: 'button', role: 'radio', 'aria-label': 'Option ' + (i + 1), 'aria-checked': String(val === i), class: 'sv-sw', style: { background: c }, onclick: () => { set(i); render(); } })));
-    const row = (label, node) => h('div', { class: 'sv-row' }, h('label', { text: label }), node);
-    const cards = (opts, val, set) => h('div', { class: 'sv-cards', role: 'radiogroup' }, opts.map(o => h('button', { type: 'button', role: 'radio', 'aria-checked': String(val === o.id), class: 'sv-card-opt', onclick: () => { set(o.id); render(); } }, h('b', { text: o.name }), o.tag ? h('em', { text: o.tag }) : null, h('span', { text: o.text || '' }))));
-    const input = (val, ph, set, id) => h('input', { type: 'text', class: 'sv-input', id, maxlength: 16, value: val, placeholder: ph, autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', oninput: e => { set(e.target.value); validate(); } });
+  /* ---------- the registry: your file, filled in by hand ---------- */
+  UI.creator = function (opts, onDone, onCancel, onChange, onRotate) {
+    const s = screens.creator, body = s.querySelector('.sv-cr-body'), tabs = s.querySelector('.sv-tabs'), D = S.destiny, cfg = opts.cfg;
+    const d = opts.draft; let tab = 0; const TABS = ['Identity', 'Body', 'Face', 'Clothing', 'The file'];
+    const touch = () => { onChange && onChange(d); validate(); };
+    const sw = (cols, key, label, sub) => h('div', { class: 'sv-chips', role: 'radiogroup', 'aria-label': label }, cols.map((c, i) => h('button', { type: 'button', role: 'radio', class: 'sv-sw', 'aria-label': label + ' ' + (i + 1), 'aria-checked': String((sub ? d.look[key] : d[key]) === i), style: { background: Array.isArray(c) ? 'rgb(' + c.map(x => Math.round(Math.min(1, x) * 255)).join(',') + ')' : c }, onclick: () => { (sub ? d.look : d)[key] = i; touch(); render(); } })));
+    const chips = (list, key, sub) => h('div', { class: 'sv-chips', role: 'radiogroup' }, list.map((o, i) => { const id = o.id !== undefined ? o.id : i, label = o.name || o; const cur = sub ? d.look[key] : d[key]; return h('button', { type: 'button', role: 'radio', class: 'sv-chip', 'aria-checked': String(cur === id), onclick: () => { (sub ? d.look : d)[key] = id; touch(); render(); } }, label); }));
+    const slider = (key, lo, hi) => h('input', { type: 'range', class: 'sv-range', min: 0, max: 100, step: 1, value: Math.round(d.look[key] * 100), 'aria-label': lo + ' to ' + hi, oninput: e => { d.look[key] = +e.target.value / 100; touch(); } });
+    const row = (label, node, note) => h('div', { class: 'sv-row' }, h('label', { text: label }), node, note ? h('small', { class: 'sv-note', text: note }) : null);
     let nextBtn;
-    const valid = () => step === 0 ? d.name.trim().length > 0 : step === 2 ? d.anchor.name.trim().length > 0 : true;
+    const valid = () => d.name.trim().length > 0;
     function validate() { if (nextBtn) nextBtn.disabled = !valid(); }
     function render() {
-      side.textContent = ''; steps.forEach((t, i) => side.append(h('li', { class: i === step ? 'on' : i < step ? 'done' : '', text: t })));
+      tabs.textContent = ''; TABS.forEach((t, i) => tabs.append(h('button', { type: 'button', role: 'tab', class: 'sv-tab' + (i === tab ? ' on' : ''), 'aria-selected': String(i === tab), onclick: () => { tab = i; render(); }, text: t })));
       body.textContent = '';
-      if (step === 0) body.append(
-        h('h2', { text: 'Who you are' }), h('p', { class: 'sv-lead', text: 'The world will remember a name. Choose the one you want it to remember.' }),
-        row('Name', input(d.name, 'Your name', v => d.name = v, 'sv-in-name')),
-        row('Pronouns', chips(cfg.genders, d.gender, v => d.gender = v)),
-        row('Build', chips(cfg.builds.map((n, i) => ({ id: i, name: n })), d.build, v => d.build = v)),
-        row('Hair', swatches(cfg.hair, d.hair, v => d.hair = v)), row('Skin', swatches(cfg.skin, d.skin, v => d.skin = v)),
-        row('Scar', chips(cfg.scars.map((n, i) => ({ id: i, name: n })), d.scar, v => d.scar = v)));
-      else if (step === 1) body.append(h('h2', { text: 'Your blood' }), h('p', { class: 'sv-lead', text: 'Permanent. Chosen once, carried to the end.' }), cards(cfg.bloodlines, d.bloodline, v => d.bloodline = v));
-      else if (step === 2) body.append(
-        h('h2', { text: 'Your Anchor' }), h('p', { class: 'sv-lead', text: 'One person you will not want to lose. What happens to them depends on you, and it is meant to hurt.' }),
-        row('Who are they to you?', chips(cfg.anchorRelations, d.anchor.rel, v => d.anchor.rel = v)),
-        row('Their name', input(d.anchor.name, 'Their name', v => d.anchor.name = v, 'sv-in-anchor')),
-        row('Pronouns', chips(cfg.genders, d.anchor.gender, v => d.anchor.gender = v)));
-      else body.append(
-        h('h2', { text: 'Your resolve' }), h('p', { class: 'sv-lead', text: 'How hard should the world be on you?' }), cards(cfg.difficulties, d.difficulty, v => d.difficulty = v),
-        h('p', { class: 'sv-sum' }, h('b', { text: d.name.trim() }), ', ' + (cfg.bloodlines.find(b => b.id === d.bloodline) || {}).name + ', bound to ', h('b', { text: d.anchor.name.trim() }), '.'));
-      const back = s.querySelector('.sv-cr-back'), nb = s.querySelector('.sv-cr-next');
-      back.textContent = step === 0 ? 'Cancel' : 'Back'; nb.textContent = step === steps.length - 1 ? 'Begin' : 'Continue'; nextBtn = nb; validate();
-      body.scrollTop = 0;
+      if (tab === 0) body.append(h('h2', { text: 'Who are you?' }), h('p', { class: 'sv-lead', text: 'The registry clerk dips a pen. Every child in the district is written down once.' }),
+        row('Name', h('input', { type: 'text', class: 'sv-input', id: 'sv-in-name', maxlength: 16, value: d.name, placeholder: 'Your name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', oninput: e => { d.name = e.target.value; touch(); } })),
+        row('Body', chips(cfg.bodies, 'body')), row('Pronouns', chips(cfg.genders, 'gender')), row('Voice', chips(cfg.voices, 'voice'), 'How you sound when you speak up.'));
+      else if (tab === 1) body.append(h('h2', { text: 'Height and build' }), h('p', { class: 'sv-lead', text: 'Children grow at their own pace. Yours is recorded as it stands.' }),
+        row('Height', slider('height', 'Shorter', 'Taller')), row('Build', slider('build', 'Slight', 'Sturdy')));
+      else if (tab === 2) body.append(h('h2', { text: 'Face' }), h('p', { class: 'sv-lead', text: 'Natural colours only. This is a hard place and a plain face.' }),
+        row('Skin', sw(D.SKIN, 'skin', 'Skin tone', true)), row('Hair', sw(D.HAIR, 'hair', 'Hair colour', true)),
+        row('Head width', slider('headW', 'Narrow', 'Wide')), row('Head length', slider('headH', 'Short', 'Long')),
+        row('Eyes', sw(cfg.eyes.map(e => e[0]), 'eye', 'Eye colour', true), 'Recorded in your file.'), row('Scars', chips(cfg.scars, 'scar', true), 'Recorded now. They are painted onto your face in an upcoming update.'));
+      else if (tab === 3) body.append(h('h2', { text: 'Clothing' }), h('p', { class: 'sv-lead', text: 'What your family could afford, and how long you have worn it.' }),
+        row('Shirt', sw(D.TOP, 'top', 'Shirt colour', true)), row('Trousers', sw(D.BOTTOM, 'bottom', 'Trouser colour', true)), row('Shoes', sw(D.SHOES, 'shoes', 'Shoe colour', true)),
+        row('Wear', h('div', { class: 'sv-chips', role: 'radiogroup' }, cfg.wear.map((w, i) => h('button', { type: 'button', role: 'radio', class: 'sv-chip', 'aria-checked': String(d.wear === i), onclick: () => { d.wear = i; touch(); render(); } }, w)))));
+      else {
+        const dest = opts.destiny, fam = D.family(dest.family), bl = D.info(dest.bloodline === 'ackerman' ? 'common' : dest.bloodline), an = dest.anchor;
+        const relTxt = { sibling: an.gender === 'f' ? 'your sister' : 'your brother', parent: an.gender === 'f' ? 'your mother' : 'your father', friend: 'your closest friend', cousin: 'your cousin' }[an.rel];
+        body.append(h('h2', { text: 'The registry has decided the rest' }), h('p', { class: 'sv-lead', text: 'Some things are not chosen. They are written down for you.' }),
+          h('dl', { class: 'sv-file' }, h('dt', { text: 'Family' }), h('dd', {}, h('b', { text: fam.name }), h('span', { text: fam.text })),
+            h('dt', { text: 'Lineage' }), h('dd', {}, h('b', { text: bl.name }), h('span', { text: bl.text })),
+            h('dt', { text: 'Your Anchor' }), h('dd', {}, h('b', { text: an.name + ', ' + relTxt }), h('span', { text: 'The one person you will not want to lose. What becomes of them is up to you.' }))),
+          row('How hard should the world be?', h('div', { class: 'sv-cards' }, cfg.difficulties.map(o => h('button', { type: 'button', role: 'radio', 'aria-checked': String(d.difficulty === o.id), class: 'sv-card-opt', onclick: () => { d.difficulty = o.id; render(); } }, h('b', { text: o.name }), h('span', { text: o.text }))))),
+          h('p', { class: 'sv-sum' }, h('b', { text: d.name.trim() || 'You' }), ', of Shiganshina, year 845.'));
+      }
+      const back = s.querySelector('.sv-cr-back'); nextBtn = s.querySelector('.sv-cr-next'); back.textContent = tab === 0 ? 'Cancel' : 'Back'; nextBtn.textContent = tab === TABS.length - 1 ? 'Stamp the file' : 'Continue'; validate(); body.scrollTop = 0;
     }
-    s.querySelector('.sv-cr-back').onclick = () => { if (step === 0) onCancel(); else { step--; render(); } };
-    s.querySelector('.sv-cr-next').onclick = () => {
-      if (!valid()) return;
-      if (step < steps.length - 1) { step++; render(); return; }
-      const a = d.anchor;
-      onDone({ name: d.name.trim(), gender: d.gender, build: d.build, hair: d.hair, skin: d.skin, scar: d.scar, bloodline: d.bloodline, difficulty: d.difficulty, anchor: { name: a.name.trim(), rel: a.rel, gender: a.gender } });
-    };
-    UI.show('creator'); render();
+    s.querySelector('.sv-cr-back').onclick = () => { if (tab === 0) onCancel(); else { tab--; render(); } };
+    s.querySelector('.sv-cr-next').onclick = () => { if (!valid()) { tab = 0; render(); return; } if (tab < TABS.length - 1) { tab++; render(); return; } onDone(d); };
+    s.querySelector('.sv-cr-dice').onclick = () => { const r = n => Math.floor(Math.random() * n); d.look = Object.assign(d.look, { skin: r(D.SKIN.length), hair: r(D.HAIR.length), top: r(D.TOP.length), bottom: r(D.BOTTOM.length), shoes: r(D.SHOES.length), height: Math.random(), build: Math.random(), headW: Math.random(), headH: Math.random(), eye: r(cfg.eyes.length) }); touch(); render(); };
+    const stage = s.querySelector('.sv-stage'); let px = null;
+    stage.onpointerdown = e => { px = e.clientX; try { stage.setPointerCapture(e.pointerId); } catch (x) {} }; stage.onpointermove = e => { if (px != null && onRotate) { onRotate((e.clientX - px) * 0.012); px = e.clientX; } }; stage.onpointerup = stage.onpointercancel = () => { px = null; };
+    UI.embers(false); UI.show('creator'); render(); onChange && onChange(d);
   };
 
   /* ---------- pause / journal / saves ---------- */
@@ -258,6 +275,17 @@
     nav.append(h('button', { type: 'button', class: 'sv-pbtn', onclick: back, 'data-focus': '' }, 'Back'));
     const f = nav.querySelector('[data-focus]'); if (f) f.focus({ preventScroll: true });
   };
+
+  UI.optionsPanel = function (back) {
+    const s = screens.pause, nav = s.querySelector('.sv-pnav'); nav.textContent = ''; const Au = S.audio;
+    const range = (label, key) => h('div', { class: 'sv-row' }, h('label', { text: label }), h('input', { type: 'range', class: 'sv-range', min: 0, max: 100, value: Math.round(Au.settings[key] * 100), 'aria-label': label, oninput: e => Au.setVolume(key, +e.target.value / 100) }));
+    nav.append(range('Master volume', 'vol'), range('Music', 'music'), range('Sound effects', 'sfx'));
+    nav.append(h('div', { class: 'sv-row' }, h('label', { text: 'Sound' }), h('div', { class: 'sv-chips' }, [[false, 'On'], [true, 'Muted']].map(([v, t]) => h('button', { type: 'button', class: 'sv-chip', role: 'radio', 'aria-checked': String(!!Au.settings.muted === v), onclick: () => { Au.setMuted(v); UI.optionsPanel(back); }, text: t })))));
+    nav.append(h('div', { class: 'sv-row' }, h('label', { text: 'Text speed' }), h('div', { class: 'sv-chips' }, ['slow', 'normal', 'fast', 'instant'].map(k => h('button', { type: 'button', class: 'sv-chip', role: 'radio', 'aria-checked': String(UI.settings.textSpeed === k), onclick: () => { UI.settings.textSpeed = k; UI.saveSettings(); UI.optionsPanel(back); }, text: k[0].toUpperCase() + k.slice(1) })))));
+    nav.append(h('div', { class: 'sv-row' }, h('label', { text: 'Screen shake' }), h('div', { class: 'sv-chips' }, [[true, 'On'], [false, 'Off']].map(([v, t]) => h('button', { type: 'button', class: 'sv-chip', role: 'radio', 'aria-checked': String(UI.settings.shake === v), onclick: () => { UI.settings.shake = v; UI.saveSettings(); UI.optionsPanel(back); }, text: t })))));
+    nav.append(h('button', { type: 'button', class: 'sv-pbtn', onclick: back, 'data-focus': '' }, 'Back')); UI.show('pause'); const f = nav.querySelector('[data-focus]'); if (f) f.focus({ preventScroll: true });
+  };
+
   UI.journal = function (onBack) {
     const s = screens.journal, q = s.querySelector('.sv-j-quests'), b = s.querySelector('.sv-j-bonds'); q.textContent = ''; b.textContent = '';
     const ids = Object.keys(S.state.quests);
@@ -295,19 +323,21 @@
 
   /* ---------- static screens ---------- */
   function buildScreens() {
-    screen('intro', 'sv-intro', h('div', { class: 'sv-intro-box' }), btn('Skip', null, { class: 'sv-skip' }));
+    screen('splash', 'sv-splash', h('div', { class: 'sv-splash-box' }));
     screen('title', 'sv-title',
       h('div', { class: 'sv-title-block' },
-        h('h1', { text: 'Ashes of the Walls' }), h('p', { class: 'sv-tag', text: 'You were born behind the walls. You will die for what lies beyond them.' }),
+        h('h1', {}, h('span', { text: 'Ashes' }), h('span', { text: 'of the Walls' })), h('p', { class: 'sv-tag', text: 'You were born behind the walls. You will die for what lies beyond them.' }),
         h('nav', { class: 'sv-menu', 'aria-label': 'Main menu' },
-          h('button', { type: 'button', 'data-act': 'continue', hidden: true, onclick: () => UI._cb('continue') }, 'Continue', h('small')),
-          h('button', { type: 'button', 'data-act': 'new', onclick: () => UI._cb('new') }, 'New game'),
-          h('button', { type: 'button', 'data-act': 'roam', onclick: () => UI._cb('roam') }, 'Free roam', h('small', { text: 'ODM test arena with a Titan' })),
-          h('button', { type: 'button', 'data-act': 'credits', onclick: () => UI._cb('credits') }, 'Credits'))),
+          h('button', { type: 'button', class: 'sv-stone', 'data-act': 'continue', hidden: true, onclick: () => UI._cb('continue'), onpointerenter: () => UI._cb('hover'), onfocus: () => UI._cb('hover') }, 'Load file', h('small')),
+          h('button', { type: 'button', class: 'sv-stone primary', 'data-act': 'new', onclick: () => UI._cb('new'), onpointerenter: () => UI._cb('hoverBegin'), onfocus: () => UI._cb('hoverBegin') }, 'Begin journey'),
+          h('button', { type: 'button', class: 'sv-stone locked', 'data-act': 'train', 'aria-disabled': 'true', onclick: () => UI._cb('locked') }, 'Training grounds', h('small', { text: 'Opens in Act 2' })),
+          h('button', { type: 'button', class: 'sv-stone', 'data-act': 'options', onclick: () => UI._cb('options'), onpointerenter: () => UI._cb('hover'), onfocus: () => UI._cb('hover') }, 'Options'),
+          h('button', { type: 'button', class: 'sv-stone', 'data-act': 'credits', onclick: () => UI._cb('credits'), onpointerenter: () => UI._cb('hover'), onfocus: () => UI._cb('hover') }, 'Credits'))),
       h('p', { class: 'sv-ver' }));
     screen('creator', 'sv-creator',
-      h('ol', { class: 'sv-steps', 'aria-label': 'Steps' }),
-      h('div', { class: 'sv-cr-main' }, h('div', { class: 'sv-cr-body' }), h('div', { class: 'sv-cr-foot' }, btn('Back', null, { class: 'sv-cr-back sv-ghost' }), btn('Continue', null, { class: 'sv-cr-next sv-primary' }))));
+      h('div', { class: 'sv-stage', 'aria-label': 'Preview. Drag to turn your character.' }, h('div', { class: 'sv-stage-head' }, h('b', { text: 'Shiganshina District Registry' }), h('span', { text: 'Year 845. Family and civil register.' })), h('p', { class: 'sv-stage-hint', text: 'Drag to turn' })),
+      h('div', { class: 'sv-cr-main' }, h('div', { class: 'sv-tabs', role: 'tablist' }), h('div', { class: 'sv-cr-body' }),
+        h('div', { class: 'sv-cr-foot' }, btn('Back', null, { class: 'sv-cr-back sv-ghost' }), btn('Randomise look', null, { class: 'sv-cr-dice sv-ghost' }), btn('Continue', null, { class: 'sv-cr-next sv-primary' }))));
     screen('pause', 'sv-pause', h('div', { class: 'sv-panel' }, h('h2', { text: 'Paused' }), h('nav', { class: 'sv-pnav' })));
     screen('journal', 'sv-journal', h('div', { class: 'sv-panel wide' }, h('h2', { text: 'Journal' }), h('div', { class: 'sv-j' }, h('div', { class: 'sv-j-quests' }), h('div', { class: 'sv-j-bonds' })), btn('Back', null, { class: 'sv-back sv-ghost' })));
     screen('saves', 'sv-saves', h('div', { class: 'sv-panel' }, h('h2'), h('div', { class: 'sv-slots' }), btn('Back', null, { class: 'sv-back sv-ghost' })));

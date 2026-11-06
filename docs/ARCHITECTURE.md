@@ -28,6 +28,12 @@ Loaded after game.js: core (events, state machine, expressions, quests), dialogu
 The story layer drives the game through window flags: `__freeze`, `__noOdm`, `__noTitan`, `__hideAvatar`, and reads `__world`, `__st`, `__E.vp`, `ODM`.
 The player avatar is still the Levi model until the model converter and character models arrive.
 
+## Actors and models (v0.3.0)
+tools/convert_model.py turns any glTF/GLB with a skin into the engine format (a faithful dump of node transforms, inverse-bind matrices and vertices, only converting centimetres to metres). tools/build_npc_pack.py converts everything listed in tools/models_manifest.json into assets/npc.pack (lazy-loaded) and data/npc_models.json.
+Mixamo-skeleton models are renamed to the Bip001 bone names so the game's direction-based animation retargeting drives them. game.js exposes `window.__actors` (add, remove, clear, loadModel). Per-prim tint (multiply for skin, luminance recolour for hair and clothes) is a shader uniform set through `M.tintFn`.
+`window.__cine` ({on,pos,target,fov}) overrides the camera for cutscenes, the title and the registry preview.
+tests/actor_pose.test.js runs the game's real loadModel and pose code (stub GL) against every converted model.
+
 ## Known debt
 - game.js is one 130 KB file; split into player / titan / fx / hud / world as features land.
 - No audio yet. Story NPCs are markers until character models are converted. Title-shot camera and NPC spots need a tuning pass in a real browser.

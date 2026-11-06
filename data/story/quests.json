@@ -1,10 +1,10 @@
 {
- "morning": {
-  "title": "An ordinary morning",
+ "d1_morning": {
+  "title": "Day 1: An ordinary morning",
   "kind": "main",
   "act": "prologue",
   "sequential": true,
-  "summary": "Fetch the bread and meet {anchor} at the gate square.",
+  "summary": "Fetch the bread and bring it home to {anchor}.",
   "objectives": [
    {
     "id": "talk_anchor",
@@ -17,6 +17,90 @@
     "text": "Get the bread from Marta in the Old Square",
     "marker": "marta",
     "on": "talk:marta_bread"
+   },
+   {
+    "id": "home",
+    "text": "Bring the bread home to {anchor}",
+    "marker": "anchor_home",
+    "on": "talk:anchor_dinner"
+   }
+  ],
+  "onComplete": [
+   {
+    "op": "day",
+    "value": 2
+   }
+  ]
+ },
+ "d2_gate": {
+  "title": "Day 2: What the gate sees",
+  "kind": "main",
+  "act": "prologue",
+  "sequential": true,
+  "summary": "Take lunch to the gate and watch what the Garrison does.",
+  "objectives": [
+   {
+    "id": "talk_anchor",
+    "text": "Talk to {anchor}",
+    "marker": "anchor_home",
+    "on": "talk:anchor_day2"
+   },
+   {
+    "id": "lunch",
+    "text": "Take the lunch pail to Hannes at the gate",
+    "marker": "hannes",
+    "on": "talk:hannes_lunch"
+   },
+   {
+    "id": "observe",
+    "text": "Watch the gate for a while",
+    "marker": "hannes",
+    "on": "enter:gate_watch"
+   },
+   {
+    "id": "report",
+    "text": "Tell Armin what you saw",
+    "marker": "kids",
+    "on": "talk:kids_day2"
+   },
+   {
+    "id": "home",
+    "text": "Go home to {anchor}",
+    "marker": "anchor_home",
+    "on": "talk:anchor_evening2"
+   }
+  ],
+  "onComplete": [
+   {
+    "op": "day",
+    "value": 3
+   }
+  ]
+ },
+ "d3_last": {
+  "title": "Day 3: The last good day",
+  "kind": "main",
+  "act": "prologue",
+  "sequential": true,
+  "summary": "Spend the day with the people you love. Meet {anchor} at the gate.",
+  "objectives": [
+   {
+    "id": "talk_anchor",
+    "text": "Talk to {anchor}",
+    "marker": "anchor_home",
+    "on": "talk:anchor_day3"
+   },
+   {
+    "id": "ribbons",
+    "text": "Buy the ribbons from Marta",
+    "marker": "marta",
+    "on": "talk:marta_day3"
+   },
+   {
+    "id": "kids",
+    "text": "Find the children in the Old Square",
+    "marker": "kids",
+    "on": "talk:kids_day3"
    },
    {
     "id": "gate",
@@ -56,7 +140,7 @@
   "title": "Duty, technically",
   "kind": "side",
   "act": "prologue",
-  "summary": "{anchor} mentioned the Garrison would be at the gate.",
+  "summary": "{anchor} said the Garrison would be at the gate.",
   "objectives": [
    {
     "id": "hannes",
@@ -69,6 +153,38 @@
    {
     "op": "toast",
     "text": "Journal updated: Duty, technically"
+   }
+  ]
+ },
+ "whispers": {
+  "title": "What the old man heard",
+  "kind": "side",
+  "act": "prologue",
+  "summary": "Oswin says the wall hums at night. Nobody else will say a word about it.",
+  "objectives": [
+   {
+    "id": "oswin",
+    "text": "Hear Oswin out",
+    "marker": "oswin",
+    "on": "talk:oswin_whisper"
+   },
+   {
+    "id": "ask",
+    "text": "Ask Hannes about the sound",
+    "marker": "hannes",
+    "on": "talk:hannes_hum"
+   },
+   {
+    "id": "back",
+    "text": "Tell Oswin what Hannes said",
+    "marker": "oswin",
+    "on": "talk:oswin_after"
+   }
+  ],
+  "onComplete": [
+   {
+    "op": "toast",
+    "text": "Journal updated: What the old man heard"
    }
   ]
  }

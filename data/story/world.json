@@ -2,18 +2,12 @@
  "start": {
   "x": -179.5,
   "z": -185.0,
-  "face": {
-   "x": -174.0,
-   "z": -178.0
-  },
-  "hour": 9.2
+  "hour": 7.0
  },
  "titleShot": {
   "x": 0,
-  "z": -58,
-  "yaw": 0,
-  "pitch": 0.2,
-  "hour": 17.3
+  "z": -52,
+  "hour": 5.9
  },
  "points": [
   {
@@ -22,14 +16,28 @@
    "x": -174.0,
    "z": -177.0,
    "r": 4.5,
-   "label": "Talk",
    "talk": [
     {
-     "if": "not talked_anchor_morning",
+     "if": "day==1 and not talked_anchor_morning",
      "conv": "anchor_morning"
     },
     {
-     "if": "quest.morning=='active'",
+     "if": "day==1 and obj.d1_morning.bread and not talked_anchor_dinner",
+     "conv": "anchor_dinner"
+    },
+    {
+     "if": "day==2 and not talked_anchor_day2",
+     "conv": "anchor_day2"
+    },
+    {
+     "if": "day==2 and obj.d2_gate.report and not talked_anchor_evening2",
+     "conv": "anchor_evening2"
+    },
+    {
+     "if": "day==3 and not talked_anchor_day3",
+     "conv": "anchor_day3"
+    },
+    {
      "conv": "anchor_idle"
     }
    ]
@@ -40,8 +48,15 @@
    "x": -168.0,
    "z": -195.0,
    "r": 4.5,
-   "label": "Talk",
    "talk": [
+    {
+     "if": "day>=2 and not talked_oswin_whisper",
+     "conv": "oswin_whisper"
+    },
+    {
+     "if": "obj.whispers.ask and not talked_oswin_after",
+     "conv": "oswin_after"
+    },
     {
      "if": "not talked_oswin_well",
      "conv": "oswin_well"
@@ -57,11 +72,14 @@
    "x": -66.0,
    "z": -83.0,
    "r": 4.5,
-   "label": "Talk",
    "talk": [
     {
-     "if": "obj.morning.talk_anchor and not talked_marta_bread",
+     "if": "day==1 and obj.d1_morning.talk_anchor and not talked_marta_bread",
      "conv": "marta_bread"
+    },
+    {
+     "if": "day==3 and obj.d3_last.talk_anchor and not talked_marta_day3",
+     "conv": "marta_day3"
     },
     {
      "if": "talked_marta_bread",
@@ -78,8 +96,15 @@
    "x": -80.0,
    "z": -92.0,
    "r": 5,
-   "label": "Talk",
    "talk": [
+    {
+     "if": "day==2 and obj.d2_gate.observe and not talked_kids_day2",
+     "conv": "kids_day2"
+    },
+    {
+     "if": "day==3 and obj.d3_last.ribbons and not talked_kids_day3",
+     "conv": "kids_day3"
+    },
     {
      "if": "not talked_kids_canal",
      "conv": "kids_canal"
@@ -87,7 +112,8 @@
     {
      "conv": "kids_idle"
     }
-   ]
+   ],
+   "label": "The children"
   },
   {
    "id": "hannes",
@@ -95,8 +121,15 @@
    "x": 7.0,
    "z": -42.0,
    "r": 4.5,
-   "label": "Talk",
    "talk": [
+    {
+     "if": "day==2 and obj.d2_gate.talk_anchor and not talked_hannes_lunch",
+     "conv": "hannes_lunch"
+    },
+    {
+     "if": "obj.whispers.oswin and not obj.whispers.ask and talked_hannes_lunch",
+     "conv": "hannes_hum"
+    },
     {
      "if": "not talked_hannes_gate",
      "conv": "hannes_gate"
@@ -112,11 +145,10 @@
    "x": -5.0,
    "z": -46.0,
    "r": 4.5,
-   "label": "Talk",
-   "show": "obj.morning.bread",
+   "show": "day==3 and obj.d3_last.kids",
    "talk": [
     {
-     "if": "obj.morning.bread and not talked_anchor_gate",
+     "if": "not talked_anchor_gate",
      "conv": "anchor_gate"
     }
    ]
@@ -146,12 +178,76 @@
     {
      "op": "toast",
      "text": "The Old Square"
+    }
+   ]
+  },
+  {
+   "id": "gate_watch",
+   "x": 0,
+   "z": -30,
+   "r": 18,
+   "fx": [
+    {
+     "op": "toast",
+     "text": "You linger by the gate and watch the Garrison.",
+     "if": "quest.d2_gate=='active' and obj.d2_gate.lunch and not obj.d2_gate.observe"
     },
     {
      "op": "emit",
-     "event": "enter:old_square"
+     "event": "enter:gate_watch",
+     "if": "quest.d2_gate=='active' and obj.d2_gate.lunch and not obj.d2_gate.observe"
     }
    ]
+  }
+ ],
+ "places": [
+  {
+   "id": "gate",
+   "name": "Gate Square",
+   "x": 0,
+   "z": -38
+  },
+  {
+   "id": "old",
+   "name": "Old Square",
+   "x": -72,
+   "z": -86
+  },
+  {
+   "id": "home",
+   "name": "Your street",
+   "x": -176,
+   "z": -186
+  },
+  {
+   "id": "quay",
+   "name": "Canal quay",
+   "x": 150,
+   "z": -56
+  },
+  {
+   "id": "market",
+   "name": "Market",
+   "x": 132,
+   "z": -262
+  },
+  {
+   "id": "keep",
+   "name": "The Keep",
+   "x": 0,
+   "z": -132
+  },
+  {
+   "id": "alley",
+   "name": "Long alley",
+   "x": 0,
+   "z": -285
+  },
+  {
+   "id": "hill",
+   "name": "Overlook hill",
+   "x": -33,
+   "z": -369
   }
  ]
 }

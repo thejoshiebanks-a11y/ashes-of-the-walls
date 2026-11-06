@@ -27,7 +27,7 @@ Operators: `and or not && || ! == != >= <= > <` and parentheses. Every conversat
     {"op":"set","key":"flag","value":true}      {"op":"add","key":"n","value":1}      {"op":"bond","id":"anchor","value":1}
     {"op":"quest.start","id":"q"}  {"op":"quest.obj","id":"q","obj":"o"}  {"op":"quest.done","id":"q"}  {"op":"quest.fail","id":"q"}
     {"op":"emit","event":"name"}   {"op":"hour","value":12}   {"op":"toast","text":"..."}   {"op":"card","title":"..","sub":".."}
-    {"op":"scene","id":"breach"}   {"op":"save"}   {"op":"shake"}   {"op":"flash"}
+    {"op":"scene","id":"breach"}   {"op":"save"}   {"op":"shake"}   {"op":"flash"}   {"op":"day","value":2}  (advances the day, resets the clock, main.js starts that day's quest)
 Any effect accepts an `if`. New scene ids are registered in `js/story/main.js` under `scenes`.
 
 ## Quests
@@ -41,3 +41,9 @@ IndexedDB (falls back to localStorage, then memory). Slots: auto, slot1-3. Setti
 
 ## Tests
 `node tests/story_logic.test.js`, `node tests/story_smoke.test.js`, `node tests/boot.test.js`. The first validates every link, speaker, effect, marker and expression in the JSON, so run it after editing data.
+
+## v0.3.0 additions
+- `npcs.json`: who stands where, which model, height in metres and tint colours. A point's `char` picks the NPC; add `label` to show a group name ("The children").
+- `world.json` `places`: named places drawn on the map.
+- Days: `day` is a condition (`day==2`). The main quest for each day starts from the day-change handler (`DAY_Q` in main.js).
+- Destiny (js/story/destiny.js): `BLOODLINES`, `FAMILIES` and `RELATIONS` carry the odds. Change weights there. A true global cap on Ackerman files needs a server counter; this is a per-player probability.

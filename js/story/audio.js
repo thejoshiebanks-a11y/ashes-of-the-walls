@@ -121,6 +121,7 @@
         note(sc.bass[i % sc.bass.length], t, 7, 'sawtooth', sc.lvl * 0.5, 0.5);
         if (i % 2 === 1 || name === 'title') note(sc.lead[(i * 2) % sc.lead.length], t + 1.2, 5.5, 'triangle', sc.lvl * 0.45, 0.9);
         if (i % 3 === 2) note(sc.lead[(i + 3) % sc.lead.length] * 2, t + 3.4, 4, 'sine', sc.lvl * 0.2, 1);
+        if (name === 'title') { A.choir(i % 2 ? [130.8, 196, 261.6, 311.1] : [146.8, 220, 293.7, 349.2], 11, 0.9); if (i % 3 === 1) A.bell(98); }
       } catch (e) {}
       i++; musicTimer = setTimeout(play, (sc.gap[0] + Math.random() * (sc.gap[1] - sc.gap[0])) * 1000);
     };
@@ -128,5 +129,50 @@
   };
   A.stopMusic = () => { musicOn = null; clearTimeout(musicTimer); };
   A.duck = (v, s) => { if (ctx) { musBus.gain.cancelScheduledValues(now()); musBus.gain.linearRampToValueAtTime(v * store.music, now() + (s || 0.4)); } };
+
+  /* ---- opening additions (v0.4): studio sting, risers, steam, a drone, choir pad, stamp hit ---- */
+  A.logoSting = safe(function () {                // studio sting: sub bloom, glassy shimmer, a clean hit as the mark closes
+    const t = now(), g = ctx.createGain(), o = osc('sine', 49, t, t + 4.4);
+    o.frequency.exponentialRampToValueAtTime(41, t + 3.6); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 1.8); g.gain.exponentialRampToValueAtTime(0.0001, t + 4.3); o.connect(g); out(g, 0.3);
+    [523.25, 784, 1046.5, 1568, 2093, 3136].forEach((f, i) => { const sg = ctx.createGain(), so = osc('sine', f * (1 + i * 0.0007), t + 0.1 * i, t + 4.2); sg.gain.setValueAtTime(0.0001, t + 0.1 * i); sg.gain.linearRampToValueAtTime(0.05 / (1 + i * 0.35), t + 1.9); sg.gain.exponentialRampToValueAtTime(0.0001, t + 4.1); so.connect(sg); out(sg, 0.8); });
+    const n = noise(), bp = ctx.createBiquadFilter(), ng = ctx.createGain(); bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(7000, t + 1.9);
+    ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.22, t + 1.85); ng.gain.exponentialRampToValueAtTime(0.0001, t + 2.3); n.connect(bp); bp.connect(ng); out(ng, 0.4); n.start(t); n.stop(t + 2.4);
+    const th = t + 1.9, hg = ctx.createGain(), ho = osc('sine', 98, th, th + 2.4); ho.frequency.exponentialRampToValueAtTime(36, th + 1.6); env(hg, th, 0.006, 2, 0.8); ho.connect(hg); out(hg, 0.5);
+    [1318.5, 2637, 3951].forEach((f, i) => { const pg = ctx.createGain(), po = osc('sine', f, th, th + 3); env(pg, th, 0.002, 2.4 - i * 0.4, 0.14 / (i + 1)); po.connect(pg); out(pg, 0.9); });
+  });
+  A.riser = safe(function (dur) {                 // tension swell into a cut
+    dur = dur || 3; const t = now(), n = noise(), bp = ctx.createBiquadFilter(), g = ctx.createGain(), o = osc('sawtooth', 73.4, t, t + dur + 0.1), lp = ctx.createBiquadFilter(), og = ctx.createGain();
+    bp.type = 'bandpass'; bp.Q.value = 0.8; bp.frequency.setValueAtTime(220, t); bp.frequency.exponentialRampToValueAtTime(5800, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + dur * 0.96); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05); n.connect(bp); bp.connect(g); out(g, 0.25); n.start(t); n.stop(t + dur + 0.1);
+    o.frequency.exponentialRampToValueAtTime(293.7, t + dur); lp.type = 'lowpass'; lp.frequency.setValueAtTime(300, t); lp.frequency.exponentialRampToValueAtTime(2600, t + dur);
+    og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.16, t + dur * 0.95); og.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.05); o.connect(lp); lp.connect(og); out(og, 0.4);
+  });
+  A.steam = safe(function (dur) {                 // a Titan venting heat
+    dur = dur || 2.4; const t = now(), n = noise(), hp = ctx.createBiquadFilter(), g = ctx.createGain(); hp.type = 'highpass'; hp.frequency.value = 2400;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.32, t + 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); n.connect(hp); hp.connect(g); out(g, 0.45); n.start(t); n.stop(t + dur + 0.1);
+  });
+  A.drone = safe(function (dur, f) {              // low strings swelling underneath a scene
+    dur = dur || 6; f = f || 73.4; const t = now(); [1, 1.5, 2].forEach((m, i) => {
+      const g = ctx.createGain(), lp = ctx.createBiquadFilter(), o = osc('sawtooth', f * m, t, t + dur + 0.4), o2 = osc('sawtooth', f * m * 1.005, t, t + dur + 0.4);
+      lp.type = 'lowpass'; lp.frequency.value = 520 + i * 260; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.13 / (1 + i * 0.5), t + dur * 0.8); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.3);
+      o.connect(lp); o2.connect(lp); lp.connect(g); out(g, 0.5, musBus);
+    });
+  });
+  A.stampHit = safe(function () {                 // the title card landing: impact, steel, violin
+    A.thud(1.5); A.screech();
+    const t = now(), g = ctx.createGain(), o = osc('sine', 58, t, t + 3); o.frequency.exponentialRampToValueAtTime(30, t + 2); env(g, t, 0.01, 2.6, 1); o.connect(g); out(g, 0.6);
+    [311, 487, 905, 1430].forEach((f, i) => { const cg = ctx.createGain(), co = osc('triangle', f, t, t + 2.4); env(cg, t, 0.002, 1.8 - i * 0.3, 0.16 / (1 + i * 0.4)); co.connect(cg); out(cg, 0.7); });
+  });
+  A.menuTick = safe(function () {                 // a soft steel tick for moving through the menu
+    const t = now(), n = noise(), bp = ctx.createBiquadFilter(), g = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 5; env(g, t, 0.002, 0.05, 0.16);
+    n.connect(bp); bp.connect(g); out(g, 0.05); n.start(t); n.stop(t + 0.08);
+  });
+  function choirVoice(f, t, dur, lvl) {           // an "ah" vowel: two detuned saws through formant filters
+    const g = ctx.createGain(), mix = ctx.createGain(), o1 = osc('sawtooth', f, t, t + dur + 0.5), o2 = osc('sawtooth', f * 1.006, t, t + dur + 0.5), v = ctx.createOscillator(), vg = ctx.createGain();
+    v.frequency.value = 4.6; vg.gain.value = f * 0.007; v.connect(vg); vg.connect(o1.frequency); vg.connect(o2.frequency); v.start(t); v.stop(t + dur + 0.5); o1.connect(mix); o2.connect(mix);
+    [[650, 1, 6], [1080, 0.55, 8], [2650, 0.18, 10]].forEach(([fr, gn, q]) => { const bp = ctx.createBiquadFilter(), fg = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = fr; bp.Q.value = q; fg.gain.value = gn; mix.connect(bp); bp.connect(fg); fg.connect(g); });
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(lvl, t + dur * 0.42); g.gain.linearRampToValueAtTime(0.0001, t + dur); out(g, 0.95, musBus);
+  }
+  A.choir = safe(function (notes, dur, lvl) { const t = now() + 0.05; (notes || [146.8, 220, 293.7, 349.2]).forEach((f, i) => choirVoice(f, t + i * 0.35, dur || 11, (lvl || 0.9) / (1 + i * 0.25))); });
   if (typeof module !== 'undefined' && module.exports) module.exports = A;
 })(typeof window !== 'undefined' ? window : globalThis);

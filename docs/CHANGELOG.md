@@ -1,4 +1,14 @@
 # Changelog
+## 0.4.0: The opening, rebuilt (js/story/opening.js, css/opening.css)
+- Tap gate in black with a Japanese and English prompt. The first tap unlocks audio.
+- Studio mark: the hexagon "H" is drawn in SVG with a light sweep and the name JOSHIE SAMA, with a procedural sting (no audio files).
+- Cinematic intro of about 7 seconds. Shot A: three Scouts in a V formation fly over the district with ODM wires and the camera dives in behind the leader. Shot B: street level with Eren, Armin and Mikasa while the Colossal rises over the wall with lightning and steam. Shot C: impact frame, flash, speed lines, hard cut to black and a heartbeat. Wipe captions appear in Japanese with English glosses. Tap, Space, Enter or Esc skips.
+- Title stamp: the wordmark Ashes of the Walls and 壁の灰 slam onto black, then the lockup docks (FLIP animation) into the title layout over the aerial dawn camera (three-sine drift around Shiganshina).
+- Menu in the Wings of Freedom manner: skewed slash selection, a description card for the hovered item, heartbeat on Begin Journey, locked Training Grounds, Load file greyed without a save, and an Exit card ("See you beyond the wall"). Credits sit in a slim band at the bottom like the AoT2 fine print. Keyboard: arrows, W/S, Enter, Space.
+- Japanese text uses a Noto Serif CJK JP subset (assets/fonts/aow-jp-*.woff, SIL OFL). Latin display fonts are Cinzel and Grenze Gotisch from Google Fonts, with fallbacks.
+- Added to the audio module: logoSting, riser, steam, drone, stampHit, menuTick, a formant choir pad and a title bell.
+- game.js: one-line hook so actors can fly (a.fly). main.js: openingHost, a new title camera, an exit handler. coldOpen is now only the fade-out into the creator.
+- Tests: story_smoke updated for the new flow (mock DOM now supports innerHTML), new tests/opening.test.js.
 ## 0.3.0: Opening, registry, living cast
 - Opening: tap gate, parchment splash with drifting ash, silence and wind, a distant Titan footstep and a crow. Title over the fog-shrouded dawn district with a slowly creeping camera, chiselled stone menu (Begin journey, Load file, Training grounds, Options, Credits), heartbeat on Begin, steel clink elsewhere. Credits now blend in as a slim line at the bottom of the title.
 - Cold open: black, gas canisters, the camera rockets up the wall, lightning, the Colossal Titan rises over the wall, the title is stamped onto black with a violin screech, then "Three days before".

@@ -4,10 +4,10 @@ const _st=global.setTimeout; global.setTimeout=(f,ms,...a)=>_st(f,Math.floor((ms
 const T0=Date.now(); global.performance={now:()=>(Date.now()-T0)*20};
 /* ---------- mock DOM ---------- */
 function parseSel(sel){return sel.split(',').map(s=>s.trim().replace(/\s*>\s*/g,' ').split(/\s+/).map(c=>{const m={tag:null,id:null,cls:[],attrs:[]};
-  let r=c; r=r.replace(/\[([^\]=]+)(?:=([^\]]*))?\]/g,(_,k,v)=>{m.attrs.push([k,v]);return ''});
+  let r=c; r=r.replace(/\[([^\]=]+)(?:=([^\]]*))?\]/g,(_,k,v)=>{m.attrs.push([k,v&&v.replace(/^["']|["']$/g,'')]);return ''});
   r=r.replace(/#([\w-]+)/g,(_,i)=>{m.id=i;return ''}); r=r.replace(/\.([\w-]+)/g,(_,k)=>{m.cls.push(k);return ''}); if(r)m.tag=r.toUpperCase(); return m}))}
 const matchOne=(e,m)=>(!m.tag||e.tagName===m.tag)&&(!m.id||e.attrs.id===m.id)&&m.cls.every(c=>e.classList.contains(c))&&m.attrs.every(([k,v])=>k in e.attrs&&(v===undefined||e.attrs[k]===v));
-class El{constructor(t){this.tagName=String(t).toUpperCase();this.children=[];this.attrs={};this.parent=null;this.L={};this._t='';this.style={setProperty:(k,v)=>{this.style[k]=v}};this.dataset={};this.scrollTop=0;this.offsetWidth=1;this.nodeType=1;
+class El{constructor(t){this.tagName=String(t).toUpperCase();this.children=[];this.attrs={};this.parent=null;this.L={};this._t='';this.style={setProperty:(k,v)=>{this.style[k]=v}};this.dataset=new Proxy({},{set:(t,k,v)=>{t[k]=v;this.attrs['data-'+String(k).replace(/[A-Z]/g,c=>'-'+c.toLowerCase())]=String(v);return true}});this.scrollTop=0;this.offsetWidth=1;this.nodeType=1;
   const self=this;this.classList={add:(...c)=>{const s=new Set(self.className.split(/\s+/).filter(Boolean));c.forEach(x=>s.add(x));self.className=[...s].join(' ')},remove:(...c)=>{const s=new Set(self.className.split(/\s+/).filter(Boolean));c.forEach(x=>s.delete(x));self.className=[...s].join(' ')},contains:c=>self.className.split(/\s+/).includes(c),toggle:(c,f)=>{const has=self.classList.contains(c);const want=f===undefined?!has:!!f;want?self.classList.add(c):self.classList.remove(c);return want}}}
   get className(){return this.attrs.class||''} set className(v){this.attrs.class=v}
   get disabled(){return 'disabled' in this.attrs} set disabled(v){v?this.attrs.disabled='':delete this.attrs.disabled}
@@ -24,17 +24,25 @@ class El{constructor(t){this.tagName=String(t).toUpperCase();this.children=[];th
   querySelectorAll(sel){const alts=parseSel(sel);return this.all().filter(e=>alts.some(chain=>{if(!matchOne(e,chain[chain.length-1]))return false;let p=e.parent,i=chain.length-2;while(i>=0){while(p&&!matchOne(p,chain[i]))p=p.parent;if(!p)return false;p=p.parent;i--}return true}))}
   querySelector(sel){return this.querySelectorAll(sel)[0]||null} closest(sel){let e=this;const m=parseSel(sel)[0][0];while(e){if(e.nodeType===1&&matchOne(e,m))return e;e=e.parent}return null}}
 class TextNode{constructor(t){this.nodeType=3;this._t=t;this.parent=null}get textContent(){return this._t}remove(){if(this.parent){this.parent.children=this.parent.children.filter(x=>x!==this)}}}
-const CTX=new Proxy({},{get:(t,k)=>k in t?t[k]:(...a)=>({}),set:(t,k,v)=>{t[k]=v;return true}});
+const CTX=new Proxy({},{get:(t,k)=>k in t?t[k]:/Gradient$/.test(k)?(()=>({addColorStop(){}})):k==='createImageData'?((w,h)=>({data:new Uint8ClampedArray(Math.max(4,(w|0)*(h|0)*4||4))})):(...a)=>({}),set:(t,k,v)=>{t[k]=v;return true}});
 const body=new El('body'),html=new El('html');html.children=[body];body.parent=html;
-global.document={documentElement:html,body,hidden:false,createElement:t=>new El(t),createTextNode:t=>new TextNode(t),getElementById:id=>body.querySelector('#'+id),querySelector:s=>body.querySelector(s),querySelectorAll:s=>body.querySelectorAll(s),addEventListener(){}};
+global.document={documentElement:html,body,hidden:false,createElement:t=>new El(t),createTextNode:t=>new TextNode(t),getElementById:id=>body.querySelector('#'+id),querySelector:s=>body.querySelector(s),querySelectorAll:s=>body.querySelectorAll(s),addEventListener(){},removeEventListener(){}};
 global.window=global; global.innerWidth=800; global.innerHeight=400;
 const winL={}; global.addEventListener=(t,f)=>{(winL[t]=winL[t]||[]).push(f)}; const key=(code)=>{(winL.keydown||[]).forEach(f=>f({code,target:{tagName:'BODY'},preventDefault(){}}))};
-global.requestAnimationFrame=f=>_st(()=>f(performance.now()),2); global.cancelAnimationFrame=()=>{};
+global.removeEventListener=(t,f)=>{winL[t]=(winL[t]||[]).filter(x=>x!==f)}; global.requestAnimationFrame=f=>_st(()=>f(performance.now()),2); global.cancelAnimationFrame=()=>{};
 const ls=new Map(); global.localStorage={getItem:k=>ls.has(k)?ls.get(k):null,setItem:(k,v)=>ls.set(k,String(v)),removeItem:k=>ls.delete(k),key:i=>[...ls.keys()][i],get length(){return ls.size}};
 global.fetch=async u=>{const p=path.join(R,String(u).split('?')[0]);if(!fs.existsSync(p))return{ok:false,status:404,json:async()=>({}),arrayBuffer:async()=>new ArrayBuffer(0)};const raw=fs.readFileSync(p);return{ok:true,status:200,json:async()=>JSON.parse(raw.toString('utf8')),arrayBuffer:async()=>raw.buffer.slice(raw.byteOffset,raw.byteOffset+raw.byteLength)}};
 const anode=()=>new Proxy(function(){},{get:(t,k)=>k==='connect'?(x=>x):['gain','frequency','Q','detune'].includes(k)?{value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(){}}:(()=>{}),set:()=>true});
 global.AudioContext=function(){return {currentTime:0,sampleRate:8000,state:'running',destination:anode(),createGain:anode,createOscillator:anode,createBiquadFilter:anode,createConvolver:anode,createBufferSource:anode,resume(){},createBuffer:(c,l)=>({getChannelData:()=>new Float32Array(l)})}};
 global.URL={createObjectURL:()=>'blob:x'}; global.Blob=class{}; 
+/* minimal innerHTML for the mock: tags, attributes and text (enough for the opening's markup) */
+Object.defineProperty(El.prototype,'innerHTML',{get(){return this.textContent},set(h){this.children.forEach(c=>c.parent=null);this.children=[];this._t='';
+  const VOID=/^(br|img|input|hr|stop|path|rect|circle|line|polygon|feTurbulence|feDisplacementMap|feGaussianBlur)$/i; const stack=[this]; const re=/<(\/?)([a-zA-Z][\w:-]*)((?:\s+[^<>]*?)?)(\/?)>|([^<]+)/g; let m;
+  while((m=re.exec(String(h)))){ const top=stack[stack.length-1];
+    if(m[5]!==undefined){top.append(new TextNode(m[5]));continue}
+    if(m[1]){if(stack.length>1)stack.pop();continue}
+    const e=new El(m[2]); String(m[3]||'').replace(/([\w:-]+)(?:=(?:"([^"]*)"|'([^']*)'))?/g,(_,k,v1,v2)=>{e.attrs[k]=v1!==undefined?v1:v2!==undefined?v2:''; return ''}); top.append(e); if(!m[4]&&!VOID.test(m[2]))stack.push(e); }
+}});
 /* ---------- page skeleton the game would provide ---------- */
 const mk=(t,id,cls,par)=>{const e=new El(t);if(id)e.attrs.id=id;if(cls)e.className=cls;(par||body).append(e);return e};
 const load=mk('div','load'); const inner=mk('div',null,null,load); mk('div','msg',null,inner); mk('canvas','c');
@@ -46,7 +54,7 @@ global.__world={H:()=>HP,gh:()=>0,cast:()=>null,inCanal:()=>false};
 const MODELS=new Set(),LIST=[]; let AID=1;
 global.__actors={HH:.486,PLS:.54,LEVI_H:1.62,list:LIST,has:k=>MODELS.has(k),loadModel:async k=>{MODELS.add(k);return {}},add(d){const a=Object.assign({id:AID++},d);LIST.push(a);return a},remove(id){const i=LIST.findIndex(a=>a.id===id);if(i>=0)LIST.splice(i,1)},clear(keep){for(let i=LIST.length-1;i>=0;i--)if(!(keep&&LIST[i].isPlayer))LIST.splice(i,1)}};
 /* ---------- load the real modules ---------- */
-for(const f of ['core','audio','destiny','dialogue','world','save','actors','map','ui','main']) require(`${R}/js/story/${f}.js`);
+for(const f of ['core','audio','destiny','dialogue','world','save','actors','map','ui','opening','main']) require(`${R}/js/story/${f}.js`);
 const S=window.STORY, UI=S.ui, ACT=S.actors, D=S.destiny; let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL:',m)}};
 const sleep=ms=>new Promise(r=>_st(r,ms)); const until=async(fn,m,ms=20000)=>{const t=Date.now();while(Date.now()-t<ms){if(fn())return true;await sleep(15)}ok(false,'timeout: '+m);return false};
 const vis=sel=>{const e=document.querySelector(sel);return e&&!e.hidden};
@@ -55,28 +63,27 @@ const talk=async(conv,picks)=>{tapAll.pick=picks||[];S.dialogue.start(conv);awai
 const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=[q.x+1,0,q.z+1]};
 (async()=>{
  UI.settings.textSpeed='instant';
- // ---- splash: silence until the first tap, which unlocks audio ----
- await until(()=>S.fsm.state==='intro'&&vis('#sv-splash'),'splash shows'); ok(/Tap to begin/.test(document.querySelector('.sv-splash-box').textContent),'tap gate');
- ok(/unofficial/i.test(document.querySelector('.sv-splash-legal').textContent),'legal line on the splash'); ok(!S.audio.ready(),'no audio before the first tap');
- document.querySelector('#sv-splash').onpointerdown(); ok(S.audio.ready(),'audio unlocked by the tap');
- await until(()=>S.fsm.state==='title'&&vis('#sv-title'),'title after the splash sequence');
+ // ---- gate: silence until the first tap, which unlocks audio ----
+ await until(()=>S.fsm.state==='intro'&&document.querySelector('.op-studio.gate'),'tap gate shows'); ok(/Tap/i.test(document.querySelector('.op-tap').textContent),'tap prompt');
+ ok(!S.audio.ready(),'no audio before the first tap');
+ document.querySelector('.op-studio').onpointerdown(); ok(S.audio.ready(),'audio unlocked by the tap');
+ await until(()=>document.querySelector('.op-studio.logo'),'studio logo plays');
+ await until(()=>S.fsm.state==='title'&&document.querySelector('.op-title.shown'),'title docks after the stamp'); await until(()=>document.querySelector('.op-item.sel'),'menu goes live');
  ok(window.__freeze===true&&window.__hideAvatar===true,'frozen on title'); ok(window.__cine&&window.__cine.on,'creeping title camera is on'); ok(body.className.includes('sv-hidehud'),'HUD hidden on title');
  const act=a=>document.querySelector('[data-act='+a+']');
- ok(!act('roam'),'free roam is gone from the menu'); ok(act('train').className.includes('locked'),'training grounds shown locked'); ok(act('continue').hidden,'no Load file without a save');
- ok(/Begin journey/.test(act('new').textContent),'Begin journey'); ok(/Nico Maier/.test(document.querySelector('.sv-ticker').textContent+S.data.credits.sections[0].items[1].who),'credit ticker blends in at the bottom');
+ ok(!act('roam'),'free roam is gone from the menu'); ok(act('train').className.includes('locked'),'training grounds shown locked'); ok(act('continue').className.includes('empty'),'Load file is greyed without a save'); ok(act('exit'),'exit item present');
+ ok(/Begin/i.test(act('new').textContent),'Begin Journey'); ok(document.querySelector('.op-credit'),'credits band blends in at the bottom');
  act('train').click(); await sleep(10); ok(/Act 2/.test(document.querySelector('.sv-toasts').textContent),'locked toast');
  // options + credits
  act('options').click(); await sleep(20); ok(vis('#sv-pause')&&document.querySelectorAll('.sv-range').length>=3,'options has volume sliders');
  document.querySelectorAll('.sv-range')[1].dispatch('input',{target:{value:'40'}}); ok(Math.abs(S.audio.settings.music-0.4)<1e-6,'music volume slider works');
  document.querySelector('#sv-pause .sv-pbtn').click(); await sleep(20); ok(vis('#sv-title'),'options back to title');
- act('credits').click(); await sleep(20); ok(/Prime Slayer3D/.test(document.querySelector('.sv-roll').textContent)&&/Nico Maier/.test(document.querySelector('.sv-roll').textContent),'credits scene'); document.querySelector('#sv-credits .sv-back').onclick(); await sleep(20);
+ document.querySelector('.op-cbtn').click(); await sleep(20); ok(/Prime Slayer3D/.test(document.querySelector('.sv-roll').textContent)&&/Nico Maier/.test(document.querySelector('.sv-roll').textContent),'credits scene'); document.querySelector('#sv-credits .sv-back').onclick(); await sleep(20);
  // rig the destiny so this file is an Ackerman (it must stay hidden)
  let seed=1; while(D.roll(seed).bloodline!=='ackerman')seed++; localStorage.setItem('ashes_destiny',String(seed)); const dest=D.roll(seed);
  // ---- Begin journey: cold open, then the registry ----
  act('new').click(); await until(()=>S.fsm.state==='intro','cold open begins'); ok(!S.audio.ready()||true,''); 
- await until(()=>LIST.some(a=>a.key==='colossal'),'the Colossal appears over the wall'); const col=LIST.find(a=>a.key==='colossal'); ok(col.static&&col.scale>5,'colossal is a huge static prop: scale '+col.scale.toFixed(1));
- await until(()=>!vis('.sv-stamp[hidden]')&&document.querySelector('.sv-stamp h1').textContent==='Ashes of the Walls','title stamp slams');
- await until(()=>S.fsm.state==='creator'&&vis('#sv-creator'),'registry opens'); ok(!LIST.some(a=>a.key==='colossal'),'colossal removed after the cold open');
+  await until(()=>S.fsm.state==='creator'&&vis('#sv-creator'),'registry opens'); ok(!LIST.some(a=>a.key==='colossal'),'colossal removed after the cold open');
  ok(LIST.some(a=>a.key.startsWith('fuse_')&&!a.isPlayer&&a.scale>0.5),'the Anchor stands in the preview'); const pv=LIST.find(a=>a.key.startsWith('fuse_')&&a.look&&a.skipRe);
  ok(/Shiganshina District Registry/.test(document.querySelector('.sv-stage-head').textContent),'registry framing');
  const next=()=>document.querySelector('.sv-cr-next'); ok(next().disabled,'cannot continue without a name');
@@ -122,8 +129,8 @@ const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=
  await until(()=>S.fsm.state==='dialogue'&&/ground jumps/.test(document.querySelector('.sv-line').textContent),'breach dialogue'); ok(document.body.className.includes('sv-letterbox'),'letterbox on');
  tapAll.pick=[0]; await tapAll(); await until(()=>S.fsm.state==='ending'&&vis('#sv-ending'),'ending card'); ok(S.flag('breach_choice')==='hand','choice saved');
  const auto=await S.save.read('auto'); ok(auto&&auto.state.flags.prologue_part1_done&&auto.state.day===3&&auto.state.player.look.scar===1,'autosave holds day, look and flags');
- document.querySelectorAll('.sv-pbtn').find(b=>/Return to title/.test(b.textContent)).click(); await until(()=>S.fsm.state==='title'&&vis('#sv-title'),'title again');
- ok(!act('continue').hidden&&/Sera/.test(act('continue').querySelector('small').textContent),'Load file appears: '+act('continue').querySelector('small').textContent);
+ document.querySelectorAll('.sv-pbtn').find(b=>/Return to title/.test(b.textContent)).click(); await until(()=>S.fsm.state==='title'&&vis('#sv-title'),'title again'); await until(()=>document.querySelector('.op-item.sel'),'menu live again');
+ ok(!act('continue').className.includes('empty')&&/Sera/.test(act('continue').querySelector('small').textContent),'Load file appears: '+act('continue').querySelector('small').textContent);
  S.reset(); act('continue').click(); await sleep(30); ok(vis('#sv-saves'),'load list'); document.querySelectorAll('.sv-slot').find(b=>/Autosave/.test(b.textContent)).click();
  await until(()=>S.fsm.state==='play'&&S.state.player&&S.state.player.name==='Sera','load restores'); ok(S.state.day===3&&S.flag('breach_choice')==='hand','day and flags restored'); ok(LIST.some(a=>a.isPlayer),'player actor respawned after load');
  console.log(`smoke test: ${pass} passed, ${fail} failed`); process.exit(fail?1:0);

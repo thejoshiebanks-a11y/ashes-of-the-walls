@@ -3,7 +3,7 @@
 const P={g:18,reel:28,reelSp:16,boost:15,gasUse:12,gasRegen:7,drag:.05,dragFree:.14,steer:8,fovBase:1.12,fovGain:.55,maxLen:95,walk:.8,jog:2.5,sprint:4.9,jump:4.7,swim:1.7};
 const PLS=.54,HH=.9*PLS,SC=.56,RAD=.26,SPAWN=[0,0,-38],WY=-3.5,BEDY=-6.2;
 const SPH=[];let decals=[],dodgeT=0,bloodOv=0,aimD=0,lastWall=null,flipT=0,rollT=0,bu=[0,1,0],hitMsgT=0,hold=[false,false],slashT=0,slashCD=0,slow=1,slowT=0,hour=15.2,blades=4,dur=100,landT=0,fireT=[0,0],msg='',msgT=0,kills=0,hudTick=0;
-let E,st,A=null,on=false,H=[0,1,0],v=[0,0,0],gas=100,grounded=true,hk=[{on:false},{on:false}],cam={pos:[0,5,0],fov:1.12},face=[0,0,1],lean=0,spd=0,fov=1.12,shake=0,prev=[0,0,0];
+let E,st,A=null,on=false,H=[0,1,0],v=[0,0,0],gas=100,grounded=true,hk=[{on:false},{on:false}],cam={pos:[0,5,0],target:[0,5,1],fov:1.12},face=[0,0,1],lean=0,spd=0,fov=1.12,shake=0,prev=[0,0,0];
 const K={},T={reel:0,out:0,gas:0,brake:0};let sv=[0,0],parts=[],hud=null,aimOK=[false,false],tick=0;
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],len=a=>Math.hypot(a[0],a[1],a[2]),nrm=a=>{const l=len(a)||1;return[a[0]/l,a[1]/l,a[2]/l]};
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -552,8 +552,8 @@ function drawActors(dt){
    const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;
    if(hs!==1&&hi>=0){sv=M.loc.slice(hi*16,hi*16+12);for(let k=0;k<12;k++)if(k%4<3)M.loc[hi*16+k]*=hs}
    M.pose(toDirs(pz,1));if(sv)M.loc.set(sv,hi*16);
-   const sc=a.scale,wd=a.wide||1,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),o=[a.x,a.gy,a.z];
-   const mm=relModel(R.map(x=>x*sc*wd),U.map(x=>x*sc),F.map(x=>x*sc*wd),o,pz,M.py);groundFix(M,mm,a.gy,true,sc);
+   const sc=a.scale,wd=a.wide||1,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),o=[a.x,a.gy+(a.fly||0),a.z];
+   const mm=relModel(R.map(x=>x*sc*wd),U.map(x=>x*sc),F.map(x=>x*sc*wd),o,pz,M.py);if(!a.fly)groundFix(M,mm,a.gy,true,sc);/* a.fly: metres above ground, used by the opening for flying Scouts */
    M.tintFn=a.tintFn||(a.tintFn=actTint(a));drawModel(M,mm,0,null,null,a.skipRe||(a.kind==='aot'?ACT_GEAR:null));
   }else{
    M.pose({});const sc=a.scale,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),mm=modelMat(R,U,F,[a.x,a.y||0,a.z],sc);

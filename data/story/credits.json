@@ -1,6 +1,6 @@
 {
  "disclaimer": "Ashes of the Walls is an unofficial, non-commercial fan project, not affiliated with or endorsed by the creators or publishers of Attack on Titan.",
- "director": "",
+ "director": "Joshie Sama",
  "sections": [
   {
    "title": "Models",
@@ -36,8 +36,13 @@
    "title": "Typefaces",
    "items": [
     {
-     "what": "Spectral, Barlow, Barlow Condensed",
+     "what": "Spectral, Barlow, Barlow Condensed, Cinzel, Grenze Gotisch",
      "who": "Google Fonts",
+     "lic": "SIL OFL"
+    },
+    {
+     "what": "Noto Serif CJK JP (Japanese text, subset)",
+     "who": "Adobe and Google",
      "lic": "SIL OFL"
     }
    ]

@@ -1,4 +1,12 @@
 # Changelog
+## 0.5.2: Slower, grip fix, title polish
+- Crest: the glowing crack now runs through the centre of the emblem.
+- Studio logo: mark, JOSHIE SAMA, PRESENTS, then the legal line, in a single column with no overlap.
+- Intro retimed to 12.6 s. Three shots, two cuts; the B to C change now dips through black (0.55 s) instead of a 2-frame flash. The last shot is one continuous low crane from the hand to the face.
+- Colossal hands: arm IK plants each wrist on the real stone height under it (cast), palm down, fingers curled over the front edge. Each hand rests on top of the wall with the fingers curled over the front edge (uses the engine hand orientation and finger curl through `OP.hands`, tuned by `OP.K.fd/pn/curlT/curl`). game.js passes the model `M` to `a.poseFn` and exposes `__initHandLoc`.
+- Stamp: English "Three days before" removed (Japanese only). Title: the date line is hidden once docked so nothing overlaps the Begin Journey card.
+- Title: drifting mist banks and hearth-smoke columns over the town.
+- Audio: `AU.unlock()` on every gesture; iOS audioSession "playback" plus a silent looping audio element so the sound is not muted by the ringer switch.
 ## 0.5.0: Logo gate, the Colossal at the wall, a full score
 - Boot: pure black until the story layer takes over. No loading text and no test arena any more (the canvas and game HUD stay hidden with the `aow-boot` class on <html>). Only a hairline progress bar shows low on the screen.
 - New crest on the tap screen: Wall Maria, Rose and Sina as three rings, split by a glowing crack, an ember at the core, ash lifting off, with the ASHES OF THE WALLS wordmark and 壁の灰 under it.

@@ -18,14 +18,14 @@ ok(minY > 30, 'aerial camera stays high: ' + minY.toFixed(1)); ok(maxStep < 1.5,
 // the wall cutscene: every shot must be valid, continuous enough, and look at the wall
 const g = { x0: -42, front: -20, back: 6, top: 50 }, TL = OP.TL;
 ok(TL.rumble < TL.ball && TL.ball < TL.strike && TL.strike < TL.grab && TL.grab < TL.headUp && TL.headUp < TL.reveal && TL.reveal < TL.end, 'beats are in order');
-ok(TL.end >= 7 && TL.end <= 10, 'intro stays short: ' + TL.end + ' s');
+ok(TL.end >= 10 && TL.end <= 14, 'intro length (slow, cinematic): ' + TL.end + ' s');
 const shots = new Set(); let prevC = null, cut = 0;
 for (let t = 0; t <= TL.end; t += 0.05) {
   const c = OP.camAt(t, g); ok(finite(c.pos) && finite(c.target) && c.fov > 0.3 && c.fov < 1.3, 'camAt valid @' + t.toFixed(2)); shots.add(c.shot);
   ok(c.pos[1] > 0.5, 'camera above ground @' + t.toFixed(2));
   if (prevC && Math.hypot(c.pos[0] - prevC.pos[0], c.pos[1] - prevC.pos[1], c.pos[2] - prevC.pos[2]) > 12) cut++; prevC = c;
 }
-ok(shots.size === 4 && cut === 3, 'four shots with exactly three cuts: ' + [...shots] + ' cuts=' + cut);
+ok(shots.size === 3 && cut === 2, 'three shots with exactly two cuts: ' + [...shots] + ' cuts=' + cut);
 const c0 = OP.colossalState(0), cg = OP.colossalState(TL.grab), ce = OP.colossalState(TL.reveal + 1);
 ok(c0.reach === 0 && cg.reach > 0.99, 'arms start down, land on the wall at the grab'); ok(c0.lift < -20 && ce.lift > 0 && c0.show === false && ce.show === true, 'he starts hidden below the wall and ends heaved above it');
 ok(ce.head > c0.head, 'the head lifts'); for (let t = 0; t <= TL.end; t += 0.1) { const s = OP.colossalState(t); ok(finite([s.reach, s.reachR, s.lean, s.head, s.grip, s.lift]), 'colossalState finite'); }

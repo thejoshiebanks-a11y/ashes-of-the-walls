@@ -24,6 +24,18 @@
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
     return true;
   };
+  /* iPhones keep Web Audio silent while the ringer switch is on silent, and only start it from a real touch.
+     So on every gesture: ask Safari for "playback" audio, loop a silent <audio> element (media audio ignores the switch), resume the context and play one empty buffer. */
+  let silentEl = null;
+  const silentWav = () => { const n = 8000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); }; w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true); for (let i = 0; i < n; i++) b[44 + i] = 128 + (i % 2); return URL.createObjectURL(new Blob([b], { type: 'audio/wav' })); };
+  A.unlock = function () {
+    try { if (root.navigator && root.navigator.audioSession) root.navigator.audioSession.type = 'playback'; } catch (e) {}
+    try { if (!silentEl && root.document && root.URL && root.Blob) { silentEl = root.document.createElement('audio'); silentEl.src = silentWav(); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); silentEl.preload = 'auto'; } if (silentEl) { const p = silentEl.play(); if (p && p.catch) p.catch(() => {}); } } catch (e) {}
+    A.init(); if (!ctx) return false;
+    try { if (ctx.state !== 'running') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); } const b = ctx.createBuffer(1, 1, 22050), src = ctx.createBufferSource(); src.buffer = b; src.connect(ctx.destination); src.start(0); } catch (e) {}
+    return ctx.state === 'running';
+  };
+  if (root.document && root.document.addEventListener) ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'].forEach(ev => root.document.addEventListener(ev, () => { if (!ctx || ctx.state !== 'running') A.unlock(); }, { capture: true, passive: true }));
   A.ready = () => !!ctx && ctx.state === 'running';
   A.setVolume = (k, v) => { store[k] = v; if (!ctx) return save(); if (k === 'vol') master.gain.value = store.muted ? 0 : v * LOUD; if (k === 'music') musBus.gain.value = v; if (k === 'sfx') sfxBus.gain.value = v; save(); };
   A.setMuted = m => { store.muted = !!m; if (ctx) master.gain.value = m ? 0 : store.vol * LOUD; save(); };

@@ -29,3 +29,6 @@ gate (game crest, tap) -> studio mark -> cinematic intro -> stamp -> dock -> tit
 - Timeline: `OP.TL` (rumble, ball, strike, grab, headUp, reveal, end). Knobs: `OP.K` (liftHide/liftGrab/liftUp = how far the Colossal is sunk below the wall, tzOff = distance behind the wall, height, arm directions, ballUp).
 - Effects live in `js/story/fx.js` (puffs, bolts, plasma, shocks, flashes, rays, storm). They are simulated from the timeline, so scrubbing with `window.__opT = seconds` shows an exact frame.
 - `OP.useC2 = true` switches to the new `colossal2` model (experimental; its skeleton has no Spine2).
+
+## Tuning the hand grip (v0.5.2)
+`OP.K.fd` and `OP.K.pn` are the finger direction and palm normal of the left hand in the pelvis frame (+y up, +z forward); the right hand mirrors x. `OP.K.curlT` is where the fingers curl toward, in hand lengths from the wrist, and `OP.K.curl` is the curl amount. If the hand sinks into the stone, raise `liftGrab` or the arm y values in `armU/armF`; if the fingers point the wrong way, flip the sign of `fd[1]` and `curlT[1]`.

@@ -547,7 +547,7 @@ function drawActors(dt){
   if(!a.static){
    if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
    const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
-   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;if(a.poseFn)a.poseFn(pz,a);/* a.poseFn: edit the pose before it is drawn */
+   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;if(a.poseFn)a.poseFn(pz,a,M);/* a.poseFn: edit the pose before it is drawn */
    if(a.talking){const t=a.ph=(a.ph||0)+dt;const g=Math.sin(t*2.3)*.5+.5;const r=AN.pi['Bip001 R Forearm'];if(r!==undefined&&a.talkGest!==false){const i=r*3;pz.d[i+1]+=g*.45;pz.d[i]-=g*.18}}
    const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;
    if(hs!==1&&hi>=0){sv=M.loc.slice(hi*16,hi*16+12);for(let k=0;k<12;k++)if(k%4<3)M.loc[hi*16+k]*=hs}
@@ -558,7 +558,7 @@ function drawActors(dt){
   }else{
    M.pose({});const sc=a.scale,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),mm=modelMat(R,U,F,[a.x,a.y||0,a.z],sc);
    M.tintFn=null;drawModel(M,mm,0,null,null,a.skipRe||null)}}}
-window.__actors={
+window.__initHandLoc=initHandLoc;window.__actors={
  list:ACTORS,
  add(d){const a=Object.assign({id:ACT_ID++,x:0,z:0,yaw:0,scale:PLS,kind:'aot',look:null,pi:0,wait:0,speed:0},d);ACTORS.push(a);return a},
  remove(id){const i=ACTORS.findIndex(a=>a.id===id);if(i>=0)ACTORS.splice(i,1)},

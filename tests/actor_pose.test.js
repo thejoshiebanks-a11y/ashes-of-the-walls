@@ -30,7 +30,7 @@ let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL',m
   const bin=zlib.inflateSync(Buffer.from(D.bin)); const meta=D.meta;
   const skin=(M)=>{ // returns {minY,maxY,minX,maxX,nan}
     let r={minY:1e9,maxY:-1e9,minX:1e9,maxX:-1e9,nan:0};
-    for(const p of meta.prims){ if(!/^(colossal|armored)$/.test(key)&&/weapon|sword|odm|gangsheng|quiver|bow|heixian|juren|pifeng|wuqi|zhuangbei|xinhao|jianto|gongjian/i.test(p.mat))continue;
+    for(const p of meta.prims){ if(!/^(colossal2?|armored)$/.test(key)&&/weapon|sword|odm|gangsheng|quiver|bow|heixian|juren|pifeng|wuqi|zhuangbei|xinhao|jianto|gongjian/i.test(p.mat))continue;
       const pos=new Float32Array(bin.buffer.slice(bin.byteOffset+p.o[0],bin.byteOffset+p.o[0]+p.n*12)),jj=bin.slice(p.o[3],p.o[3]+p.n*4),ww=bin.slice(p.o[4],p.o[4]+p.n*4);
       for(let i=0;i<p.n;i+=3){let x=0,y=0,z=0;for(let k=0;k<4;k++){const w=ww[i*4+k]/255;if(!w)continue;const S=M.S,b=jj[i*4+k]*16,px=pos[i*3],py=pos[i*3+1],pz=pos[i*3+2];
           x+=w*(S[b]*px+S[b+4]*py+S[b+8]*pz+S[b+12]);y+=w*(S[b+1]*px+S[b+5]*py+S[b+9]*pz+S[b+13]);z+=w*(S[b+2]*px+S[b+6]*py+S[b+10]*pz+S[b+14])}

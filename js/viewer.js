@@ -3,7 +3,7 @@ const {Engine,V3}=AotEngine;const $=id=>document.getElementById(id);
 const canvas=$('c');const rays=$('rays');let E;
 const touch=matchMedia('(pointer:coarse)').matches;if(touch)document.body.classList.add('touch');
 function fail(m){$('msg').textContent=m;$('load').querySelector('p').textContent='Cannot start'}
-try{E=new Engine(canvas,{preserve:true,mobile:/lite/.test(location.search)?true:undefined})}catch(e){fail('This viewer needs WebGL 2. Try a recent Chrome, Safari or Firefox.');return}
+try{E=new Engine(canvas,{preserve:true,mobile:/lite/.test(location.search)?true:undefined,antialias:window.GFX?GFX.wantAA():true});if(window.GFX)try{GFX.init(E)}catch(e){console.warn('GFX init failed, using engine defaults',e)}}catch(e){fail('This viewer needs WebGL 2. Try a recent Chrome, Safari or Firefox.');return}
 E.dpr=Math.min(devicePixelRatio||1,E.mobile?2.2:2.5);if(E.mobile)E.shadowFar=200;
 let st={mode:'orbit',target:[10,0,-170],yaw:2.2,pitch:.62,dist:520,pos:[0,1.7,-16],wyaw:Math.PI,wpitch:0,wy:1.7,fly:false};
 let tween=null,keys={},stickV=[0,0],cur=null,collide=null,views=[];
@@ -69,8 +69,8 @@ $('ctl').innerHTML=touch?'<li><b>Orbit:</b> drag to turn, pinch to zoom, two fin
  '<li><b>Orbit:</b> drag to turn, wheel to zoom, right-drag or <kbd>Shift</kbd>+drag to pan, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to move the focus.</li><li><b>Walk:</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to move, <kbd>Shift</kbd> to run, drag to look.</li><li><kbd>Tab</kbd> switches mode, <kbd>1</kbd>&ndash;<kbd>9</kbd> jump to viewpoints, <kbd>F</kbd> toggles the scale figures.</li>';
 // ---------- loop
 let last=performance.now(),fps=60,acc=0,nf=0,slow=0;
-function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;
- if(!window.__ready)return;
+function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000),rdt=(now-last)/1000;last=now;
+ if(!window.__ready)return;if(window.GFX&&GFX.enabled)GFX.update(rdt);
  if(tween){tween.t+=dt/tween.dur;const k=Math.min(1,tween.t),s=k*k*(3-2*k);const a=tween.from,b=tween.to;
   const lerp=(p,q)=>[p[0]+(q[0]-p[0])*s,p[1]+(q[1]-p[1])*s,p[2]+(q[2]-p[2])*s];
   // arc upward during long moves
@@ -97,8 +97,8 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
   if(cw>0){let nx=cx/cw,ny=cy/cw;const ex=Math.max(0,Math.abs(nx)-1),ey=Math.max(0,Math.abs(ny)-1);const off=Math.hypot(ex,ey);
    sx=(nx*.5+.5)*W;sy=(1-(ny*.5+.5))*Hh;sx=Math.max(-W*.3,Math.min(W*1.3,sx));sy=Math.max(-Hh*.3,Math.min(Hh*1.3,sy));ro=Math.max(0,1-off*1.25)*(E.preset==='golden'?.85:.35)}
   rays.style.setProperty('--sx',sx+'px');rays.style.setProperty('--sy',sy+'px');rays.style.setProperty('--ro',ro.toFixed(3));rays.style.setProperty('--ra',(Math.sin(E.time*.05)*3).toFixed(2)+'deg')}}
- acc+=dt;nf++;if(acc>.6){fps=nf/acc;acc=0;nf=0;$('stats').textContent=Math.round(fps)+' fps \u00b7 '+Math.round(E.tris/1000)+'k tris \u00b7 '+(E.lastCalls||0)+' calls';
-  if(fps<26&&E.scale>(window.__lockScale?.9:.55)){slow++;if(slow>2){E.scale=Math.max(window.__lockScale?.9:.55,E.scale-.1);slow=0}}else slow=0}}
+ acc+=dt;nf++;if(acc>.6){fps=nf/acc;acc=0;nf=0;$('stats').textContent=(window.GFX&&GFX.enabled?GFX.line():Math.round(fps)+' fps')+' \u00b7 '+Math.round(E.tris/1000)+'k tris \u00b7 '+(E.lastCalls||0)+' calls';
+  if(!(window.GFX&&GFX.enabled)){if(fps<26&&E.scale>(window.__lockScale?.9:.55)){slow++;if(slow>2){E.scale=Math.max(window.__lockScale?.9:.55,E.scale-.1);slow=0}}else slow=0}}}
 requestAnimationFrame(frame);
 // ---------- boot
 E.load('./',(m,p)=>{$('msg').textContent=m;$('bar').firstElementChild.style.width=(p*100)+'%'}).then(()=>{

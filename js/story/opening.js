@@ -41,7 +41,7 @@
      ->  headUp: he heaves up, steam pours  ->  reveal: face over the wall, roar  ->  end */
   const TL = OP.TL = { rumble: 0.8, ball: 1.8, strike: 3.8, grab: 5.6, headUp: 7.0, reveal: 9.0, end: 12.6 };
   const kk = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
-  const K = OP.K = { liftHide: -27, liftGrab: -9, liftUp: 4, tzOff: 21, armU: [0.1, 0.34, 0.95], armF: [0.04, 0.24, 0.97], armU2: [0.1, -0.25, 0.95], armF2: [0.04, -0.3, 0.97], fd: [0, -0.4, 0.9], handX: 9, handY: 1.2, handZ: 3.1, hoverY: 15, hoverZ: 17, pole: [0.25, -0.9, -0.25], pn: [0, 1, -0.15], curlT: [0, -1.6, 1.4], curl: 0.85, height: 62, ballUp: 62 };   // the scene's tuning knobs
+  const K = OP.K = { liftHide: -27, liftGrab: -9, liftUp: 4, tzOff: 21, armU: [0.1, 0.34, 0.95], armF: [0.04, 0.24, 0.97], armU2: [0.1, -0.25, 0.95], armF2: [0.04, -0.3, 0.97], fd: [0, -0.4, 0.9], handX: 9, handY: 0.25, handZ: 2.4, hoverY: 15, hoverZ: 17, pole: [0.25, -0.9, -0.25], pn: [0, 1, -0.15], curlT: [0, -1.9, 1.0], curl: 1.3, height: 62, ballUp: 62 };   // the scene's tuning knobs
   OP.colossalState = function (t) {                          // how the Colossal moves: first one hand, then the other, then the heave and the head lifting
     const reach = easeOut(kk(t, TL.grab - 1.5, TL.grab)), reachR = easeOut(kk(t, TL.grab + 0.7, TL.grab + 1.7)), heave = ease(kk(t, TL.headUp - 0.3, TL.reveal + 0.7)), hid = kk(t, TL.strike + 0.4, TL.grab - 0.2);
     return { reach, reachR, press: heave, lean: 0.34 * reach + 0.06 * reachR - 0.14 * heave, head: -0.55 + 0.7 * ease(kk(t, TL.headUp + 0.5, TL.reveal + 1.2)), grip: kk(t, TL.grab - 0.4, TL.grab + 1.0), gripR2:0, gripR: kk(t, TL.grab + 0.9, TL.grab + 1.8), lift: K.liftHide + (K.liftGrab - K.liftHide) * ease(hid) + (K.liftUp - K.liftGrab) * heave, show: t >= TL.strike + 0.05 };
@@ -272,7 +272,7 @@
     mountOnce(); UI.hideAll(); stage.hidden = false; stage.className = 'op-stage'; cutEl.className = 'op-cut on'; UI.fade.style.transitionDuration = '0s'; UI.fade.classList.remove('on'); OP.setBars('wide'); FX.start(); FX.layers.add(dustLayer);
     const has3D = !!H.has3D, TOTAL = TL.end * 1000, A = root.__actors, FXM = S.fx, R = Math.random;
     const g = has3D && H.geo ? H.geo() : { x0: -42, front: -20, back: 4, top: 50 };
-    const hasFx = !!(FXM && has3D && H.project), ckey = A && A.has('colossal2') && OP.useC2 ? 'colossal2' : 'colossal';
+    const hasFx = !!(FXM && has3D && H.project), ckey = A && A.has('colossal2') && OP.useC2 !== false ? 'colossal2' : 'colossal';
     let col = null, shot = '', cam = null, curT = 0;
     const rub = { ps: [] }, wallMid = (g.front + g.back) / 2, handY = g.top + 1, hands = [[g.x0 - 9, handY, wallMid], [g.x0 + 9, handY, wallMid]];
     const CH = K.height, tz = wallMid + K.tzOff, gy = has3D ? H.gh(g.x0, tz) : 0, ballC = [g.x0, g.top + K.ballUp, tz], faceY = () => 0.93 * CH + OP.colossalState(curT).lift + gy;
@@ -282,7 +282,7 @@
       S.actors.clearAll(); H.setHour(5.4); const c0 = OP.camAt(0, g); H.teleport(c0.pos[0], c0.pos[2]); H.cineOn(c0.pos, c0.target, c0.fov);
       if (A.has(ckey)) {
         const sc = S.actors.scaleFor ? S.actors.scaleFor(S.actors.bodyH ? S.actors.bodyH(ckey) : 5.254375, CH) : CH / 5.254375;
-        col = A.add({ key: ckey, kind: 'titan', x: g.x0, z: tz, yaw: Math.PI, scale: sc, idle: 'T:Zombie Idle', clipT: 0.4, vg: gy + K.liftHide, poseFn: (pz, a, M) => { OP.cpose(pz, a.reach || 0, a.lean || 0, a.head || 0, a.grip || 0, a.press || 0, a.reachR); try { OP.armIK(M, a, pz); } catch (e) { } OP.hands(M, a); } }); col._base = gy; col.hidden = true; col.geo = g;
+        col = A.add({ key: ckey, kind: 'titan', x: g.x0, z: tz, yaw: Math.PI, scale: sc, idle: ckey === 'colossal2' ? 'C2:idle' : 'T:Zombie Idle', clipT: 0.4, vg: gy + K.liftHide, poseFn: (pz, a, M) => { const base = a.roarW > 0 ? pz.d.slice(24, 39) : null; OP.cpose(pz, a.reach || 0, a.lean || 0, a.head || 0, a.grip || 0, a.press || 0, a.reachR); try { OP.armIK(M, a, pz); } catch (e) { } if (base) for (let j = 0; j < 15; j++) pz.d[24 + j] = pz.d[24 + j] * (1 - a.roarW) + base[j] * a.roarW; OP.hands(M, a); } }); col._base = gy; col.hidden = true; col.geo = g;
       }
       FX.layers.add(debrisLayer(H, rub));
     }
@@ -319,7 +319,7 @@
           const c = OP.camAt(t, g), tr = OP.trauma(t), sh = tr * tr * 1.3, n = t * 31; cam = c;
           H.cineOn([c.pos[0] + Math.sin(n) * sh, c.pos[1] + Math.sin(n * 1.7 + 1) * sh, c.pos[2] + Math.sin(n * 1.3 + 2) * sh * 0.5], [c.target[0] + Math.sin(n * 1.9) * sh * 1.5, c.target[1] + Math.sin(n * 2.3 + 1) * sh * 1.5, c.target[2]], c.fov);
           if (t > OP.shotC - 0.6 && t < OP.shotC) cutEl.classList.add('dip'); else if (cutEl.classList.contains('dip')) { cutEl.classList.add('slow'); cutEl.classList.remove('dip'); setTimeout(() => cutEl.classList.remove('slow'), 1000); } shot = c.shot;
-          if (col) { const st = OP.colossalState(t); col.reach = st.reach; col.reachR = st.reachR; col.lean = st.lean; col.head = st.head; col.grip = st.grip; col.gripR = st.gripR; col.press = st.press; col.vg = col._base + st.lift; col.hidden = !st.show; }
+          if (col) { const st = OP.colossalState(t); col.reach = st.reach; col.reachR = st.reachR; col.lean = st.lean; col.head = st.head; col.grip = st.grip; col.gripR = st.gripR; if (ckey === 'colossal2') { const rt = curT - (TL.reveal + 0.5), L = 87 / 30; col.roarW = ease(kk(rt, 0, 0.35)) * (1 - ease(kk(rt, L - 0.5, L))); if (rt > -0.05) { col.idle = 'C2:jt_roar'; col.clipT = Math.min(Math.max(rt, 0), L - 0.03); } else { col.idle = 'C2:idle'; col.clipT = 0.4 + curT * 0.35; } } /* the model's own roar clip drives neck and jaw while the hands stay planted */ col.press = st.press; col.vg = col._base + st.lift; col.hidden = !st.show; }
           if (t > TL.rumble && t < TL.strike - 0.2 && t - pebT > 0.22) { pebT = t; burst(rub, [g.x0 + (R() - 0.5) * 80, g.top, g.front - 1], 2, 5, 3, 0.22, 0); }
         }
         // ---- the beats ----

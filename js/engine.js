@@ -226,7 +226,7 @@ const PRESETS={
 };
 class Engine{
  constructor(canvas,opts={}){
-  this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:!!opts.preserve});
+  this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{antialias:opts.antialias!==undefined?opts.antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:!!opts.preserve});
   if(!gl)throw new Error('WebGL2 not available');
   this.mobile=opts.mobile!==undefined?opts.mobile:(/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)||('ontouchstart' in window&&innerWidth<900));
   this.aniso=gl.getExtension('EXT_texture_filter_anisotropic');
@@ -235,7 +235,7 @@ class Engine{
   this.lodScale=this.mobile?.9:1;this.setPreset('day');this.time=0;this.camPos=[0,0,0];this.shadowOn=true;this.over=0;this.grade=1;this.fogK=0.00022;
   this.vao=gl.createVertexArray();this.white=this.texFromPixels(new Uint8Array([255,255,255,255]),1,1,true);
   this.flatN=this.texFromPixels(new Uint8Array([128,128,255,255]),1,1,false);
-  this.initShadow();this.dpr=Math.min(window.devicePixelRatio||1,this.mobile?2:2);this.scale=1;
+  this.cascades=2;this.initShadow();this.dpr=Math.min(window.devicePixelRatio||1,this.mobile?2:2);this.scale=1;
  }
  texFromPixels(px,w,h,srgb){const gl=this.gl,t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
   gl.texImage2D(gl.TEXTURE_2D,0,srgb?gl.SRGB8_ALPHA8:gl.RGBA8,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,px);
@@ -246,9 +246,9 @@ class Engine{
   if(mip)gl.generateMipmap(gl.TEXTURE_2D);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,mip?gl.LINEAR_MIPMAP_LINEAR:gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,rep?gl.REPEAT:gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,rep?gl.REPEAT:gl.CLAMP_TO_EDGE);
-  if(this.aniso&&mip)gl.texParameterf(gl.TEXTURE_2D,this.aniso.TEXTURE_MAX_ANISOTROPY_EXT,this.mobile?4:8);return t}
- initShadow(){const gl=this.gl;this.smSize=this.mobile?3072:4096;this.sm=[];
-  for(let i=0;i<2;i++){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);const S=this.mobile?3072:4096;
+  if(this.aniso&&mip)gl.texParameterf(gl.TEXTURE_2D,this.aniso.TEXTURE_MAX_ANISOTROPY_EXT,this.anisoMax||(this.mobile?4:8));return t}
+ initShadow(S0){const gl=this.gl;this.smSize=S0||(this.mobile?3072:4096);this.sm=[];this.cascades=this.cascades||2;
+  for(let i=0;i<2;i++){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);const S=this.smSize;
    gl.texImage2D(gl.TEXTURE_2D,0,gl.DEPTH_COMPONENT24,S,S,0,gl.DEPTH_COMPONENT,gl.UNSIGNED_INT,null);
    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
@@ -256,6 +256,7 @@ class Engine{
    const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,t,0);
    gl.drawBuffers([gl.NONE]);gl.readBuffer(gl.NONE);this.sm.push({t,f,S,m:M4.id()})}
   gl.bindFramebuffer(gl.FRAMEBUFFER,null)}
+ setShadowSize(S){if(!this.sm||S===this.smSize)return;const gl=this.gl;for(const s of this.sm){gl.deleteTexture(s.t);gl.deleteFramebuffer(s.f)}this.initShadow(S)}   // quality tiers resize the shadow maps (frees the old ones)
  // ---- data loading ----
  async load(base,onprog){
   const gl=this.gl;onprog&&onprog('Reading district data…',0.02);
@@ -341,17 +342,19 @@ class Engine{
    const z0=Math.max(120,R0*2.5),z1=Math.max(220,R1*1.6,150);
    const mats=[this.shadowMatrix(c0,R0,z0+60),this.shadowMatrix(c1,R1,z1+80)];
    const P=this.progs.shadow;gl.useProgram(P.p);gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(2.2,4);
-   for(let i=0;i<2;i++){const s=this.sm[i];s.m=mats[i];gl.bindFramebuffer(gl.FRAMEBUFFER,s.f);gl.viewport(0,0,s.S,s.S);gl.clear(gl.DEPTH_BUFFER_BIT);
+   const one=this.cascades===1;if(one)mats[1]=this.shadowMatrix(c1,Math.min(R1,Math.max(R0*2.4,90)),z1+80);
+   for(let i=one?1:0;i<2;i++){const s=this.sm[i];s.m=mats[i];gl.bindFramebuffer(gl.FRAMEBUFFER,s.f);gl.viewport(0,0,s.S,s.S);gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.uniformMatrix4fv(P.u.u_sh,false,s.m);tris+=this.drawScene(frustumPlanes(s.m),true,P)}
+   if(one)this.sm[0].m=this.sm[1].m;
    gl.disable(gl.POLYGON_OFFSET_FILL);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
   }
   gl.viewport(0,0,W,H);gl.clearColor(.7,.82,.95,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   // sky
   {const P=this.progs.sky;gl.useProgram(P.p);gl.depthMask(false);gl.uniformMatrix4fv(P.u.u_ivp,false,M4.inv(vp));gl.uniform3fv(P.u.u_cam,cam.pos);gl.uniform3fv(P.u.u_sun,this.sunDir);gl.uniform1f(P.u.u_time,this.time);this.setLight(P.u);
    gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.bindVertexArray(this.vao);gl.depthMask(true)}
-  const bindCommon=(P)=>{const u=P.u;gl.useProgram(P.p);gl.uniformMatrix4fv(u.u_vp,false,vp);gl.uniformMatrix4fv(u.u_sh0,false,this.sm[0].m);gl.uniformMatrix4fv(u.u_sh1,false,this.sm[1].m);
+  const bindCommon=(P)=>{const u=P.u;gl.useProgram(P.p);gl.uniformMatrix4fv(u.u_vp,false,vp);gl.uniformMatrix4fv(u.u_sh0,false,this.cascades===1?this.sm[1].m:this.sm[0].m);gl.uniformMatrix4fv(u.u_sh1,false,this.sm[1].m);
    gl.uniform3fv(u.u_cam,cam.pos);gl.uniform3fv(u.u_sun,this.sunDir);gl.uniform1f(u.u_time,this.time);gl.uniform1f(u.u_fogK,this.fogK);gl.uniform1f(u.u_shadow,this.shadowOn?1:0);if(u.u_over)gl.uniform1f(u.u_over,this.over||0);if(u.u_grade)gl.uniform1f(u.u_grade,this.grade===undefined?1:this.grade);this.setLight(u);
-   gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,this.sm[0].t);gl.uniform1i(u.u_sm0,4);
+   gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,(this.cascades===1?this.sm[1]:this.sm[0]).t);gl.uniform1i(u.u_sm0,4);
    gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,this.sm[1].t);gl.uniform1i(u.u_sm1,5);return u};
   {const P=this.progs.main,u=bindCommon(P);
    gl.uniform1i(u.u_norm,1);

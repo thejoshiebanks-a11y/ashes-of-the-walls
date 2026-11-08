@@ -72,7 +72,7 @@ const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=
  ok(window.__freeze===true&&window.__hideAvatar===true,'frozen on title'); ok(window.__cine&&window.__cine.on,'creeping title camera is on'); ok(body.className.includes('sv-hidehud'),'HUD hidden on title');
  const act=a=>document.querySelector('[data-act='+a+']');
  ok(!act('roam'),'free roam is gone from the menu'); ok(act('train').className.includes('locked'),'training grounds shown locked'); ok(act('continue').className.includes('empty'),'Load file is greyed without a save'); ok(act('exit'),'exit item present');
- ok(/Begin/i.test(act('new').textContent),'Begin Journey'); ok(document.querySelector('.op-credit'),'credits band blends in at the bottom');
+ ok(/Begin/i.test(act('new').textContent),'Begin Journey'); ok(document.querySelector('.op-cbtn')&&!document.querySelector('.op-credit'),'no credit text on the title, only the Credits button');
  act('train').click(); await sleep(10); ok(/Act 2/.test(document.querySelector('.sv-toasts').textContent),'locked toast');
  // options + credits
  act('options').click(); await sleep(20); ok(vis('#sv-pause')&&document.querySelectorAll('.sv-range').length>=3,'options has volume sliders');

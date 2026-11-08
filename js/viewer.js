@@ -98,7 +98,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
    sx=(nx*.5+.5)*W;sy=(1-(ny*.5+.5))*Hh;sx=Math.max(-W*.3,Math.min(W*1.3,sx));sy=Math.max(-Hh*.3,Math.min(Hh*1.3,sy));ro=Math.max(0,1-off*1.25)*(E.preset==='golden'?.85:.35)}
   rays.style.setProperty('--sx',sx+'px');rays.style.setProperty('--sy',sy+'px');rays.style.setProperty('--ro',ro.toFixed(3));rays.style.setProperty('--ra',(Math.sin(E.time*.05)*3).toFixed(2)+'deg')}}
  acc+=dt;nf++;if(acc>.6){fps=nf/acc;acc=0;nf=0;$('stats').textContent=Math.round(fps)+' fps \u00b7 '+Math.round(E.tris/1000)+'k tris \u00b7 '+(E.lastCalls||0)+' calls';
-  if(fps<26&&E.scale>.55){slow++;if(slow>2){E.scale=Math.max(.55,E.scale-.1);slow=0}}else slow=0}}
+  if(fps<26&&E.scale>(window.__lockScale?.9:.55)){slow++;if(slow>2){E.scale=Math.max(window.__lockScale?.9:.55,E.scale-.1);slow=0}}else slow=0}}
 requestAnimationFrame(frame);
 // ---------- boot
 E.load('./',(m,p)=>{$('msg').textContent=m;$('bar').firstElementChild.style.width=(p*100)+'%'}).then(()=>{

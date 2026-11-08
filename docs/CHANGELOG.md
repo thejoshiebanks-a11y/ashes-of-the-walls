@@ -1,4 +1,13 @@
 # Changelog
+## 0.5.0: Logo gate, the Colossal at the wall, a full score
+- Boot: pure black until the story layer takes over. No loading text and no test arena any more (the canvas and game HUD stay hidden with the `aow-boot` class on <html>). Only a hairline progress bar shows low on the screen.
+- New crest on the tap screen: Wall Maria, Rose and Sina as three rings, split by a glowing crack, an ember at the core, ash lifting off, with the ASHES OF THE WALLS wordmark and 壁の灰 under it.
+- Intro rebuilt as a 9.4 s breach teaser (js/story/fx.js + opening.js): fade up from black, storm flicker and sky bolts, a golden plasma ball swells above the wall, a lightning strike with whiteout, shockwave ring, fireball, embers, steam and smoke rolling over the wall (hidden correctly by the wall), then one hand clamps the wall top, the other follows, he heaves up and the face rises over the edge with a roar, steam and skin arcs. Camera shake, god rays and a storm grade. No Scouts or arena. Effects canvas is now near full resolution.
+- Title: all credit and legal text removed from the title screen (it lives in the Credits scene). Credits button stays bottom right.
+- Sharper image: dynamic resolution is locked to 90 percent or better during the opening and title (it used to fall to 55 percent, which looked blurry), and the grain layer is gone. New golden-hour grade with a low sun glare.
+- Audio: master make-up gain plus a compressor (it was too quiet). New orchestral title theme (strings, cello drive, taiko, horns, choir), a scored intro cue, and new effects: rumble, stone crack, debris, boom, ODM fire and reel, Titan roar, gusts.
+- Engine hooks (game.js): a.clipT scrubs a clip, a.poseFn edits a pose, a.vg sets a virtual ground. viewer.js: __lockScale. Camera starts with a valid target (it threw errors before the game started).
+- Tests: opening.test.js covers the new timeline (camAt, colossalState, trauma, cpose); new fx.test.js covers the effects; audio gained thunder and plasmaCharge.
 ## 0.4.0: The opening, rebuilt (js/story/opening.js, css/opening.css)
 - Tap gate in black with a Japanese and English prompt. The first tap unlocks audio.
 - Studio mark: the hexagon "H" is drawn in SVG with a light sweep and the name JOSHIE SAMA, with a procedural sting (no audio files).

@@ -229,14 +229,20 @@
     teleport: (x, z) => { const q = G.snap(x, z); G.teleport(q.x, q.z, 0, 0.1); },
     cineOn, gh: (x, z) => G.gh(x, z),
     project: (x, y, z) => { const E = root.__E, m = E && E.vp; if (!m) return null; return { cx: m[0] * x + m[4] * y + m[8] * z + m[12], cy: m[1] * x + m[5] * y + m[9] * z + m[13], cw: m[3] * x + m[7] * y + m[11] * z + m[15] }; },
-    ensure: () => ensureModels(['colossal', 'fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']),
+    ensure: () => ensureModels(['colossal2', 'colossal']),
     info: () => titleInfo,
+    geo() {                                                 // where the wall really is (measured with rays), so the cutscene fits any wall change
+      const W = root.__world, x0 = -42, f = W.cast([x0, 25, -400], [0, 0, 1], 800), b = W.cast([x0, 25, 400], [0, 0, -1], 800);
+      const front = f ? -400 + f.t : -20, back = b ? 400 - b.t : front + 8, m = (front + back) / 2, h = W.cast([x0, 300, m], [0, -1, 0], 600);
+      return { x0, front, back: Math.max(back, front + 2), top: h ? 300 - h.t : 50 };
+    },
     async prepTitle() {                                    // everything the title needs, while the screen is black
       mode = null; S.fsm.set('title'); applyFsm(); ACT.removeColossal(); await placeTitleShot();
       titleT0 = performance.now(); const P = S.opening.titlePose(6); cineOn(P.pos, P.target, P.fov);
       titleInfo = { version: VERSION, latest: await latestSave() }; UI.setTicker(tickerLines()); AU.wind(0.07);
     }
   };
+  S.openingHost = openingHost;
   async function opening() { S.fsm.set('intro'); applyFsm(); S.opening.runOpening(openingHost); }
   async function coldOpen() {                               // the cinematic now plays before the title (js/story/opening.js); here we only leave the menu
     mode = null; S.fsm.set('intro'); applyFsm(); S.opening.hideTitle(); AU.stopMusic(); AU.wind(0.03); UI.setTicker(null); UI.embers(false);
@@ -376,8 +382,8 @@
     if (!G.ready()) throw new Error('The game did not finish loading.');
     S.fsm.set('intro'); applyFsm();
     ensureModels(['fuse_man', 'fuse_woman', 'colossal']);          // warm the model cache in the background
-    await placeTitleShot(); await opening();          // the gate stays black until the first tap; the opening handles every fade after that
+    await placeTitleShot(); document.documentElement.classList.remove('aow-boot'); await opening();          // the gate stays black until the first tap; the opening handles every fade after that
   }
   root.STORY.debug = { G, scenes, get mode() { return mode; }, startRoam, startNewGame, loadSlot, showTitle, coldOpen, openCreator, spawnCast, syncActors };
-  boot().catch(err => { console.error('[story] boot failed', err); const m = doc.getElementById('msg'); if (m) m.textContent = 'Story layer failed: ' + err.message; UI.fade && UI.fade.classList.remove('on'); S.fsm.set('play'); mode = 'roam'; root.__freeze = false; root.__noOdm = false; root.__noTitan = false; root.__hideAvatar = false; });
+  boot().catch(err => { console.error('[story] boot failed', err); document.documentElement.classList.remove('aow-boot'); const m = doc.getElementById('msg'); if (m) m.textContent = 'Story layer failed: ' + err.message; UI.fade && UI.fade.classList.remove('on'); S.fsm.set('play'); mode = 'roam'; root.__freeze = false; root.__noOdm = false; root.__noTitan = false; root.__hideAvatar = false; });
 })(typeof window !== 'undefined' ? window : globalThis);

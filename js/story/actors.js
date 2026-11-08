@@ -77,6 +77,7 @@
     const sc = A.scaleFor(bodyH('colossal'), meters || 60), ymin = info && info.colossal ? info.colossal.info.bodyYmin : 0;
     A.colossal = root.__actors.add({ key: 'colossal', static: true, kind: 'titan', x, y: -ymin * sc, z, yaw, scale: sc }); return A.colossal;
   };
+  A.bodyH = bodyH; A.ymin = key => info && info[key] ? info[key].info.bodyYmin : 0;
   A.removeColossal = () => { if (A.colossal) { root.__actors.remove(A.colossal.id); A.colossal = null; } };
   A.talking = (id, on) => { const a = id === 'anchor' ? A.anchor : A.npcs[id]; if (a) a.talking = !!on; };
   A.faceTowards = (px, pz, range) => {                  // idle NPCs turn to look at a nearby player

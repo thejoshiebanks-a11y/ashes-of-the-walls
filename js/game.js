@@ -546,14 +546,14 @@ function drawActors(dt){
   if(Math.hypot(a.x-H[0],a.z-H[2])>170&&!a.isPlayer)continue;
   if(!a.static){
    if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
-   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);
-   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;
+   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
+   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;if(a.poseFn)a.poseFn(pz,a);/* a.poseFn: edit the pose before it is drawn */
    if(a.talking){const t=a.ph=(a.ph||0)+dt;const g=Math.sin(t*2.3)*.5+.5;const r=AN.pi['Bip001 R Forearm'];if(r!==undefined&&a.talkGest!==false){const i=r*3;pz.d[i+1]+=g*.45;pz.d[i]-=g*.18}}
    const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;
    if(hs!==1&&hi>=0){sv=M.loc.slice(hi*16,hi*16+12);for(let k=0;k<12;k++)if(k%4<3)M.loc[hi*16+k]*=hs}
    M.pose(toDirs(pz,1));if(sv)M.loc.set(sv,hi*16);
    const sc=a.scale,wd=a.wide||1,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),o=[a.x,a.gy+(a.fly||0),a.z];
-   const mm=relModel(R.map(x=>x*sc*wd),U.map(x=>x*sc),F.map(x=>x*sc*wd),o,pz,M.py);if(!a.fly)groundFix(M,mm,a.gy,true,sc);/* a.fly: metres above ground, used by the opening for flying Scouts */
+   const mm=relModel(R.map(x=>x*sc*wd),U.map(x=>x*sc),F.map(x=>x*sc*wd),o,pz,M.py);if(a.vg!==undefined){if(M.low){let mn=1e9;for(const i of M.low){const w=M.W[i],y=mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13];if(y<mn)mn=y}mm[13]+=a.vg+(M.py||1)*.075*sc-mn}}else if(!a.fly)groundFix(M,mm,a.gy,true,sc);/* a.vg: a virtual ground height, unclamped (the opening sinks or heaves the Colossal) *//* a.fly: metres above ground, used by the opening for flying Scouts */
    M.tintFn=a.tintFn||(a.tintFn=actTint(a));drawModel(M,mm,0,null,null,a.skipRe||(a.kind==='aot'?ACT_GEAR:null));
   }else{
    M.pose({});const sc=a.scale,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),mm=modelMat(R,U,F,[a.x,a.y||0,a.z],sc);

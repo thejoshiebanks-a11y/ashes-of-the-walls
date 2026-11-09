@@ -1,4 +1,6 @@
 # Changelog
+## 0.8.1
+- Intro Colossal: only two clips now, `C2:in` (rise) then `C2:jt_roar`; the swat is gone. Title screen: removed the old version label and ticker that overlapped the Credits button.
 ## 0.8.0: Gate-centred opening, new houses, landmark home, closer realism
 - **Opening**: Colossal2 and the strike are now centred on the main gate (x=0). The camera can never go under the terrain. The intro waits for the Titan models before frame one. A hidden stone plug inside the gate complex closes the see-through slit in the wall.
 - **Houses**: `tools/patch_district.py` replaced house types 1-4 (all instances, original positions and yaw kept) with the four anime medieval townhouses from `anime_medieval_house.glb` (`h8_v1..v4`). Types 5-8 stay for variety.

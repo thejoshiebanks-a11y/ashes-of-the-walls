@@ -47,12 +47,12 @@
     return { reach, reachR, press: heave, lean: 0.34 * reach + 0.06 * reachR - 0.14 * heave, head: -0.55 + 0.7 * ease(kk(t, TL.headUp + 0.5, TL.reveal + 1.2)), grip: kk(t, TL.grab - 0.4, TL.grab + 1.0), gripR2:0, gripR: kk(t, TL.grab + 0.9, TL.grab + 1.8), lift: OP.clipMode ? 0 : K.liftHide + (K.liftGrab - K.liftHide) * ease(hid) + (K.liftUp - K.liftGrab) * heave, show: t >= TL.strike + 0.05 };
   };
   /* Colossal2 is driven only by its own baked clips (no IK grip, no finger curl, no scripted heave): in = rise, skl01 = swat, jt_roar = roar. */
-  OP.c2Seq = [['C2:in', TL.grab - 0.2, 51 / 30], ['C2:skl01', TL.grab - 0.2 + 51 / 30, 71 / 30], ['C2:jt_roar', TL.reveal + 0.5, 87 / 30]];
+  OP.c2Seq = [['C2:in', TL.headUp, 51 / 30], ['C2:jt_roar', TL.headUp + 51 / 30, 87 / 30]];   /* simple and clean: he rises, then roars */
   OP.c2clip = function (t) {
     let r = ['C2:in', 0], idleT = 0.4 + t * 0.35;
     if (t < OP.c2Seq[0][1]) return { name: 'C2:in', t: 0 };
     for (const [n, st, L] of OP.c2Seq) if (t >= st && t < st + L) return { name: n, t: Math.min(t - st, L - 0.04) };
-    const last = OP.c2Seq[2]; if (t >= last[1] + last[2]) return { name: 'C2:idle', t: idleT };
+    const last = OP.c2Seq[1]; if (t >= last[1] + last[2]) return { name: 'C2:idle', t: idleT };
     return { name: 'C2:idle', t: idleT };
   };
 

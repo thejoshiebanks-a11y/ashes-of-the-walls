@@ -253,7 +253,7 @@ body.sv-sandbox .sv-hudbtns { top: calc(var(--sv-safe-t) + 18.8vh); }
 .sv-stone.locked { opacity: .5; cursor: not-allowed; }
 .sv-ticker { display: none; position: absolute; left: 0; right: 0; bottom: calc(var(--sv-safe-b) + 7px); text-align: center; padding: 0 5vw; z-index: 4; pointer-events: none; font: italic 400 clamp(11px, 2.5vh, 13px)/1.4 var(--sv-serif); color: rgba(214, 208, 192, .62); text-shadow: 0 1px 3px #000; transition: opacity .5s; }
 .sv-ticker.out { opacity: 0; } body.sv-s-title .sv-ticker { display: block; }
-body.sv-s-title .sv-ver { bottom: calc(var(--sv-safe-b) + 26px); }
+body.sv-s-title .sv-ver, body.sv-s-title .sv-ticker { display: none !important; }   /* the opening band already shows version + Credits; these used to collide with the Credits button */
 
 /* the title card that slams onto black */
 .sv-stamp { position: absolute; inset: 0; z-index: 9; display: grid; place-content: center; text-align: center; background: #000; pointer-events: auto; }

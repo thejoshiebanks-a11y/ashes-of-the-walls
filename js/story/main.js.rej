@@ -1,0 +1,23 @@
+--- js/story/main.js
++++ js/story/main.js
+@@ -229,7 +229,7 @@
+     teleport: (x, z) => { const q = G.snap(x, z); G.teleport(q.x, q.z, 0, 0.1); },
+     cineOn, gh: (x, z) => G.gh(x, z),
+     project: (x, y, z) => { const E = root.__E, m = E && E.vp; if (!m) return null; return { cx: m[0] * x + m[4] * y + m[8] * z + m[12], cy: m[1] * x + m[5] * y + m[9] * z + m[13], cw: m[3] * x + m[7] * y + m[11] * z + m[15] }; },
+-    ensure: () => ensureModels(['colossal', 'fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']),
++    ensure: () => ensureModels(['colossal', 'eren', 'armin', 'mikasa', ...ACT.RIG.models]),
+     info: () => titleInfo,
+     async prepTitle() {                                    // everything the title needs, while the screen is black
+       mode = null; S.fsm.set('title'); applyFsm(); ACT.removeColossal(); await placeTitleShot();
+@@ -376,9 +377,9 @@
+     for (let i = 0; i < 400 && !G.ready(); i++) await sleep(150);
+     if (!G.ready()) throw new Error('The game did not finish loading.');
+     S.fsm.set('intro'); applyFsm();
+-    ensureModels(['fuse_man', 'fuse_woman', 'colossal']);          // warm the model cache in the background
++    ensureModels([...ACT.RIG.models, 'colossal']);          // warm the model cache in the background
+     await placeTitleShot(); await opening();          // the gate stays black until the first tap; the opening handles every fade after that
+   }
+-  root.STORY.debug = { G, scenes, get mode() { return mode; }, startRoam, startNewGame, loadSlot, showTitle, coldOpen, openCreator, spawnCast, syncActors };
++  root.STORY.debug = { G, scenes, S, ACT, get mode() { return mode; }, startRoam, startNewGame, loadSlot, showTitle, coldOpen, openCreator, spawnCast, syncActors };
+   boot().catch(err => { console.error('[story] boot failed', err); const m = doc.getElementById('msg'); if (m) m.textContent = 'Story layer failed: ' + err.message; UI.fade && UI.fade.classList.remove('on'); S.fsm.set('play'); mode = 'roam'; root.__freeze = false; root.__noOdm = false; root.__noTitan = false; root.__hideAvatar = false; });
+ })(typeof window !== 'undefined' ? window : globalThis);

@@ -76,7 +76,7 @@ const p1=D.pending(),p2=D.pending(); ok(p1.seed===p2.seed&&p1.bloodline===p2.blo
 const A=require(R+'/js/story/actors.js'); ok(Math.abs(A.scaleFor(1.8,1.3)-0.7222)<1e-3,'scaleFor'); ok(A.wearMul(2)<A.wearMul(0),'wear darkens');
 const pp=A.playerParams({look:{height:0,build:0,headW:0,headH:0,skin:1,hair:2,top:0,bottom:0,shoes:0},wear:1}), pq=A.playerParams({look:{height:1,build:1,headW:1,headH:1,skin:1,hair:2,top:0,bottom:0,shoes:0},wear:1});
 ok(pq.meters>pp.meters&&pq.width>pp.width&&pq.head>pp.head,'sliders change the body'); ok(pp.meters>1.1&&pq.meters<1.5,'child heights stay childlike: '+pp.meters.toFixed(2)+'-'+pq.meters.toFixed(2));
-const ap=(()=>{global.__actors={has:()=>true};return A.anchorParams({anchor:{gender:'f',rel:'parent',look:12,name:'Anja'}})})(); ok(ap.adult&&ap.meters>1.5&&ap.key==='fuse_woman','adult anchor');
+const ap=(()=>{global.__actors={has:()=>true};return A.anchorParams({anchor:{gender:'f',rel:'parent',look:12,name:'Anja'}})})(); ok(ap.adult&&ap.meters>1.5&&/^base_/.test(ap.key),'adult anchor');
 
 /* ---- audio: every sound runs against a mock AudioContext without throwing ---- */
 const node=()=>new Proxy(function(){},{get:(t,k)=>k==='connect'?(x=>x):k==='gain'||k==='frequency'||k==='Q'||k==='detune'?{value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},cancelScheduledValues(){}}:k==='buffer'?null:(()=>{}),set:()=>true,apply:()=>undefined});

@@ -214,52 +214,8 @@
     s.classList.remove('rise'); void s.offsetWidth; s.classList.add('rise');
   };
 
-  /* ---------- the registry: your file, filled in by hand ---------- */
-  UI.creator = function (opts, onDone, onCancel, onChange, onRotate) {
-    const s = screens.creator, body = s.querySelector('.sv-cr-body'), tabs = s.querySelector('.sv-tabs'), D = S.destiny, cfg = opts.cfg;
-    const d = opts.draft; let tab = 0; const TABS = ['Identity', 'Body', 'Face', 'Clothing', 'The file'];
-    const touch = () => { onChange && onChange(d); validate(); };
-    const sw = (cols, key, label, sub) => h('div', { class: 'sv-chips', role: 'radiogroup', 'aria-label': label }, cols.map((c, i) => h('button', { type: 'button', role: 'radio', class: 'sv-sw', 'aria-label': label + ' ' + (i + 1), 'aria-checked': String((sub ? d.look[key] : d[key]) === i), style: { background: Array.isArray(c) ? 'rgb(' + c.map(x => Math.round(Math.min(1, x) * 255)).join(',') + ')' : c }, onclick: () => { (sub ? d.look : d)[key] = i; touch(); render(); } })));
-    const chips = (list, key, sub) => h('div', { class: 'sv-chips', role: 'radiogroup' }, list.map((o, i) => { const id = o.id !== undefined ? o.id : i, label = o.name || o; const cur = sub ? d.look[key] : d[key]; return h('button', { type: 'button', role: 'radio', class: 'sv-chip', 'aria-checked': String(cur === id), onclick: () => { (sub ? d.look : d)[key] = id; touch(); render(); } }, label); }));
-    const slider = (key, lo, hi) => h('input', { type: 'range', class: 'sv-range', min: 0, max: 100, step: 1, value: Math.round(d.look[key] * 100), 'aria-label': lo + ' to ' + hi, oninput: e => { d.look[key] = +e.target.value / 100; touch(); } });
-    const row = (label, node, note) => h('div', { class: 'sv-row' }, h('label', { text: label }), node, note ? h('small', { class: 'sv-note', text: note }) : null);
-    let nextBtn;
-    const valid = () => d.name.trim().length > 0;
-    function validate() { if (nextBtn) nextBtn.disabled = !valid(); }
-    function render() {
-      tabs.textContent = ''; TABS.forEach((t, i) => tabs.append(h('button', { type: 'button', role: 'tab', class: 'sv-tab' + (i === tab ? ' on' : ''), 'aria-selected': String(i === tab), onclick: () => { tab = i; render(); }, text: t })));
-      body.textContent = '';
-      if (tab === 0) body.append(h('h2', { text: 'Who are you?' }), h('p', { class: 'sv-lead', text: 'The registry clerk dips a pen. Every child in the district is written down once.' }),
-        row('Name', h('input', { type: 'text', class: 'sv-input', id: 'sv-in-name', maxlength: 16, value: d.name, placeholder: 'Your name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', oninput: e => { d.name = e.target.value; touch(); } })),
-        row('Body', chips(cfg.bodies, 'body')), row('Pronouns', chips(cfg.genders, 'gender')), row('Voice', chips(cfg.voices, 'voice'), 'How you sound when you speak up.'));
-      else if (tab === 1) body.append(h('h2', { text: 'Height and build' }), h('p', { class: 'sv-lead', text: 'Children grow at their own pace. Yours is recorded as it stands.' }),
-        row('Height', slider('height', 'Shorter', 'Taller')), row('Build', slider('build', 'Slight', 'Sturdy')));
-      else if (tab === 2) body.append(h('h2', { text: 'Face' }), h('p', { class: 'sv-lead', text: 'Natural colours only. This is a hard place and a plain face.' }),
-        row('Skin', sw(D.SKIN, 'skin', 'Skin tone', true)), row('Hair', sw(D.HAIR, 'hair', 'Hair colour', true)),
-        row('Head width', slider('headW', 'Narrow', 'Wide')), row('Head length', slider('headH', 'Short', 'Long')),
-        row('Eyes', sw(cfg.eyes.map(e => e[0]), 'eye', 'Eye colour', true), 'Recorded in your file.'), row('Scars', chips(cfg.scars, 'scar', true), 'Recorded now. They are painted onto your face in an upcoming update.'));
-      else if (tab === 3) body.append(h('h2', { text: 'Clothing' }), h('p', { class: 'sv-lead', text: 'What your family could afford, and how long you have worn it.' }),
-        row('Shirt', sw(D.TOP, 'top', 'Shirt colour', true)), row('Trousers', sw(D.BOTTOM, 'bottom', 'Trouser colour', true)), row('Shoes', sw(D.SHOES, 'shoes', 'Shoe colour', true)),
-        row('Wear', h('div', { class: 'sv-chips', role: 'radiogroup' }, cfg.wear.map((w, i) => h('button', { type: 'button', role: 'radio', class: 'sv-chip', 'aria-checked': String(d.wear === i), onclick: () => { d.wear = i; touch(); render(); } }, w)))));
-      else {
-        const dest = opts.destiny, fam = D.family(dest.family), bl = D.info(dest.bloodline === 'ackerman' ? 'common' : dest.bloodline), an = dest.anchor;
-        const relTxt = { sibling: an.gender === 'f' ? 'your sister' : 'your brother', parent: an.gender === 'f' ? 'your mother' : 'your father', friend: 'your closest friend', cousin: 'your cousin' }[an.rel];
-        body.append(h('h2', { text: 'The registry has decided the rest' }), h('p', { class: 'sv-lead', text: 'Some things are not chosen. They are written down for you.' }),
-          h('dl', { class: 'sv-file' }, h('dt', { text: 'Family' }), h('dd', {}, h('b', { text: fam.name }), h('span', { text: fam.text })),
-            h('dt', { text: 'Lineage' }), h('dd', {}, h('b', { text: bl.name }), h('span', { text: bl.text })),
-            h('dt', { text: 'Your Anchor' }), h('dd', {}, h('b', { text: an.name + ', ' + relTxt }), h('span', { text: 'The one person you will not want to lose. What becomes of them is up to you.' }))),
-          row('How hard should the world be?', h('div', { class: 'sv-cards' }, cfg.difficulties.map(o => h('button', { type: 'button', role: 'radio', 'aria-checked': String(d.difficulty === o.id), class: 'sv-card-opt', onclick: () => { d.difficulty = o.id; render(); } }, h('b', { text: o.name }), h('span', { text: o.text }))))),
-          h('p', { class: 'sv-sum' }, h('b', { text: d.name.trim() || 'You' }), ', of Shiganshina, year 845.'));
-      }
-      const back = s.querySelector('.sv-cr-back'); nextBtn = s.querySelector('.sv-cr-next'); back.textContent = tab === 0 ? 'Cancel' : 'Back'; nextBtn.textContent = tab === TABS.length - 1 ? 'Stamp the file' : 'Continue'; validate(); body.scrollTop = 0;
-    }
-    s.querySelector('.sv-cr-back').onclick = () => { if (tab === 0) onCancel(); else { tab--; render(); } };
-    s.querySelector('.sv-cr-next').onclick = () => { if (!valid()) { tab = 0; render(); return; } if (tab < TABS.length - 1) { tab++; render(); return; } onDone(d); };
-    s.querySelector('.sv-cr-dice').onclick = () => { const r = n => Math.floor(Math.random() * n); d.look = Object.assign(d.look, { skin: r(D.SKIN.length), hair: r(D.HAIR.length), top: r(D.TOP.length), bottom: r(D.BOTTOM.length), shoes: r(D.SHOES.length), height: Math.random(), build: Math.random(), headW: Math.random(), headH: Math.random(), eye: r(cfg.eyes.length) }); touch(); render(); };
-    const stage = s.querySelector('.sv-stage'); let px = null;
-    stage.onpointerdown = e => { px = e.clientX; try { stage.setPointerCapture(e.pointerId); } catch (x) {} }; stage.onpointermove = e => { if (px != null && onRotate) { onRotate((e.clientX - px) * 0.012); px = e.clientX; } }; stage.onpointerup = stage.onpointercancel = () => { px = null; };
-    UI.embers(false); UI.show('creator'); render(); onChange && onChange(d);
-  };
+  /* the registry (character creator) lives in creator.js */
+  UI.screenEl = id => screens[id];
 
   /* ---------- pause / journal / saves ---------- */
   UI.pause = function (items) {
@@ -335,10 +291,16 @@
           h('button', { type: 'button', class: 'sv-stone', 'data-act': 'options', onclick: () => UI._cb('options'), onpointerenter: () => UI._cb('hover'), onfocus: () => UI._cb('hover') }, 'Options'),
           h('button', { type: 'button', class: 'sv-stone', 'data-act': 'credits', onclick: () => UI._cb('credits'), onpointerenter: () => UI._cb('hover'), onfocus: () => UI._cb('hover') }, 'Credits'))),
       h('p', { class: 'sv-ver' }));
-    screen('creator', 'sv-creator',
-      h('div', { class: 'sv-stage', 'aria-label': 'Preview. Drag to turn your character.' }, h('div', { class: 'sv-stage-head' }, h('b', { text: 'Shiganshina District Registry' }), h('span', { text: 'Year 845. Family and civil register.' })), h('p', { class: 'sv-stage-hint', text: 'Drag to turn' })),
-      h('div', { class: 'sv-cr-main' }, h('div', { class: 'sv-tabs', role: 'tablist' }), h('div', { class: 'sv-cr-body' }),
-        h('div', { class: 'sv-cr-foot' }, btn('Back', null, { class: 'sv-cr-back sv-ghost' }), btn('Randomise look', null, { class: 'sv-cr-dice sv-ghost' }), btn('Continue', null, { class: 'sv-cr-next sv-primary' }))));
+    const ic = p => h('i', { class: 'cr-i', html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + p + '" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>' });
+    const cam = (p, v, label, on) => h('button', { type: 'button', class: on ? 'on' : '', 'data-v': v, 'aria-label': label + ' camera', title: label }, ic(p), h('span', { text: label }));
+    screen('creator', 'cr-root',
+      h('div', { class: 'cr-stage', 'aria-label': 'Preview. Drag to turn your character.' }, h('div', { class: 'cr-cams', role: 'group', 'aria-label': 'Camera' },
+        cam('M12 3.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM8 21l1.6-8L7 11l.8-2h8.4l.8 2-2.6 2 1.6 8', 'full', 'Body', true), cam('M12 4a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM5 21c0-4.4 3-7 7-7s7 2.6 7 7', 'upper', 'Bust'), cam('M12 3c4 0 6.5 3 6.5 7.5S16 20 12 20s-6.5-5-6.5-9.5S8 3 12 3zM9 10v1.4M15 10v1.4M10 15c1.2 1 2.8 1 4 0', 'face', 'Face'),
+        h('button', { type: 'button', class: 'cr-spin', 'aria-label': 'Turntable', title: 'Turntable' }, ic('M20 12a8 8 0 1 1-2.6-5.9M20 4v4h-4'), h('span', { text: 'Turn' })), h('button', { type: 'button', class: 'cr-hide', 'aria-label': 'Hide menu', title: 'Hide menu' }, ic('M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z'), h('span', { text: 'Hide' }))),
+        h('p', { class: 'cr-hint', text: 'Drag to turn' })),
+      h('div', { class: 'cr-left' }, h('header', { class: 'cr-top' }, h('i', { class: 'cr-logo' }), h('b', { text: 'Character Creation' }), h('span', { text: 'Shiganshina District Registry, year 845' })),
+        h('div', { class: 'cr-main' }, h('nav', { class: 'cr-menu', role: 'tablist', 'aria-label': 'Categories' }), h('div', { class: 'cr-panel' }, h('div', { class: 'cr-ph' }, h('h2', { class: 'cr-ph-title' }), h('button', { type: 'button', class: 'cr-reset', 'aria-label': 'Reset this character' }, ic('M4 12a8 8 0 1 0 2.5-5.8M4 4v4h4'), h('span', { text: 'Reset' }))), h('div', { class: 'cr-body' }))),
+        h('footer', { class: 'cr-foot' }, h('button', { type: 'button', class: 'cr-back' }, ic('M15 5l-7 7 7 7'), h('span', { text: 'Back' })), h('button', { type: 'button', class: 'cr-next' }, h('span', { text: 'Continue' }), ic('M9 5l7 7-7 7')))));
     screen('pause', 'sv-pause', h('div', { class: 'sv-panel' }, h('h2', { text: 'Paused' }), h('nav', { class: 'sv-pnav' })));
     screen('journal', 'sv-journal', h('div', { class: 'sv-panel wide' }, h('h2', { text: 'Journal' }), h('div', { class: 'sv-j' }, h('div', { class: 'sv-j-quests' }), h('div', { class: 'sv-j-bonds' })), btn('Back', null, { class: 'sv-back sv-ghost' })));
     screen('saves', 'sv-saves', h('div', { class: 'sv-panel' }, h('h2'), h('div', { class: 'sv-slots' }), btn('Back', null, { class: 'sv-back sv-ghost' })));

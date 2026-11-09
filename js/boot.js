@@ -3,7 +3,7 @@
  * already expects, then starts engine.js -> viewer.js -> game.js in order. */
 (function () {
   'use strict';
-  const VERSION = '0.6.1';
+  const VERSION = '0.7.0';
   window.__APP_VERSION = VERSION;            // bump on every release to bust the GitHub Pages cache
   const $ = id => document.getElementById(id);
   const say = (m, p) => {
@@ -62,8 +62,8 @@
     }
 
     // scripts must run in order: engine -> viewer (starts E.load) -> game -> story layer
-    const SCRIPTS = ['js/engine.js', 'js/quality.js', 'js/viewer.js', 'js/game.js',
-      'js/story/core.js', 'js/story/audio.js', 'js/story/destiny.js', 'js/story/dialogue.js', 'js/story/world.js', 'js/story/save.js', 'js/story/actors.js', 'js/story/map.js', 'js/story/ui.js', 'js/story/studio.js', 'js/story/creator.js', 'js/story/fx.js', 'js/story/opening.js', 'js/story/main.js'];
+    const SCRIPTS = ['js/engine.js', 'js/post.js', 'js/quality.js', 'js/viewer.js', 'js/game.js',
+      'js/story/core.js', 'js/story/audio.js', 'js/story/destiny.js', 'js/story/dialogue.js', 'js/story/world.js', 'js/story/save.js', 'js/story/actors.js', 'js/story/map.js', 'js/story/ui.js', 'js/story/fx.js', 'js/story/opening.js', 'js/story/main.js'];
     for (const f of SCRIPTS) {
       await new Promise((res, rej) => {
         const s = document.createElement('script');

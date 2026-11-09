@@ -31,42 +31,44 @@ uniform vec4 u_for[24];uniform vec3 u_skyH;uniform vec3 u_skyZ;uniform vec3 u_cl
 float hash12(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
 float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash12(i),hash12(i+vec2(1,0)),f.x),mix(hash12(i+vec2(0,1)),hash12(i+vec2(1,1)),f.x),f.y);}
 float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*vnoise(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return s;}
-// Multi-scale, gently warped cloud field. Kept procedural so no large sky texture
-// needs to be downloaded or held in memory on mobile devices.
-float cloudField(vec2 p){
-  float warp=fbm(p*.42+vec2(3.7,1.9));
-  vec2 q=p+vec2(warp-.5,(fbm(p*.42+vec2(8.1,4.2))-.5))*.72;
-  float broad=fbm(q*.78);
-  float billow=fbm(q*2.05+vec2(2.4,7.1));
-  float detail=fbm(q*5.1+vec2(9.2,1.3));
-  return broad*.66+billow*.25+detail*.09;
-}
-vec3 skyColor(vec3 d,vec3 sun,float t){
+vec3 skyBase(vec3 d,vec3 sun){
   float h=clamp(d.y,0.,1.);
-  vec3 hor=u_skyH,zen=u_skyZ;
-  vec3 c=mix(hor,zen,pow(h,.55));
+  vec3 c=mix(u_skyH,u_skyZ,pow(h,.55));
   float sd=max(dot(d,sun),0.);
-  // Broad atmospheric glow plus a compact solar core.
-  c+=u_halo*(pow(sd,700.)*2.4+pow(sd,24.)*.28+pow(sd,4.)*.12);
+  float low=1.-smoothstep(.12,.62,sun.y);                                   // 0 high noon .. 1 sun on the horizon
+  vec2 sa=normalize(sun.xz+1e-4),da=normalize(d.xz+1e-4);float az=max(dot(sa,da),0.);
+  c+=u_halo*(pow(sd,900.)*2.4+pow(sd,14.)*.22+pow(sd,3.)*.10);
+  c+=u_halo*vec3(1.,.62,.36)*pow(az,2.5)*pow(1.-h,3.2)*(.18+.5*low);        // sunset glow band on the horizon, strongest toward the sun
+  c=mix(c,c*vec3(1.04,.9,.82),low*pow(1.-h,2.)*(1.-az)*.5);                  // opposite horizon turns dusty rose
+  return c;}
+vec3 skyFog(vec3 d,vec3 sun){return skyBase(d,sun);}
+vec3 skyColor(vec3 d,vec3 sun,float t){
+  vec3 c=skyBase(d,sun);
   if(d.y>0.){
-    vec2 p=d.xz/(d.y+.16)*1.05+vec2(t*.0035,-t*.0011);
-    float n=cloudField(p*1.22);
-    float nBack=cloudField(p*1.22+vec2(.16,.23)*-sun.xz);
-    float horizonBoost=1.-smoothstep(.12,.82,d.y);
-    float threshold=mix(.64,.57,horizonBoost);
-    float cloud=smoothstep(threshold-.075,threshold+.105,n);
-    float edge=1.-smoothstep(.015,.19,abs(n-threshold));
-    float body=clamp((n-nBack)*3.1+.52,0.,1.);
-    // Sun-facing cloud rims and warm undersides create layered sunset depth.
-    float sunFacing=clamp(dot(normalize(vec3(sun.x,.22,sun.z)),normalize(vec3(d.x,.35,d.z)))*.5+.5,0.,1.);
-    vec3 cloudLit=mix(u_cl0,u_cl1,clamp(body*.72+sunFacing*.28,0.,1.));
-    cloudLit=mix(cloudLit,cloudLit*vec3(1.18,.78,.62),edge*.30*horizonBoost);
-    cloudLit+=u_halo*edge*sunFacing*.16;
-    cloud*=smoothstep(0.,.10,d.y);
-    c=mix(c,cloudLit,cloud*.985);
-    // A subtle high-altitude haze band avoids a flat colour transition.
-    float haze=exp(-pow((d.y-.075)*12.,2.));
-    c=mix(c,u_fogC,haze*.10);
+    float low=1.-smoothstep(.12,.62,sun.y);
+    vec2 sdir=normalize(sun.xz+1e-4);
+    float fadeH=smoothstep(0.,.10,d.y);
+    // layer 1: high, broad, soft cover.  layer 2: low, big dramatic cumulus with sun-lit rims
+    for(int L=0;L<2;L++){
+      float sc=L==0?.75:1.5, h0=L==0?.30:.15;
+      vec2 p=d.xz/(d.y+h0)*sc+vec2(t*(L==0?.003:.006),t*.0015)+vec2(L==0?3.1:0.);
+      vec2 w=vec2(fbm(p*.7+7.3),fbm(p*.7+1.9))-.5;p+=w*.9;                // domain warp: billows instead of blobs
+      float n=fbm(p*1.25);
+      float cover=L==0?.50:.47-low*.04;
+      float cl=smoothstep(cover,cover+.20,n);
+      float n2=fbm((p+sdir*.16)*1.25);                                    // same field nudged toward the sun: difference = lit side
+      float lit=clamp((n-n2)*7.+.5,0.,1.);
+      float thick=clamp((n-cover)*3.,0.,1.);
+      vec3 shadow=mix(u_cl0*.52,u_ambS*.55,.35)*(1.-.25*low);          // dark, cool-warm underbelly
+      vec3 lite=u_cl1*(1.25+.5*low);
+      vec3 cc=mix(shadow,lite,lit*(1.-.55*thick)+.1);
+      float edge=(1.-smoothstep(0.,.35,thick))*cl;                      // thin cloud edge
+      float toSun=pow(max(dot(normalize(vec3(d.x,max(d.y,.0)+.12,d.z)),sun),0.),4.);
+      cc+=u_halo*(edge*(.35+1.4*toSun)*(.5+low))+u_halo*thick*lit*.18*low;   // glowing silver/gold lining
+      cc=mix(cc,cc*vec3(1.15,.82,.62),low*.5*(1.-thick));                // sunset tint
+      cl*=fadeH*(L==0?.80:.97);
+      c=mix(c,cc,cl);
+    }
   }
   return c;
 }`;
@@ -93,6 +95,32 @@ uniform vec3 u_cam;uniform vec3 u_sun;uniform vec4 u_color;uniform float u_cut;u
 uniform vec4 u_ctlRect;uniform float u_fogK;uniform float u_over;uniform float u_grade;
 out vec4 o;
 ${SKY_GLSL}
+
+uniform float u_stone;uniform sampler2D u_stA;uniform sampler2D u_stN;uniform float u_hasSt;
+// Procedural masonry in world space (no UV needed): bricks / blocks with mortar, per-block tone, cracks, chips, stains, damp base, plus optional external albedo/normal.
+void stoneFx(inout vec3 alb,inout vec3 N,float mode){
+  float dist=length(u_cam-v_p);float far=1.-smoothstep(90.,260.,dist);
+  vec3 an=abs(N);vec2 q=an.y>max(an.x,an.z)*1.3?v_p.xz:(an.x>an.z?v_p.zy:v_p.xy);
+  vec2 sz=mode<1.5?vec2(4.4,2.2):mode<2.5?vec2(.52,.22):vec2(.95,.48);
+  float row=floor(q.y/sz.y);vec2 g=vec2(q.x/sz.x+mod(row,2.)*.5+hash12(vec2(row,3.7)),q.y/sz.y);vec2 id=floor(g),f=fract(g);float r=hash12(id+mode*17.);
+  vec2 e=min(f,1.-f)*sz;float mw=mode<1.5?.10:.026;float aa=fwidth(q.x)+fwidth(q.y);float lod=1.-smoothstep(.25,1.,aa/mw);
+  float d=min(e.x,e.y);float face=smoothstep(mw*.5,mw*1.7+aa,d);
+  float rough=vnoise(q*(mode<1.5?2.2:9.))*.5+vnoise(q*(mode<1.5?7.:26.))*.5;
+  float chip=smoothstep(.62,.9,vnoise(q*(mode<1.5?1.3:5.)+r*9.))*(1.-smoothstep(0.,mw*3.,d));    // chipped corners
+  float h=face*(.80+.20*rough)-chip*.35;
+  float crk=1.-smoothstep(0.,.018*(mode<1.5?3.:1.),abs(fbm(q*(mode<1.5?.7:2.6)+r*13.)-.5));crk*=step(.52,r)*face*lod;   // hairline cracks in some blocks
+  float streak=vnoise(vec2(q.x*(mode<1.5?.22:.9),q.y*(mode<1.5?.035:.12)+r));float stain=smoothstep(.50,.85,streak);
+  float damp=1.-smoothstep(0.,mode<1.5?7.:1.2,v_p.y);
+  vec3 tone=mix(vec3(.80,.77,.72),vec3(1.14,1.08,.98),r)*mix(vec3(1.),vec3(.96,1.0,1.05),hash12(id+5.1));
+  vec3 a=alb*tone*(.90+.20*rough);
+  a*=1.-.30*stain*(.4+.6*(1.-damp))-.55*crk;a=mix(a,a*vec3(.62,.74,.46),damp*smoothstep(.4,.8,vnoise(q*1.7))*.55);   // damp / mossy foot
+  vec3 mort=alb*vec3(.50,.47,.42)*(.85+.3*vnoise(q*14.));a=mix(mort,a,face);
+  if(u_hasSt>.5){vec3 w=an*an;w/=w.x+w.y+w.z;vec3 pp=v_p*.16;vec3 ta=texture(u_stA,pp.zy).rgb*w.x+texture(u_stA,pp.xz).rgb*w.y+texture(u_stA,pp.xy).rgb*w.z;float tl=dot(ta,vec3(.333));
+   a*=mix(1.,.45+1.1*tl,.7*far);vec3 tn=(texture(u_stN,pp.zy).xyz*w.x+texture(u_stN,pp.xz).xyz*w.y+texture(u_stN,pp.xy).xyz*w.z)*2.-1.;N=normalize(N+vec3(tn.x,0.,tn.y)*.5*far);}
+  alb=mix(alb,a,mix(.55,1.,lod)*mix(.6,1.,far));
+  vec3 dpx=dFdx(v_p),dpy=dFdy(v_p);vec3 r1=cross(dpy,N),r2=cross(N,dpx);float det=dot(dpx,r1);
+  if(abs(det)>1e-9){vec3 gr=sign(det)*(dFdx(h)*r1+dFdy(h)*r2);N=normalize(abs(det)*N-gr*mw*.7*lod*far);}
+}
 float shadowTap(sampler2DShadow s,vec4 c){vec3 p=c.xyz/c.w*.5+.5;if(p.x<0.||p.x>1.||p.y<0.||p.y>1.||p.z>1.)return -1.;
   float r=0.;float tx=1./2048.;
   for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)r+=texture(s,vec3(p.xy+vec2(i,j)*tx*1.1,p.z-.0008));return r/9.;}
@@ -161,6 +189,7 @@ void main(){
       al.rgb=mix(al.rgb,moss,clamp(mm,0.,.9));}
   }
   al.rgb*=v_col.rgb;
+  if(u_stone>.5&&u_kind==0)stoneFx(al.rgb,N,u_stone);
   if(u_hasNorm>.5){vec3 t=texture(u_norm,v_uv*u_uvs).xyz*2.-1.;t.xy*=.8;N=normalize(cotan(N,v_p,v_uv)*t);}
   float sh=u_shadow>.5?shadowAt():1.;
   float ndl=dot(N,u_sun);
@@ -175,9 +204,9 @@ void main(){
   // warm bounce in shadow side
   lit+=al.rgb*vec3(.10,.07,.04)*(1.-diff)*ao;
   vec3 V=u_cam-v_p;float dist=length(V);V/=dist;
-  float fog=1.-exp(-dist*u_fogK*(1.+clamp((34.-v_p.y)/34.,0.,1.)*.6));fog=max(fog,smoothstep(1700.,3100.,dist));
-  vec3 fogc=skyColor(normalize(vec3(-V.x,max(-V.y,.0),-V.z)),u_sun,u_time);
-  fogc=mix(u_fogC,fogc,.35);
+  float fog=1.-exp(-dist*u_fogK*(1.+clamp((34.-v_p.y)/34.,0.,1.)*.9));fog=max(fog,smoothstep(1700.,3100.,dist));
+  vec3 fogc=skyFog(normalize(vec3(-V.x,max(-V.y,.0),-V.z)),u_sun);
+  fogc=mix(u_fogC,fogc,.35);fogc+=u_halo*pow(max(dot(-V,u_sun),0.),5.)*.30;
   vec3 col=aces(lit*.80);
   col=pow(col,vec3(1./2.2));
   // painted wash + anime grade (warm shadows, gentle desaturation, soft contrast)
@@ -240,6 +269,7 @@ function mk(gl,type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl
 function prog(gl,vs,fs,locs){const p=gl.createProgram();gl.attachShader(p,mk(gl,gl.VERTEX_SHADER,vs));gl.attachShader(p,mk(gl,gl.FRAGMENT_SHADER,fs));
  for(const k in locs)gl.bindAttribLocation(p,locs[k],k);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
  const u={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(let i=0;i<n;i++){const a=gl.getActiveUniform(p,i);u[a.name]=gl.getUniformLocation(p,a.name)}return{p,u}}
+const STONE={wall:1,brick:2,sbrick:2,stoneg:3};
 const AL={a_pos:0,a_nrm:1,a_uv:2,a_col:3,i_r0:4,i_r1:5,i_r2:6,i_tint:7};
 
 const PRESETS={
@@ -278,6 +308,9 @@ class Engine{
    const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,t,0);
    gl.drawBuffers([gl.NONE]);gl.readBuffer(gl.NONE);this.sm.push({t,f,S,m:M4.id()})}
   gl.bindFramebuffer(gl.FRAMEBUFFER,null)}
+ async loadStoneTex(base){try{const g=async f=>{const r=await fetch(base+f);if(!r.ok)throw 0;return createImageBitmap(await r.blob(),{premultiplyAlpha:'none',colorSpaceConversion:'none'})};const a=await g('assets/stone_albedo.jpg'),n=await g('assets/stone_normal.jpg');this.stoneTex={a:this.texFromBitmap(a,true,true,true),n:this.texFromBitmap(n,false,true,true)};return true}catch(e){return false}}   // optional: drop stone_albedo.jpg + stone_normal.jpg into assets/
+ endPost(){const q=this._pp;this._pp=null;if(q&&this.postFx&&this.postFx.on)this.postFx.end(q.cam,q.su,q.col)}   // resolve the off-screen frame to the screen (game.js calls this after drawing actors/FX into it)
+ setPost(level){if(!window.AotPost){return}if(!this.postFx)this.postFx=new window.AotPost(this);this.postFx.set(level)}
  setShadowSize(S){if(!this.sm||S===this.smSize)return;const gl=this.gl;for(const s of this.sm){gl.deleteTexture(s.t);gl.deleteFramebuffer(s.f)}this.initShadow(S)}   // quality tiers resize the shadow maps (frees the old ones)
  // ---- data loading ----
  async load(base,onprog){
@@ -312,7 +345,7 @@ class Engine{
   if(g.mat===this.lastMat)return;this.lastMat=g.mat;const u=P.u;
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.tex>=0?this.texs[m.tex]:this.white);gl.uniform1i(u.u_tex,0);
   if(u.u_cut)gl.uniform1f(u.u_cut,m.cut||0);if(u.u_uvs)gl.uniform1f(u.u_uvs,m.uvs||1);
-  if(!shadowPass){gl.uniform4f(u.u_color,m.color[0],m.color[1],m.color[2],1);gl.uniform1i(u.u_kind,m.kind||0);
+  if(!shadowPass){gl.uniform4f(u.u_color,m.color[0],m.color[1],m.color[2],1);gl.uniform1i(u.u_kind,m.kind||0);if(u.u_stone){if(m.st===undefined)m.st=STONE[m.name]||0;gl.uniform1f(u.u_stone,this.stoneOn===false?0:m.st)}
    if(m.norm>=0){gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.texs[m.norm]);gl.uniform1f(u.u_hasNorm,1)}else gl.uniform1f(u.u_hasNorm,0);}}
  drawScene(planes,shadowPass,P,filterKind){
   const gl=this.gl,J=this.J;this.lastMat=-1;let tris=0;const cp=this.camPos;this.calls=this.calls||0;
@@ -350,7 +383,7 @@ class Engine{
   const proj=M4.ortho(-R,R,-R,R,0.5,zr*2);let m=M4.mul(proj,view);
   const S=this.sm[0].S;const tx=m[12]*S/2,ty=m[13]*S/2;m[12]+=(Math.round(tx)-tx)*2/S;m[13]+=(Math.round(ty)-ty)*2/S;return m}
  render(cam,dt){
-  const gl=this.gl;this.time+=dt;this.resize();const W=this.canvas.width,H=this.canvas.height;
+  const gl=this.gl;if(this._pp)try{this.endPost()}catch(e){}this.time+=dt;this.resize();const W=this.canvas.width,H=this.canvas.height;
   const asp=W/H;let vfov=cam.fov;if(asp<1){vfov=2*Math.atan(Math.tan(cam.fov/2)/asp*Math.min(1,asp*1.55))}
   const proj=M4.persp(vfov,asp,cam.near||0.3,cam.far||3500),view=M4.look(cam.pos,cam.target,[0,1,0]);
   const vp=M4.mul(proj,view),planes=frustumPlanes(vp);this.vp=vp;
@@ -370,6 +403,7 @@ class Engine{
    if(one)this.sm[0].m=this.sm[1].m;
    gl.disable(gl.POLYGON_OFFSET_FILL);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
   }
+  const PO=this.postFx&&this.postFx.on?this.postFx:null;if(PO&&!PO.begin(W,H)){/* fell back to the direct path */}
   gl.viewport(0,0,W,H);gl.clearColor(.7,.82,.95,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   // sky
   {const P=this.progs.sky;gl.useProgram(P.p);gl.depthMask(false);gl.uniformMatrix4fv(P.u.u_ivp,false,M4.inv(vp));gl.uniform3fv(P.u.u_cam,cam.pos);gl.uniform3fv(P.u.u_sun,this.sunDir);gl.uniform1f(P.u.u_time,this.time);this.setLight(P.u);
@@ -381,11 +415,15 @@ class Engine{
   {const P=this.progs.main,u=bindCommon(P);
    gl.uniform1i(u.u_norm,1);
    if(this.ctlTex){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,this.ctlTex);gl.uniform1i(u.u_ctl,2);if(this.ctlHTex){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,this.ctlHTex);gl.uniform1i(u.u_ctlH,3)}const r=this.J.ctl.rect;gl.uniform4f(u.u_ctlRect,r[0],r[1],r[2],r[3])}
+   {const hs=this.stoneTex?1:0;gl.uniform1f(u.u_hasSt,hs);gl.uniform1i(u.u_stA,10);gl.uniform1i(u.u_stN,11);if(hs){gl.activeTexture(gl.TEXTURE10);gl.bindTexture(gl.TEXTURE_2D,this.stoneTex.a);gl.activeTexture(gl.TEXTURE11);gl.bindTexture(gl.TEXTURE_2D,this.stoneTex.n)}else{gl.activeTexture(gl.TEXTURE10);gl.bindTexture(gl.TEXTURE_2D,this.white);gl.activeTexture(gl.TEXTURE11);gl.bindTexture(gl.TEXTURE_2D,this.flatN)}}
    for(let i=0;i<3;i++){if(this.detail[i]){gl.activeTexture(gl.TEXTURE6+i);gl.bindTexture(gl.TEXTURE_2D,this.detail[i]);gl.uniform1i(u['u_dt'+i],6+i)}}
    tris+=this.drawScene(planes,false,P,0)}
   gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);
   {const P=this.progs.water;bindCommon(P);tris+=this.drawScene(planes,false,P,3)}
   gl.depthMask(true);gl.disable(gl.BLEND);
+  if(PO&&PO.on){let su=null;{const sd=this.sunDir,q=[cam.pos[0]+sd[0]*1000,cam.pos[1]+sd[1]*1000,cam.pos[2]+sd[2]*1000,1],m=vp,cx=m[0]*q[0]+m[4]*q[1]+m[8]*q[2]+m[12],cy=m[1]*q[0]+m[5]*q[1]+m[9]*q[2]+m[13],cw=m[3]*q[0]+m[7]*q[1]+m[11]*q[2]+m[15];
+   if(cw>0.01){const sx=cx/cw*.5+.5,sy=cy/cw*.5+.5,edge=Math.max(Math.abs(sx-.5),Math.abs(sy-.5));su=[sx,sy,Math.max(0,1-Math.max(0,edge-.5)*2.2)]}}
+   this._pp={cam,su,col:this.light.halo.map(v=>v*.55)};if(!this.deferPost)this.endPost()}
   this.tris=tris;this.lastCalls=this.calls;this.calls=0;this.proj=proj;this.view=view;
  }
 }

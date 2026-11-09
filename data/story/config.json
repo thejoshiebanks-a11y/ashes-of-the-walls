@@ -46,23 +46,11 @@
  "bodies": [
   {
    "id": "fuse_man",
-   "name": "Boy",
-   "text": "Soft-faced, plain clothes"
+   "name": "Boy"
   },
   {
    "id": "fuse_woman",
-   "name": "Girl",
-   "text": "Soft-faced, plain clothes"
-  },
-  {
-   "id": "base_furlan",
-   "name": "Furlan",
-   "text": "Church-raised, long coat"
-  },
-  {
-   "id": "base_isabel",
-   "name": "Isabel",
-   "text": "Merchant's daughter, travelling dress"
+   "name": "Girl"
   }
  ],
  "eyes": [

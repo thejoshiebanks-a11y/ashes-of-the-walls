@@ -24,7 +24,7 @@ vm.runInContext(code+'\nthis.api={loadModel,loadAnims,MD,toDirs,relModel,groundF
 let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL',m)}};
 (async()=>{
  const A=ctx.api; await A.loadAnims(); ok(!!A.getAN(),'anims loaded');
- const keys=Object.keys(npc).filter(k=>!/^head_/.test(k));
+ const keys=Object.keys(npc);
  for(const key of ['levi',...keys]){
   const D=MODELS[key]; await A.loadModel(key); const M=A.MD[key]; ok(!!M,key+' loads'); if(!M) continue;
   const bin=zlib.inflateSync(Buffer.from(D.bin)); const meta=D.meta;
@@ -38,8 +38,7 @@ let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL',m
     return r};
   M.pose({}); const rest=skin(M); const info=npc[key]?npc[key].info:{bodyHeight:1.62};
   ok(rest.nan===0,key+' rest has no NaN'); const hRest=rest.maxY-rest.minY;
-  const hh=info.headH||0; // bases may be headless (XPS) or carry a hidden head (VRM)
-  ok(Math.abs(hRest-info.bodyHeight)<info.bodyHeight*0.12||Math.abs(hRest-(info.bodyHeight-hh))<info.bodyHeight*0.12||Math.abs(hRest-info.bodyHeight-0)<0.45,key+` rest height ${hRest.toFixed(2)} ~ model ${info.bodyHeight.toFixed(2)}`);
+  ok(Math.abs(hRest-info.bodyHeight)<info.bodyHeight*0.12,key+` rest height ${hRest.toFixed(2)} ~ model ${info.bodyHeight.toFixed(2)}`);
   if(key==='colossal'||key==='armored'){ console.log(key,'static ok, height',hRest.toFixed(2)); continue }
   const an=new A.Anim(); const res={};
   for(const [clip,t] of [['L:Unarmed Idle',0.4],['L:Standard Walk',0.3],['L:Jog Forward',0.2]]){

@@ -115,7 +115,7 @@
   async function ensureModels(keys) { try { await ACT.ensure(keys); } catch (e) { console.warn('[story] models unavailable, using markers only', e); } }
   async function spawnCast() {
     const pl = S.state.player; ACT.clearAll();
-    const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa', ...ACT.RIG.models].filter(Boolean)); await ensureModels([...need]);
+    const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); await ensureModels([...need]);
     tryA(() => {
       const me = G.pos(); ACT.spawnPlayer(pl, me.x, me.z, root.__st.wyaw, true);
       const at = id => { const q = S.world.pos(pointById(id)); return q; }, face = (q, ref) => yawTo(q.x, q.z, ref.x, ref.z);
@@ -232,7 +232,7 @@
     ensure: () => ensureModels(['colossal2', 'colossal']),
     info: () => titleInfo,
     geo() {                                                 // where the wall really is (measured with rays), so the cutscene fits any wall change
-      const W = root.__world, x0 = -42, f = W.cast([x0, 25, -400], [0, 0, 1], 800), b = W.cast([x0, 25, 400], [0, 0, -1], 800);
+      const W = root.__world, x0 = -60, f = W.cast([x0, 25, -400], [0, 0, 1], 800), b = W.cast([x0, 25, 400], [0, 0, -1], 800);
       const front = f ? -400 + f.t : -20, back = b ? 400 - b.t : front + 8, m = (front + back) / 2, h = W.cast([x0, 300, m], [0, -1, 0], 600);
       return { x0, front, back: Math.max(back, front + 2), top: h ? 300 - h.t : 50 };
     },
@@ -250,26 +250,25 @@
   }
 
   /* ================= the registry ================= */
-  const defaultDraft = () => ({ name: '', gender: 'f', body: 'base_isabel', voice: 'steady', difficulty: 'soldier', wear: 1,
-    look: { skin: 2, hair: -1, top: -1, bottom: -1, shoes: -1, fk: null, hk: null, hide: [], height: 0.5, build: 0.5, eye: 0, scar: 0, face: {}, body: {}, cust: {} } });
-  const buildPlayer = (d, dest) => ({ name: d.name.trim(), gender: d.gender, body: d.body, voice: d.voice, difficulty: d.difficulty, wear: d.wear, look: JSON.parse(JSON.stringify(d.look)),
+  const defaultDraft = () => ({ name: '', gender: 'f', body: 'fuse_woman', voice: 'steady', difficulty: 'soldier', wear: 1,
+    look: { skin: 1, hair: 2, top: 0, bottom: 0, shoes: 0, height: 0.5, build: 0.5, headW: 0.5, headH: 0.5, eye: 0, scar: 0 } });
+  const buildPlayer = (d, dest) => ({ name: d.name.trim(), gender: d.gender, body: d.body, voice: d.voice, difficulty: d.difficulty, wear: d.wear, look: Object.assign({}, d.look),
     bloodline: dest.bloodline, family: dest.family, destinySeed: dest.seed, anchor: Object.assign({}, dest.anchor) });
   async function openCreator() {
     AU.select(); await coldOpen();
     mode = null; S.fsm.set('creator'); applyFsm(); UI.hideAll();
-    await UI.fadeTo(true, 10); await ensureModels(['mannequin', ...ACT.RIG.models]);
-    const dest = DST.pending(), draft = defaultDraft(); draft.body = dest.anchor.gender === 'f' ? 'base_furlan' : 'base_isabel';
+    await UI.fadeTo(true, 10); await ensureModels(['fuse_man', 'fuse_woman']);
+    const dest = DST.pending(), draft = defaultDraft(); draft.body = dest.anchor.gender === 'f' ? 'fuse_man' : 'fuse_woman';
     root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true; ACT.clearAll(); root.ODM.hour = 7.6;
     const sp = G.snap(-176.5, -186.5); G.teleport(sp.x + 14, sp.z + 14, 0, 0.1);
-    const yaw0 = Math.PI, gy = G.gh(sp.x, sp.z), P0 = ACT.playerParams(buildPlayer(draft, dest));
-    const ST = S.studio; ST.enter({ x: sp.x, z: sp.z, gy, yaw: yaw0, h: P0.meters });
-    const mn = ACT.spawnMannequin(sp.x, sp.z, yaw0, P0.meters);
-    const mk = () => {  tryA(() => { const pl = buildPlayer(draft, dest); if (!ACT.player) ACT.spawnPlayer(pl, sp.x, sp.z, yaw0, false); else ACT.updatePlayer(pl); ST.setHeight(ACT.playerParams(pl).meters); }); return ACT.player; };
+    const yaw0 = Math.PI, F = [Math.sin(yaw0), 0, Math.cos(yaw0)], Rr = [F[2], 0, -F[0]], gy = G.gh(sp.x, sp.z);
+    cineOn([sp.x + F[0] * 3.1, gy + 1.15, sp.z + F[2] * 3.1], [sp.x + Rr[0] * 1.2, gy + 0.95, sp.z + Rr[2] * 1.2], 1.08);
+    const mk = () => { tryA(() => { const pl = buildPlayer(draft, dest); if (!ACT.player) ACT.spawnPlayer(pl, sp.x, sp.z, yaw0, false); else ACT.updatePlayer(pl); }); };
+    mk();
+    tryA(() => { const pl = buildPlayer(draft, dest); ACT.spawnAnchor(pl, sp.x + Rr[0] * 0.95 - F[0] * 0.3, sp.z + Rr[2] * 0.95 - F[2] * 0.3, yaw0 + 0.25); });
     await settle(500); UI.hideAll(); AU.wind(0.04); AU.music('calm');
-    await UI.fadeTo(false, 1100);
-    if (mn) await ST.intro({ mannequin: mn, mkChar: mk, removeMannequin: () => ACT.removeMannequin() }); else mk();
-    const leave = () => { ST.exit(); cineOff(); ACT.clearAll(); };
-    UI.creator({ cfg: S.data.config, draft, destiny: dest }, d => { leave(); finishCreation(buildPlayer(d, dest), dest); }, () => { leave(); showTitle(); }, mk, dx => { if (ACT.player) ACT.player.yaw += dx; });
+    UI.creator({ cfg: S.data.config, draft, destiny: dest }, d => { cineOff(); ACT.clearAll(); finishCreation(buildPlayer(d, dest), dest); }, () => { cineOff(); ACT.clearAll(); showTitle(); }, mk, dx => { if (ACT.player) ACT.player.yaw += dx; });
+    await UI.fadeTo(false, 700);
   }
   async function finishCreation(player, dest) { DST.consume(); AU.blade(); await startNewGame(player); }
 

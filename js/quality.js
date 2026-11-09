@@ -8,7 +8,7 @@
   'use strict';
   const KEY = 'aow.gfx';
   const TIERS = {
-    //            dprCap  scaleMin scaleMax shadowPx cascades lod   aniso  msaa  post (reserved for phase 2)
+    //            dprCap  scaleMin scaleMax shadowPx cascades lod   aniso  msaa(unused) post(0 off,1 FXAA,2 +bloom+shafts,3 +SSAO)
     low:    { dprCap: 1.25, scaleMin: 0.5,  scaleMax: 0.85, shadowPx: 1024, cascades: 1, lod: 0.75, aniso: 2,  msaa: false, post: 0 },
     medium: { dprCap: 1.6,  scaleMin: 0.55, scaleMax: 1.0,  shadowPx: 2048, cascades: 2, lod: 0.9,  aniso: 4,  msaa: false, post: 1 },
     high:   { dprCap: 2.0,  scaleMin: 0.6,  scaleMax: 1.0,  shadowPx: 3072, cascades: 2, lod: 1.0,  aniso: 8,  msaa: true,  post: 2 },
@@ -59,7 +59,7 @@
     TIERS, ORDER, tier: 'medium', auto: true, E: null, mon: new Monitor(), enabled: true, scale: 1, log: [], lock: false,
     cfg() { return TIERS[this.tier]; },
     /* before the GL context exists: should the default framebuffer be multisampled? (explicit LOW/MEDIUM choice turns it off; phase 2 replaces it with FXAA) */
-    wantAA() { const q = new URLSearchParams(location.search).get('gfx'), t = ORDER.indexOf(q) >= 0 ? q : store.get(); return TIERS[t] ? TIERS[t].msaa : true; },
+    wantAA() { const q = new URLSearchParams(location.search).get('gfx'), t = ORDER.indexOf(q) >= 0 ? q : store.get(); return false; }   /* FXAA in the post pass replaces MSAA; tier 'low' simply has no AA */,
     /* called once, right after the engine exists */
     init(E) {
       this.E = E; const q = new URLSearchParams(location.search).get('gfx'), saved = store.get();
@@ -76,7 +76,7 @@
       const E = this.E; if (!E || !TIERS[name]) return; this.tier = name; const c = TIERS[name];
       E.dpr = Math.min(window.devicePixelRatio || 1, c.dprCap); E.lodScale = c.lod * (E.mobile ? 0.95 : 1); E.cascades = c.cascades; E.quality = name;
       if (E.setShadowSize) E.setShadowSize(c.shadowPx);
-      E.aniso && (E.anisoMax = c.aniso);
+      E.aniso && (E.anisoMax = c.aniso); if (E.setPost) { try { E.setPost(new URLSearchParams(location.search).get('post') === '0' ? 0 : c.post); } catch (e) { console.warn('[GFX] post', e); } }
       this.scale = Math.min(Math.max(this.scale || 1, c.scaleMin), c.scaleMax); if (name === 'low') this.scale = Math.min(this.scale, 0.8);
       E.scale = this.scale; this.hold = 3; this.upOK = 0; this.downOK = 0; this.red = null; this.mon.capped = false; this.mon.cnt = 0; this.mon.base = null; this.mon.baseBuf = [];
       if (!silent) this.note('tier -> ' + name);

@@ -169,17 +169,16 @@ async function loadModel(key){const D=window.__MODELS&&window.__MODELS[key];if(!
  const mk=(t,d,u)=>{const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,d,gl.STATIC_DRAW);return b};
  for(const p of meta.prims){const o=p.o,n=p.n,sl=(a,l)=>bin.slice(a,a+l);const vao=gl.createVertexArray();gl.bindVertexArray(vao);
   const at=(loc,buf,sz,ty,nm,int,str)=>{gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.enableVertexAttribArray(loc);int?gl.vertexAttribIPointer(loc,sz,ty,0,0):gl.vertexAttribPointer(loc,sz,ty,nm,str||0,0)};
-  const pos0=new Float32Array(sl(o[0],n*12)),posBuf=mk(0,pos0),jj0=new Uint8Array(sl(o[3],n*4)),ww0=new Uint8Array(sl(o[4],n*4));const nb=mk(0,new Int8Array(sl(o[1],n*4))),ub=mk(0,new Float32Array(sl(o[2],n*8)));at(gp.a.p,posBuf,3,gl.FLOAT,false);at(gp.a.n,nb,3,gl.BYTE,true,false,4);at(gp.a.uv,ub,2,gl.FLOAT,false);
-  at(gp.a.jj,mk(0,jj0),4,gl.UNSIGNED_BYTE,false,true);at(gp.a.ww,mk(0,ww0),4,gl.UNSIGNED_BYTE,true);
+  at(gp.a.p,mk(0,new Float32Array(sl(o[0],n*12))),3,gl.FLOAT,false);at(gp.a.n,mk(0,new Int8Array(sl(o[1],n*4))),3,gl.BYTE,true,false,4);at(gp.a.uv,mk(0,new Float32Array(sl(o[2],n*8))),2,gl.FLOAT,false);
+  at(gp.a.jj,mk(0,new Uint8Array(sl(o[3],n*4))),4,gl.UNSIGNED_BYTE,false,true);at(gp.a.ww,mk(0,new Uint8Array(sl(o[4],n*4))),4,gl.UNSIGNED_BYTE,true);
   const u32=n>=65536,ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,u32?new Uint32Array(sl(o[5],p.ni*4)):new Uint16Array(sl(o[5],p.ni*2)),gl.STATIC_DRAW);
-  gl.bindVertexArray(null);M.prims.push({vao,ni:p.ni,ty:u32?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,tex:p.tex,mat:p.mat,n,pos0,posBuf,jj:jj0,ww:ww0,nb,ub,ib,sb:meta.kit&&meta.kit.sb?meta.kit.sb[meta.prims.indexOf(p)]:null})}
- M.kit=meta.kit||null;M.key=key;
+  gl.bindVertexArray(null);M.prims.push({vao,ni:p.ni,ty:u32?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,tex:p.tex,mat:p.mat})}
  for(const b of D.tex){const bm=await createImageBitmap(new Blob([b64u8(b)],{type:'image/webp'})),t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,bm);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);{const an=gl.getExtension('EXT_texture_filter_anisotropic');if(an)gl.texParameterf(gl.TEXTURE_2D,an.TEXTURE_MAX_ANISOTROPY_EXT,8)}M.tex.push(t)}
  const bt=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,bt);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA32F,4,128,0,gl.RGBA,gl.FLOAT,null);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);M.bt=bt;M.S=new Float32Array(J*16);
  const pairs=AN?AN.meta.pairs:[]; M.ac={};for(const [a,b] of pairs){const i=M.id(a),k=M.id(b);if(i>=0&&k>=0)M.ac[i]=k}
  M.pose=(dirs)=>{ // dirs: {boneName: [x,y,z]} (pelvis frame); legs get roll + flat-foot constraints
   const tg={};for(const k in dirs){const i=M.id(k);if(i>=0)tg[i]=nrm(dirs[k])}
-  for(const i of M.order){let L=M.loc.subarray(i*16,i*16+16);{const ci=M.lcIdx&&M.lcIdx[i];if(ci&&M.lc[ci.side]>0){const a=ci.sg*ci.ang*M.lc[ci.side]*(1+.08*(1-(M.lcA||0))*Math.sin((M.lcT||0)*2.4+i*.9)),c_=Math.cos(a),s_=Math.sin(a),R4=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);if(ci.ax===0){R4[5]=c_;R4[6]=s_;R4[9]=-s_;R4[10]=c_}else if(ci.ax===1){R4[0]=c_;R4[2]=-s_;R4[8]=s_;R4[10]=c_}else{R4[0]=c_;R4[1]=s_;R4[4]=-s_;R4[5]=c_}L=m4(L,R4)}}if(M.tl&&M.tl[i]!==1){L=Float32Array.from(L);L[12]*=M.tl[i];L[13]*=M.tl[i];L[14]*=M.tl[i]}const P=M.par[i]<0?M.rootW:M.W[M.par[i]],w=m4(P,L);M.W[i]=w;const t=tg[i];
+  for(const i of M.order){let L=M.loc.subarray(i*16,i*16+16);{const ci=M.lcIdx&&M.lcIdx[i];if(ci&&M.lc[ci.side]>0){const a=ci.sg*ci.ang*M.lc[ci.side]*(1+.08*(1-(M.lcA||0))*Math.sin((M.lcT||0)*2.4+i*.9)),c_=Math.cos(a),s_=Math.sin(a),R4=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);if(ci.ax===0){R4[5]=c_;R4[6]=s_;R4[9]=-s_;R4[10]=c_}else if(ci.ax===1){R4[0]=c_;R4[2]=-s_;R4[8]=s_;R4[10]=c_}else{R4[0]=c_;R4[1]=s_;R4[4]=-s_;R4[5]=c_}L=m4(L,R4)}}const P=M.par[i]<0?M.rootW:M.W[M.par[i]],w=m4(P,L);M.W[i]=w;const t=tg[i];
    if(t&&M.ac[i]!==undefined){const k=M.ac[i],lx=M.loc[k*16+12],ly=M.loc[k*16+13],lz=M.loc[k*16+14],cur=nrm([w[0]*lx+w[4]*ly+w[8]*lz,w[1]*lx+w[5]*ly+w[9]*lz,w[2]*lx+w[6]*ly+w[10]*lz]),R=arc(cur,t);
     for(let c=0;c<3;c++){const x=w[c*4],y=w[c*4+1],z=w[c*4+2];w[c*4]=R[0]*x+R[1]*y+R[2]*z;w[c*4+1]=R[3]*x+R[4]*y+R[5]*z;w[c*4+2]=R[6]*x+R[7]*y+R[8]*z}
     const fl=M.fl&&M.fl[i];if(fl){const fc=[w[0]*fl[0]+w[4]*fl[1]+w[8]*fl[2],w[1]*fl[0]+w[5]*fl[1]+w[9]*fl[2],w[2]*fl[0]+w[6]*fl[1]+w[10]*fl[2]],fd=nrm(cross(t,[1,0,0])),pc=[fc[0]-t[0]*dot(fc,t),fc[1]-t[1]*dot(fc,t),fc[2]-t[2]*dot(fc,t)],pd=[fd[0]-t[0]*dot(fd,t),fd[1]-t[1]*dot(fd,t),fd[2]-t[2]*dot(fd,t)];
@@ -195,7 +194,7 @@ async function loadModel(key){const D=window.__MODELS&&window.__MODELS[key];if(!
    {const fg=M.fing&&M.fing[i];if(fg&&M.curl&&M.curl.tg){const am=fg.sd==='L'?M.curl.aL:M.curl.aR;if(am>.01){const ch=M.kids[i][0];let lx=0,ly=0,lz=0;if(ch!==undefined){lx=M.loc[ch*16+12];ly=M.loc[ch*16+13];lz=M.loc[ch*16+14]}
      const fdir=nrm([w[0]*lx+w[4]*ly+w[8]*lz,w[1]*lx+w[5]*ly+w[9]*lz,w[2]*lx+w[6]*ly+w[10]*lz]),A_=M.curl.ax[fg.sd],tv=[M.curl.tg[0]-w[12],M.curl.tg[1]-w[13],M.curl.tg[2]-w[14]],sg=dot(cross(A_,fdir),tv)>=0?1:-1,base=fg.f===0?[.45,.6,.5]:[.95,1.2,.95];rotW(w,A_,sg*base[fg.s]*am)}}}
    if(M.cutB&&M.cutB.indexOf(i)>=0)for(let k=0;k<12;k++)w[k]=0}
-  for(let i=0;i<M.J;i++){let w=M.W[i];const b=M.bsc&&M.bsc[i];if(b){w=Float32Array.from(w);for(let k=0;k<3;k++){w[k]*=b[0];w[4+k]*=b[1];w[8+k]*=b[2]}}M.S.set(m4(w,M.ibm.subarray(i*16,i*16+16)),i*16)}};
+  for(let i=0;i<M.J;i++)M.S.set(m4(M.W[i],M.ibm.subarray(i*16,i*16+16)),i*16)};
  M.pose({});{const pi=M.id('Bip001 Pelvis');M.py=pi>=0?M.W[pi][13]:.9}
  M.mask=(names)=>{const a=new Float32Array(128),go=i=>{a[i]=1;M.kids[i].forEach(go)};for(const n of names){const i=M.id(n);if(i>=0)go(i)}return a};
  M.fl={};M.footR={};for(const nm of['Bip001 L Thigh','Bip001 R Thigh','Bip001 L Calf','Bip001 R Calf']){const i=M.id(nm);if(i>=0){const w=M.W[i];M.fl[i]=[w[2],w[6],w[10]]}}
@@ -203,17 +202,16 @@ async function loadModel(key){const D=window.__MODELS&&window.__MODELS[key];if(!
  M.low=['Bip001 L Foot','Bip001 R Foot','Bip001 L Toe0','Bip001 R Toe0','Bip001 L Hand','Bip001 R Hand','Bip001 Head','Bip001 Pelvis'].map(n=>M.id(n)).filter(i=>i>=0);
  M.fing={};M.lc={L:0,R:0};M.lcIdx={};if(key==='levi'){const cd={"Bip001 L Finger0":[2,1],"Bip001 L Finger01":[2,1],"Bip001 L Finger02":[2,1],"Bip001 L Finger1":[0,-1],"Bip001 L Finger11":[0,-1],"Bip001 L Finger12":[0,-1],"Bip001 L Finger2":[0,-1],"Bip001 L Finger21":[0,-1],"Bip001 L Finger22":[0,-1],"Bip001 L Finger3":[0,-1],"Bip001 L Finger31":[0,-1],"Bip001 L Finger32":[0,-1],"Bip001 L Finger4":[0,-1],"Bip001 L Finger41":[0,-1],"Bip001 L Finger42":[0,-1],"Bip001 R Finger0":[2,-1],"Bip001 R Finger01":[2,-1],"Bip001 R Finger02":[2,-1],"Bip001 R Finger1":[0,-1],"Bip001 R Finger11":[0,-1],"Bip001 R Finger12":[0,-1],"Bip001 R Finger2":[0,-1],"Bip001 R Finger21":[0,-1],"Bip001 R Finger22":[0,-1],"Bip001 R Finger3":[0,-1],"Bip001 R Finger31":[0,-1],"Bip001 R Finger32":[0,-1],"Bip001 R Finger4":[0,-1],"Bip001 R Finger41":[0,-1],"Bip001 R Finger42":[0,-1]};for(const nm in cd){const i=M.id(nm);if(i>=0)M.lcIdx[i]={ax:cd[nm][0],sg:cd[nm][1],side:nm.indexOf(' L ')>=0?'L':'R',ang:(/Finger0\d?$/.test(nm)?.75:1.15)*({'1':.82,'2':.94,'3':1.04,'4':1.12}[(nm.match(/Finger(\d)/)||[])[1]]||1)}}}M.curl={aL:0,aR:0,tg:null,ax:{L:[0,0,1],R:[0,0,1]}};M.hr={iL:M.id('Bip001 L Hand'),iR:M.id('Bip001 R Hand'),A:{},fd:{},tg:{},on:false,ori:{},loc:{}};
  for(const sd of['L','R'])for(let f=0;f<5;f++){const nms=['Bip001 '+sd+' Finger'+f,'Bip001 '+sd+' Finger'+f+'1','Bip001 '+sd+' Finger'+f+'2'];nms.forEach((nm,s)=>{const id=M.id(nm);if(id>=0)M.fing[id]={sd,f,s}})}
- MD[key]=M;window.__MDX=MD}
+ M.key=key;MD[key]=M}
 let gfE=0;
 function groundFixL(M,mm,gy,standing,sc,gait,dt){if(!M.low)return;if(!gait){gfE=0;return groundFix(M,mm,gy,standing,sc)}let mn=1e9;for(const i of M.low){const w=M.W[i],y=mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13];if(y<mn)mn=y}
  const mar=(M.py||1)*.075*sc;let sh=Math.max(-1.2,Math.min(1.2,gy+mar-mn));dt=Math.min(.05,dt||.016);gfE=Math.max(sh,gfE-.2*dt);if(!(gfE>-1.2))gfE=sh;mm[13]+=Math.max(sh,gfE)}
 function groundFix(M,mm,gy,standing,sc){sc=sc||1;if(!M.low)return;let mn=1e9;for(const i of M.low){const w=M.W[i],y=mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13];if(y<mn)mn=y}
  const mar=(M.py||1)*.075*sc;let sh=gy+mar-mn;if(standing)sh=Math.max(-1.2,Math.min(1.2,sh));else if(sh<0)sh=0;mm[13]+=sh}
 const ZMASK=new Float32Array(128);
-function drawModel(M,model,mode,S,mask,skipRe,extra){if(!M)return;gl.useProgram(gp.p);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,M.bt);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,4,M.J,gl.RGBA,gl.FLOAT,S||M.S);gl.uniform1i(gp.u.umode,mode||0);gl.uniform4fv(gp.u.mk,mask||ZMASK);
- gl.uniform1i(gp.u.bones,1);gl.uniform1i(gp.u.tex,0);gl.uniformMatrix4fv(gp.u.vp,false,E.vp);gl.uniformMatrix4fv(gp.u.model,false,model);gl.uniform3fv(gp.u.sun,E.sunDir||[.4,.8,.3]);{const L=E.light||{};gl.uniform3fv(gp.u.sunC,L.sunC||[2,2,2]);gl.uniform3fv(gp.u.ambS,L.ambS||[.4,.5,.7]);gl.uniform3fv(gp.u.ambG,L.ambG||[.4,.3,.2])}gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);
- {const X=M.fx,Z=window.__studio;gl.uniform4f(gp.u.fxs,X?X.y:0,X?X.mode:0,X&&X.band||.06,X&&X.rim!=null?X.rim:(Z?Z.rim:0));gl.uniform3fv(gp.u.glowC,X&&X.glow||[.5,.8,1]);gl.uniform3fv(gp.u.rimC,Z&&Z.rimC||[.6,.75,1]);gl.uniform3fv(gp.u.cpos,E.camPos||[0,0,0])}
- for(const p of extra&&extra.length?M.prims.concat(extra):M.prims){if(skipRe&&skipRe.test(p.mat))continue;gl.activeTexture(gl.TEXTURE0);const t=p.gt||(p.tex!==null&&p.tex!==undefined?M.tex[p.tex]:null);gl.bindTexture(gl.TEXTURE_2D,t||M.tex[0]);gl.uniform1f(gp.u.hasT,t?1:0);gl.uniform3f(gp.u.col,.07,.06,.06);{const tt=M.tintFn?M.tintFn(p.mat):null,sb=tt&&!tt[3]&&p.sb?p.sb:null;gl.uniform3f(gp.u.tint,tt?tt[0]/(sb?sb[0]:1):1,tt?tt[1]/(sb?sb[1]:1):1,tt?tt[2]/(sb?sb[2]:1):1);gl.uniform1f(gp.u.tmode,tt&&tt[3]?tt[3]:0)}gl.bindVertexArray(p.vao);gl.drawElements(gl.TRIANGLES,p.ni,p.ty,0)}gl.bindVertexArray(null)}
+function drawModel(M,model,mode,S,mask,skipRe){if(!M)return;gl.useProgram(gp.p);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,M.bt);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,4,M.J,gl.RGBA,gl.FLOAT,S||M.S);gl.uniform1i(gp.u.umode,mode||0);gl.uniform4fv(gp.u.mk,mask||ZMASK);
+ gl.uniform1i(gp.u.bones,1);gl.uniform1i(gp.u.tex,0);gl.uniformMatrix4fv(gp.u.vp,false,E.vp);gl.uniformMatrix4fv(gp.u.model,false,model);gl.uniform3fv(gp.u.cam,E.camPos||[0,0,0]);gl.uniform1f(gp.u.ts,/^(titan|colossal2?|armored)$/.test(M.key||'')?1:(M.key==='levi'?.25:.5));gl.uniform3fv(gp.u.sun,E.sunDir||[.4,.8,.3]);{const L=E.light||{};gl.uniform3fv(gp.u.sunC,L.sunC||[2,2,2]);gl.uniform3fv(gp.u.ambS,L.ambS||[.4,.5,.7]);gl.uniform3fv(gp.u.ambG,L.ambG||[.4,.3,.2])}gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);
+ for(const p of M.prims){if(skipRe&&skipRe.test(p.mat))continue;gl.activeTexture(gl.TEXTURE0);const t=p.tex!==null&&p.tex!==undefined?M.tex[p.tex]:null;gl.bindTexture(gl.TEXTURE_2D,t||M.tex[0]);gl.uniform1f(gp.u.hasT,t?1:0);gl.uniform3f(gp.u.col,.07,.06,.06);{const tt=M.tintFn?M.tintFn(p.mat):null;gl.uniform3f(gp.u.tint,tt?tt[0]:1,tt?tt[1]:1,tt?tt[2]:1);gl.uniform1f(gp.u.tmode,tt&&tt[3]?1:0)}gl.bindVertexArray(p.vao);gl.drawElements(gl.TRIANGLES,p.ni,p.ty,0)}gl.bindVertexArray(null)}
 function modelMat(R,U,F,o,sc){const s=sc||1;return new Float32Array([R[0]*s,R[1]*s,R[2]*s,0,U[0]*s,U[1]*s,U[2]*s,0,F[0]*s,F[1]*s,F[2]*s,0,o[0],o[1],o[2],1])}
 function initSkin(){const sh=(t,c)=>{const x=gl.createShader(t);gl.shaderSource(x,c);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(x));return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,`#version 300 es
@@ -221,10 +219,21 @@ in vec3 p;in vec3 n;in vec2 uv;in uvec4 jj;in vec4 ww;uniform mat4 vp,model;unif
 mat4 B(uint j){int r=int(j);return mat4(texelFetch(bones,ivec2(0,r),0),texelFetch(bones,ivec2(1,r),0),texelFetch(bones,ivec2(2,r),0),texelFetch(bones,ivec2(3,r),0));}
 void main(){mat4 s=B(jj.x)*ww.x+B(jj.y)*ww.y+B(jj.z)*ww.z+B(jj.w)*ww.w;vec4 w=model*(s*vec4(p,1.));vw=w.xyz;vn=mat3(model)*(mat3(s)*n);vu=uv;float m=0.;for(int k=0;k<4;k++){int j=int(jj[k]);m+=ww[k]*mk[j>>2][j&3];}vmk=m;gl_Position=vp*w;}`));
  gl.attachShader(p,sh(gl.FRAGMENT_SHADER,`#version 300 es
-precision highp float;in vec3 vn;in vec2 vu;in float vmk;in vec3 vw;uniform vec3 cpos,rimC,glowC;uniform vec4 fxs;uniform int umode;uniform sampler2D tex;uniform vec3 sun,col,sunC,ambS,ambG;uniform float hasT;uniform vec3 tint;uniform float tmode;out vec4 o;
-void main(){if(umode==1&&vmk>.5)discard;if(umode==2&&vmk<.5)discard;float sg_=0.;if(fxs.y>.5){float dy=vw.y-fxs.x;if(fxs.y<1.5&&dy>0.)discard;if(fxs.y>1.5&&dy<0.)discard;sg_=smoothstep(fxs.z,0.,abs(dy));}vec4 c=hasT>.5?texture(tex,vu):vec4(col,1.);if(c.a<.4)discard;if(tmode>.001){float l_=dot(c.rgb,vec3(.299,.587,.114));c.rgb=mix(c.rgb,tint*(l_*1.6+.05),tmode);}else c.rgb*=tint;vec3 N=normalize(vn);if(!gl_FrontFacing)N=-N;float d=dot(N,normalize(sun));float wr=clamp(d*.5+.5,0.,1.);float b=.42+.62*wr*wr;vec3 amb=mix(ambG,ambS,N.y*.5+.5);float rim=pow(1.-clamp(abs(N.z)*.0+.35,0.,1.),2.)*0.;vec3 V=normalize(cpos-vw);float rm=pow(1.-clamp(dot(N,V),0.,1.),2.6)*fxs.w;o=vec4(c.rgb*(b*sunC*.36+amb*.7+.05)+rimC*rm+glowC*sg_*2.6,1.);}`));
+precision mediump float;in vec3 vn;in vec2 vu;in float vmk;in vec3 vw;uniform int umode;uniform sampler2D tex;uniform vec3 sun,col,sunC,ambS,ambG,cam;uniform float hasT;uniform vec3 tint;uniform float tmode;uniform float ts;out vec4 o;
+void main(){if(umode==1&&vmk>.5)discard;if(umode==2&&vmk<.5)discard;vec4 c=hasT>.5?texture(tex,vu):vec4(col,1.);if(c.a<.4)discard;if(tmode>.5){float l_=dot(c.rgb,vec3(.299,.587,.114));c.rgb=tint*(l_*1.6+.05);}else c.rgb*=tint;
+ vec3 N=normalize(vn);if(!gl_FrontFacing)N=-N;vec3 S=normalize(sun);vec3 V=normalize(cam-vw);float d=dot(N,S);float wr=clamp(d*.5+.5,0.,1.);float b=.42+.62*wr*wr;vec3 amb=mix(ambG,ambS,N.y*.5+.5);
+ vec3 lit=c.rgb*(b*sunC*.36+amb*.7+.05);
+ // fine muscle / skin detail from the albedo itself: local contrast boost reads as layered fibres without a normal map
+ float lc=dot(c.rgb,vec3(.299,.587,.114));lit*=1.+ts*.35*(lc-.5);
+ // SSS-like warm bleed: light wraps around the terminator and tints it the colour of flesh
+ float wrap=clamp((d+.55)/1.55,0.,1.);float term=wrap*(1.-clamp(d,0.,1.));lit+=c.rgb*vec3(1.2,.38,.22)*sunC*.20*term*ts;
+ // fresnel rim from the sun side and from the sky (this is the bright edge the benchmark has on the Colossal)
+ float fr=pow(1.-clamp(dot(N,V),0.,1.),3.);float sunSide=clamp(dot(N,S)*.6+.5,0.,1.);lit+=(sunC*.30*sunSide+ambS*.25)*fr*(.35+.65*ts);
+ // wet/steaming skin specular
+ vec3 Hh=normalize(S+V);float sp=pow(clamp(dot(N,Hh),0.,1.),28.);lit+=sunC*sp*.10*ts*(.4+.6*lc);
+ o=vec4(lit,1.);}`));
  gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))console.error(gl.getProgramInfoLog(p));
- gp={p,a:{},u:{}};for(const k of['p','n','uv','jj','ww'])gp.a[k]=gl.getAttribLocation(p,k);for(const k of['vp','model','bones','tex','sun','col','hasT','sunC','ambS','ambG','umode','mk','tint','tmode','cpos','rimC','glowC','fxs'])gp.u[k]=gl.getUniformLocation(p,k);gl.useProgram(p);gl.uniform3f(gp.u.tint,1,1,1);gl.uniform1f(gp.u.tmode,0);
+ gp={p,a:{},u:{}};for(const k of['p','n','uv','jj','ww'])gp.a[k]=gl.getAttribLocation(p,k);for(const k of['vp','model','bones','tex','sun','col','hasT','sunC','ambS','ambG','umode','mk','tint','tmode','cam','ts'])gp.u[k]=gl.getUniformLocation(p,k);gl.useProgram(p);gl.uniform3f(gp.u.tint,1,1,1);gl.uniform1f(gp.u.tmode,0);
  loadAnims().then(()=>loadModel('levi')).then(()=>loadModel('titan')).then(setupTitan).catch(e=>console.error('model load',e))}
 
 let dodgeSide=1,yankT=0,armedT=0,armK=0,limbs=[],LVHIDE=null,trail=[],lastLeviMM=null;
@@ -520,11 +529,10 @@ function drawAvatar(dt){const M=MD.levi;if(!M||!AN)return drawBoxes(dt);const sp
 const ACTORS=[];let ACT_ID=1;
 const ACT_GEAR=/weapon|sword|odm|gangsheng|quiver|bow|heixian|juren|pifeng|wuqi|zhuangbei|xinhao|jianto|gongjian/i;
 function actClass(a,mat){const m=mat.toLowerCase();
- if(a.kind==='rig'){if(/^(eye|mouth)/.test(m))return null;if(/^hair/.test(m))return'hair';if(/^body/.test(m))return'skin';if(/shoe|boot/.test(m))return'shoes';if(/bottom/.test(m))return'bottom';return'top'}
  if(/hair|beard|moustache|mustache|brow|lash/.test(m))return'hair';
  if(a.kind==='fuse'){if(/^body$/.test(m))return'skin';if(/shoe|boot/.test(m))return'shoes';if(/bottom|pant|trouser/.test(m))return'bottom';return'top'}
  if(/face|skin/.test(m))return'skin';if(/foot|boot|shoe/.test(m))return'shoes';return'top'}
-function actTint(a){return mat=>{const L=a.look;if(!L)return null;const c=actClass(a,mat),col=c&&L[c];if(!col)return null;return c==='skin'?[col[0],col[1],col[2],0]:[col[0],col[1],col[2],a.kind==='rig'?(c==='hair'?.8:.6):1]}}
+function actTint(a){return mat=>{const L=a.look;if(!L)return null;const c=actClass(a,mat),col=L[c];if(!col)return null;return c==='skin'?[col[0],col[1],col[2],0]:[col[0],col[1],col[2],1]}}
 function actorClip(a,sp){
  if(a.pose==='crouch')return['L:Crouch Idle',1];
  if(a.pose==='fall')return[AN.meta.clips['L:Falling Idle']?'L:Falling Idle':'L:Unarmed Idle',1];
@@ -532,72 +540,6 @@ function actorClip(a,sp){
  if(sp>1.5)return['L:Jog Forward',Math.min(1.4,.5+sp/4.5)];
  if(sp>.25)return['L:Standard Walk',Math.min(1.5,.4+sp/1.7)];
  return[a.idle||'L:Unarmed Idle',1]}
-/* ---- v0.5 character morphs: bone lengths and thickness (per actor) plus face shape (vertex field on the head) ---- */
-const MORPH_DEF={leg:1,arm:1,torso:1,shoulder:1,hip:1,neck:1,hand:1,foot:1,thigh:1,calf:1,upperArm:1,foreArm:1,chest:1,waist:1,hipT:1,neckT:1};
-function morphTables(M,mo){
- const J=M.J,tl=new Float32Array(J).fill(1),bs=new Array(J).fill(null),g=Object.assign({},MORPH_DEF,mo);
- const ax=i=>{M.lax=M.lax||{};if(M.lax[i]!==undefined)return M.lax[i];const k=(M.kids[i]||[])[0];let r=1;if(k!==undefined){const x=Math.abs(M.loc[k*16+12]),y=Math.abs(M.loc[k*16+13]),z=Math.abs(M.loc[k*16+14]);r=x>=y&&x>=z?0:(y>=z?1:2)}return M.lax[i]=r};
- const sc=(n,len,th)=>{const i=M.id('Bip001 '+n);if(i<0||(len===1&&th===1))return;const s=[th,th,th];s[ax(i)]=len;const b=bs[i];bs[i]=b?[b[0]*s[0],b[1]*s[1],b[2]*s[2]]:s};
- const tr=(n,m)=>{const i=M.id('Bip001 '+n);if(i>=0)tl[i]*=m};
- for(const s of['L','R']){sc(s+' Thigh',g.leg,g.thigh);sc(s+' Calf',g.leg,g.calf);tr(s+' Calf',g.leg);tr(s+' Foot',g.leg);sc(s+' Foot',g.foot,g.foot);
-  sc(s+' UpperArm',g.arm,g.upperArm);sc(s+' Forearm',g.arm,g.foreArm);tr(s+' Forearm',g.arm);tr(s+' Hand',g.arm);sc(s+' Hand',g.hand,g.hand);
-  tr(s+' UpperArm',g.shoulder);sc(s+' Clavicle',g.shoulder,1);tr(s+' Thigh',g.hip)}
- for(const n of['Spine1','Spine2','Neck'])tr(n,g.torso);sc('Spine',g.torso,g.waist);sc('Spine1',g.torso,g.waist);sc('Spine2',g.torso,g.chest);sc('Pelvis',1,g.hipT);sc('Neck',g.neck,g.neckT);tr('Neck',g.neck);
- return{tl,bs}}
-function applyMorph(M,mo){if(!mo){M.tl=null;M.bsc=null;return}const k=JSON.stringify(mo);if(M.mk!==k){const t=morphTables(M,mo);M.mt=t;M.mk=k}M.tl=M.mt.tl;M.bsc=M.mt.bs}
-const FACE_FIELDS=['headW','headH','headD','jawW','chinL','cheek','eyeSize','eyeGap','eyeY','eyeTilt','browY','noseW','noseL','noseY','mouthW','mouthY','lips','earS'];
-function headInfo(M){if(M.hd)return M.hd;const hi=M.id('Bip001 Head');if(hi<0)return M.hd={per:[],none:true};
- const per=[],mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
- for(const p of M.prims){const idx=[],skin=!/hair|beard|mustache|moustache|brow|lash|cap|hat|helmet/i.test(p.mat);
-  for(let i=0;i<p.n;i++){let w=0;for(let k=0;k<4;k++)if(p.jj[i*4+k]===hi)w+=p.ww[i*4+k]/255;if(w>=.5){idx.push(i);if(skin)for(let c=0;c<3;c++){const v=p.pos0[i*3+c];if(v<mn[c])mn[c]=v;if(v>mx[c])mx[c]=v}}}per.push(idx)}
- // the neck verts weighted to the head sit at the bottom of the box: use the chin line as the bottom (20% up from the lowest vertex)
- const H=mx[1]-mn[1];mn[1]+=H*.12;return M.hd={per,mn,mx,cx:(mn[0]+mx[0])/2,hw:(mx[0]-mn[0])/2,hh:mx[1]-mn[1],zmin:mn[2],hd:mx[2]-mn[2]}}
-const ss=(a,b,x)=>{x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)};
-function faceDisp(f,u,v,w,o){ // normalised head box: u -1..1 (left/right), v 0 chin..1 crown, w 0 back..1 front; fills o=[du,dv,dw] in box units
- const fm=ss(.42,.7,w);let du=0,dv=0,dw=0;
- if(f.headW)du+=u*.09*f.headW;if(f.headH)dv+=(v-.5)*.09*f.headH;if(f.headD)dw+=(w-.5)*.09*f.headD;
- if(f.jawW)du+=u*.15*f.jawW*ss(.45,.05,v)*ss(.1,.45,w);
- if(f.chinL)dv+=.12*f.chinL*ss(.28,0,v)*fm;
- if(f.cheek)dw+=.07*f.cheek*ss(.25,.4,Math.abs(u))*ss(.75,.5,Math.abs(u))*ss(.12,.3,v)*ss(.62,.45,v)*fm;
- const sg=u<0?-1:1,eu=Math.abs(u)-.34,ev=v-.57,er=Math.hypot(eu*1.0,ev*1.35),ef=ss(.3,.04,er)*fm;
- if(f.eyeSize){const k=.3*f.eyeSize*ef;du+=-eu*k*sg;dv+=-ev*k}
- if(f.eyeGap)du+=sg*.06*f.eyeGap*ss(.34,.06,er)*fm;
- if(f.eyeY)dv+=.045*f.eyeY*ss(.34,.06,er)*fm;
- if(f.eyeTilt)dv+=eu*.25*f.eyeTilt*ef; // outer corner up (+) or down (-), mirrored on both eyes
- if(f.browY)dv+=.05*f.browY*ss(.56,.64,v)*ss(.8,.68,v)*fm;
- const nf=ss(.2,.08,Math.abs(u))*ss(.26,.4,v)*ss(.6,.5,v)*ss(.62,.82,w);
- if(f.noseW)du+=u*.5*f.noseW*nf;if(f.noseL)dw+=.06*f.noseL*nf;if(f.noseY)dv+=.045*f.noseY*nf;
- const mf=ss(.5,.2,Math.abs(u))*ss(.1,.2,v)*ss(.34,.26,v)*fm;
- if(f.mouthW)du+=u*.3*f.mouthW*mf;if(f.mouthY)dv+=.05*f.mouthY*mf;if(f.lips)dw+=.035*f.lips*mf;
- if(f.earS)du+=u*.25*f.earS*ss(.72,.9,Math.abs(u))*(1-fm);
- o[0]=du;o[1]=dv;o[2]=dw}
-function applyFace(M,f){const key=f?JSON.stringify(f):'';if((M.fk||'')===key)return;M.fk=key;const hd=headInfo(M);if(hd.none)return;const o=[0,0,0];
- M.prims.forEach((p,pi)=>{const idx=hd.per[pi];if(!idx||!idx.length)return;const a=new Float32Array(p.pos0);
-  if(f)for(const i of idx){const x=p.pos0[i*3],y=p.pos0[i*3+1],z=p.pos0[i*3+2],u=Math.max(-1.3,Math.min(1.3,(x-hd.cx)/hd.hw)),v=(y-hd.mn[1])/hd.hh,w=(z-hd.zmin)/hd.hd;faceDisp(f,u,v,w,o);a[i*3]=x+o[0]*hd.hw;a[i*3+1]=y+o[1]*hd.hh;a[i*3+2]=z+o[2]*hd.hd}
-  gl.bindBuffer(gl.ARRAY_BUFFER,p.posBuf);gl.bufferSubData(gl.ARRAY_BUFFER,0,a)})}
-
-/* ---- v0.5 modular heads: a face kit and a hair kit (rigid, one joint) fitted onto any body that shares the canonical rig ---- */
-function headKey(a,M){return a.key+'|'+a.faceKit+'|'+(a.hairKit||a.faceKit)}
-function buildHead(a,M){
- const K1=MD[a.faceKit],K2=MD[a.hairKit||a.faceKit],bk=M.kit,hi=M.id('Bip001 Head');if(!K1||!K2||!K1.kit||!K2.kit||!bk||!bk.head||hi<0)return null;
- const key=headKey(a,M);if(a.hd_&&a.hd_.key===key)return a.hd_;
- if(a.hd_)for(const p of a.hd_.prims){gl.deleteBuffer(p.posBuf);gl.deleteBuffer(p.jb);gl.deleteBuffer(p.wb);gl.deleteVertexArray(p.vao)}
- const k1=K1.kit,Hb=bk.headH,hb=bk.head,prims=[];
- const add=(K,isHair)=>{const k=K.kit,sx=isHair?k1.hw/k.hw:1,sz=isHair?k1.hd/k.hd:1,zc1=k1.zmin+k1.hd*.5,zc=k.zmin+k.hd*.5;
-  for(const p of K.prims){if((p.mat==='Hair')!==isHair)continue;const n=p.n,src=p.pos0,kp=new Float32Array(n*3),pos0=new Float32Array(n*3);
-   for(let i=0;i<n;i++){let x=src[i*3],y=src[i*3+1],z=src[i*3+2];if(isHair){x=k1.cx+(x-k.cx)*sx;z=zc1+(z-zc)*sz}kp[i*3]=x;kp[i*3+1]=y;kp[i*3+2]=z;pos0[i*3]=hb[0]+x*Hb;pos0[i*3+1]=hb[1]+y*Hb;pos0[i*3+2]=hb[2]+z*Hb}
-   const jj=new Uint8Array(n*4),ww=new Uint8Array(n*4);for(let i=0;i<n;i++){jj[i*4]=hi;ww[i*4]=255}
-   const bf=(t,d)=>{const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,d,t||gl.STATIC_DRAW);return b};
-   const posBuf=bf(gl.DYNAMIC_DRAW,pos0),jb=bf(0,jj),wb=bf(0,ww),vao=gl.createVertexArray();gl.bindVertexArray(vao);
-   const at=(loc,buf,sz,ty,nm,int,str)=>{gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.enableVertexAttribArray(loc);int?gl.vertexAttribIPointer(loc,sz,ty,0,0):gl.vertexAttribPointer(loc,sz,ty,nm,str||0,0)};
-   at(gp.a.p,posBuf,3,gl.FLOAT,false);at(gp.a.n,p.nb,3,gl.BYTE,true,false,4);at(gp.a.uv,p.ub,2,gl.FLOAT,false);at(gp.a.jj,jb,4,gl.UNSIGNED_BYTE,false,true);at(gp.a.ww,wb,4,gl.UNSIGNED_BYTE,true);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.ib);gl.bindVertexArray(null);
-   prims.push({vao,ni:p.ni,ty:p.ty,gt:K.tex[p.tex],mat:p.mat,n,pos0,kp,posBuf,jb,wb,sb:p.sb,hair:isHair,tex:null})}};
- add(K1,false);add(K2,true);a.hd_={key,prims,fk:null,Hb,hb,k1};return a.hd_}
-function faceHead(h,f){const key=f?JSON.stringify(f):'';if(h.fk===key)return;h.fk=key;const o=[0,0,0],k=h.k1,hh=k.ytop-k.ymin,g=f?{headW:f.headW,headH:f.headH,headD:f.headD}:null;
- for(const p of h.prims){const ff=p.hair?g:f,a=new Float32Array(p.pos0);
-  if(ff)for(let i=0;i<p.n;i++){const x=p.kp[i*3],y=p.kp[i*3+1],z=p.kp[i*3+2],u=Math.max(-1.3,Math.min(1.3,(x-k.cx)/k.hw)),v=(y-k.ymin)/hh,w=(z-k.zmin)/k.hd;faceDisp(ff,u,v,w,o);a[i*3]=h.hb[0]+(x+o[0]*k.hw)*h.Hb;a[i*3+1]=h.hb[1]+(y+o[1]*hh)*h.Hb;a[i*3+2]=h.hb[2]+(z+o[2]*k.hd)*h.Hb}
-  gl.bindBuffer(gl.ARRAY_BUFFER,p.posBuf);gl.bufferSubData(gl.ARRAY_BUFFER,0,a)}}
-window.__morph={FACE_FIELDS,MORPH_DEF,faceDisp,headInfo,morphTables};
 function drawActors(dt){
  if(!AN||!gl||!ACTORS.length)return;dt=Math.min(.05,dt||.016);
  for(const a of ACTORS){
@@ -612,7 +554,7 @@ function drawActors(dt){
    else a.speed=0;
    if(a.lookAt){let q=Math.atan2(a.lookAt[0]-a.x,a.lookAt[1]-a.z)-a.yaw;while(q>Math.PI)q-=6.2832;while(q<-Math.PI)q+=6.2832;a.yaw+=q*Math.min(1,dt*4)}
    a.gy=a.gy===undefined?gh(a.x,a.z):a.gy+(gh(a.x,a.z)-a.gy)*Math.min(1,dt*10)}
-  if(Math.hypot(a.x-H[0],a.z-H[2])>170&&!a.isPlayer)continue
+  if(Math.hypot(a.x-H[0],a.z-H[2])>170&&!a.isPlayer)continue;
   if(!a.static){
    if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
    const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
@@ -799,23 +741,10 @@ function hudUpdate(dt){const sp=len(v);dodgeCD=Math.max(0,dodgeCD-dt);supplyCD=M
  if(slow<1){x.fillStyle='rgba(0,0,0,.22)';x.fillRect(0,0,w,h*.08);x.fillRect(0,h*.92,w,h*.08)}
  if(bloodOv>0){bloodOv=Math.max(0,bloodOv-dt*.5);const g=x.createRadialGradient(w/2,h/2,Math.min(w,h)*.3,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,'rgba(120,0,0,0)');g.addColorStop(1,'rgba(120,0,0,'+(.55*bloodOv)+')');x.fillStyle=g;x.fillRect(0,0,w,h);x.fillStyle='rgba(110,0,0,'+(.5*bloodOv)+')';for(let i=0;i<9;i++){const px=(Math.sin(i*12.9)*.5+.5)*w,py=(Math.sin(i*7.1+2)*.5+.5)*h*.6;x.beginPath();x.ellipse(px,py,w*.025,w*.045,Math.sin(i)*.6,0,6.283);x.fill()}}
  if(hp<hpMax*.3){x.fillStyle='rgba(180,0,0,'+(.15+.1*Math.sin(tick*.2))+')';x.fillRect(0,0,w,h)}}
-/* v0.5 studio: when window.__studio is set the district is not drawn; the canvas is cleared to a dark stage and only actors are lit */
-function studioBegin(cam,dt){const e=E;e.time+=dt;e.resize();const W=e.canvas.width,Hh=e.canvas.height,asp=W/Hh;let vf=cam.fov;if(asp<1)vf=2*Math.atan(Math.tan(cam.fov/2)/asp*Math.min(1,asp*1.55));
- const M4_=window.AotEngine.M4;e.vp=M4_.mul(M4_.persp(vf,asp,.05,200),M4_.look(cam.pos,cam.target,[0,1,0]));e.camPos=cam.pos;const Z=window.__studio;e.sunDir=Z.key||[.5,.55,.65];e.light={sunC:Z.sunC||[2.2,2,1.8],ambS:Z.ambS||[.18,.2,.28],ambG:Z.ambG||[.1,.08,.07]};
- gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,Hh);gl.disable(gl.SCISSOR_TEST);gl.disable(gl.BLEND);gl.depthMask(true);const b=Z.bg||[.012,.013,.017];gl.clearColor(b[0],b[1],b[2],1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(Z.bgCanvas)try{studioBackdrop(Z,asp)}catch(er){Z.bgCanvas=null;console.error('[backdrop]',er)}gl.enable(gl.DEPTH_TEST)}
-let bd=null;
-function studioBackdrop(Z,asp){if(!bd){const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o};const p=gl.createProgram();
- gl.attachShader(p,sh(gl.VERTEX_SHADER,'#version 300 es\nout vec2 q;void main(){vec2 v=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));q=v;gl_Position=vec4(v*2.-1.,.9999,1.);}'));
- gl.attachShader(p,sh(gl.FRAGMENT_SHADER,'#version 300 es\nprecision mediump float;in vec2 q;uniform sampler2D t;uniform vec4 k;uniform float tm;out vec4 o;void main(){vec2 uv=vec2((q.x-.5-k.x)*k.z+.5+k.y,1.-((q.y-.5)*k.w+.5));vec3 c=texture(t,uv).rgb;float br=.93+.07*sin(tm*.6+q.x*4.);o=vec4(c*br,1.);}'));
- gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error('link');bd={p,tx:gl.createTexture(),vao:gl.createVertexArray(),k:gl.getUniformLocation(p,'k'),t:gl.getUniformLocation(p,'t'),tm:gl.getUniformLocation(p,'tm'),ver:-1}}
- gl.useProgram(bd.p);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,bd.tx);
- if(bd.ver!==Z.bgVer){gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,Z.bgCanvas);gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);bd.ver=Z.bgVer}
- const vy=.92,vx=Math.min(1,vy*asp/2);gl.uniform1i(bd.t,7);gl.uniform4f(bd.k,Z.bgSx||0,Z.bgPar||0,vx,vy);gl.uniform1f(bd.tm,E.time||0);
- gl.disable(gl.DEPTH_TEST);const cf=gl.isEnabled(gl.CULL_FACE);if(cf)gl.disable(gl.CULL_FACE);gl.bindVertexArray(bd.vao);gl.drawArrays(gl.TRIANGLES,0,3);gl.bindVertexArray(null);if(cf)gl.enable(gl.CULL_FACE);gl.activeTexture(gl.TEXTURE0)}
 function init(){E=window.__E;st=window.__st;ui();setTimeout(()=>setOn(true),60);const R0=E.render.bind(E);
- E.render=function(c,dt){if(!on)return R0(c,dt);dt=Math.min(.05,dt);tick++;if(slowT>0){slowT-=dt;if(slowT<=0)slow=1}const fz=!!window.__freeze,gd=fz?0:dt*slow;if(!fz){tod(dt);lockStep(dt)}if(hp<=0){hp=hpMax;msg='DOWN — back to the gate';msgT=2.5;respawn();blades=4;dur=100}
+ E.render=function(c,dt){if(!on){E.deferPost=false;return R0(c,dt)}dt=Math.min(.05,dt);tick++;if(slowT>0){slowT-=dt;if(slowT<=0)slow=1}const fz=!!window.__freeze,gd=fz?0:dt*slow;if(!fz){tod(dt);lockStep(dt)}if(hp<=0){hp=hpMax;msg='DOWN — back to the gate';msgT=2.5;respawn();blades=4;dur=100}
   if(grab||fz){}else{const n=gd>.026?2:1;for(let i=0;i<n;i++)step(gd/n)}
-  if(!fz){if(!window.__noTitan)titanUpdate(gd);camUpdate(gd)}{const cn=window.__cine;if(cn&&cn.on){cam.pos=cn.pos.slice();cam.target=cn.target.slice();cam.fov=cn.fov||cam.fov;fov=cn.fov||fov}}if(window.__studio)studioBegin(cam,dt);else if(!window.__noR0)R0(cam,dt);if(!window.__hideAvatar)drawAvatar(gd);try{drawActors(dt)}catch(e){if(!window.__actErr){window.__actErr=1;console.error('[actors]',e)}}if(titan&&!window.__noTitan){const T=titan,cn=Object.keys(T.cut).filter(k=>T.cut[k]).map(k=>CUTB[k]),hm=cn.length?T.M.mask(cn):null;drawModel(T.M,T.mm,hm?1:0,null,hm);drawStumps(T);drawWounds(T,gd)}if(!fz)limbStep(gd);if(!window.__studio){drawLimbs();drawFx(gd)}flush();hudUpdate(dt)}}
+  if(!fz){if(!window.__noTitan)titanUpdate(gd);camUpdate(gd)}{const cn=window.__cine;if(cn&&cn.on){cam.pos=cn.pos.slice();cam.target=cn.target.slice();cam.fov=cn.fov||cam.fov;fov=cn.fov||fov}}E.deferPost=true;if(!window.__noR0)R0(cam,dt);if(!window.__hideAvatar)drawAvatar(gd);try{drawActors(dt)}catch(e){if(!window.__actErr){window.__actErr=1;console.error('[actors]',e)}}if(titan&&!window.__noTitan){const T=titan,cn=Object.keys(T.cut).filter(k=>T.cut[k]).map(k=>CUTB[k]),hm=cn.length?T.M.mask(cn):null;drawModel(T.M,T.mm,hm?1:0,null,hm);drawStumps(T);drawWounds(T,gd)}if(!fz)limbStep(gd);drawLimbs();drawFx(gd);flush();try{E.endPost&&E.endPost()}catch(e){console.warn('[post]',e);E.postFx&&(E.postFx.on=false);gl.bindFramebuffer(gl.FRAMEBUFFER,null)}hudUpdate(dt)}}
 if(typeof document!=='undefined'){const iv=setInterval(()=>{if(window.__ready&&window.__E){clearInterval(iv);init()}},250);window.__gfTest=(spd,secs)=>{const M=MD.levi,o=newPose(),sv_=v,pg=gaitPh,out=[];v=[0,0,spd];for(let i=0;i<secs*60;i++){gaitPh+=gaitRate(spd/PLS)*(1/60);gaitProc(o);o.k=1;M.pose(toDirs(o,1));const mm=relModel([PLS,0,0],[0,PLS,0],[0,0,PLS],[0,HH*0,0],o,.9);groundFixL(M,mm,0,true,PLS,true,1/60);const g=n=>{const w=M.W[M.id('Bip001 '+n)];return mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13]};out.push([g('Pelvis'),g('L Foot'),g('R Foot'),g('Head')])}v=sv_;gaitPh=pg;return out};window.__world={FB:()=>{if(!FB)buildFB();return FB},setV:q=>{v=q},cast:(o,d,t)=>cast(o,d,t),gh:(x,z)=>gh(x,z),inCanal:(x,z)=>inCanal(x,z),A:()=>A,E:()=>E,H:()=>H,setH:p=>{H=p;v=[0,0,0]},V:()=>v,swim:()=>swimming,gr:()=>grounded,J:()=>E.J};window.__gaitTest=(ph,spd)=>{const M=MD.levi,o=newPose(),sv_=v,pg=gaitPh;gaitPh=ph;v=[0,0,spd];gaitProc(o);v=sv_;gaitPh=pg;o.k=1;M.pose(toDirs(o,1));const g=n=>{const w=M.W[M.id('Bip001 '+n)];return[w[12],w[13],w[14]].map(x=>+x.toFixed(4))};return{LF:g('L Foot'),RF:g('R Foot'),LT:g('L Toe0'),RT:g('R Toe0'),LK:g('L Calf'),RK:g('R Calf'),LTh:g('L Thigh'),RTh:g('R Thigh'),P:g('Pelvis'),H:g('Head'),py:M.py,LH:g('L Hand'),RH:g('R Hand')}};window.ODM={tst:{gp:()=>grab?gripPoint():null,pm:()=>titan.palmMid,hb:n=>titanBone(n),SPH,titan:()=>titan,T_:T,lh:()=>{const M=MD.levi;if(!M||!lastLeviMM)return null;const mm=lastLeviMM,w=M.W[M.id('Bip001 Head')];return{head:mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13],feet:H[1]-HH,gp:gaitPh}},cast:(o,d,m)=>cast(o,d,m),floorY,inCanal,canalD,sw:()=>swimming,hh:()=>H,K,setH:p=>{H=p;v=[0,0,0]},setV:q=>{v=q.slice()},fire,slash:()=>slash(),relHook,getHK:()=>hk,grabNow:k=>{const T=titan;T.state='grab';T.atk=null;grab={t:0,esc:0,kind:k,n:0,m:0};LVHIDE=null;hk=[{on:false},{on:false}]},gt:t=>{if(grab)grab.t=t},sliceTag:(tag,sp)=>{const q=SPH.find(s=>s.tag===tag);if(!q)return 'no sphere';sliceAt(titan,q,[0,0,1],sp,()=>{});return titan.cut},clipPose,newPose,toDirs,get AN(){return AN},TN,LV,face:()=>face,setYaw:y=>{st.wyaw=y},setHour:h=>{hour=h},palmPos,mouthPos,titanBone,get cam(){return cam},get grab(){return grab}},P,md:MD,get ready(){return!!titan},get titan(){return titan},get grab(){return grab},set hour(h){hour=h},get hour(){return hour},get spheres(){return SPH},get limbs(){return limbs},get blades(){return blades},get kills(){return kills},get state(){return{H,v,gas,hk}}}}
 if(typeof module!=='undefined')module.exports={setE:(e,s)=>{E=e;st=s},build,cast,step,respawn,get:()=>({H,v,gas,hk,grounded}),fire,setCam:c=>{cam=c},K,P,gh};
 })();

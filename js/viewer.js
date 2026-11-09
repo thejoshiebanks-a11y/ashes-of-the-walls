@@ -101,7 +101,7 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min(.05,(now-last
   if(!(window.GFX&&GFX.enabled)){if(fps<26&&E.scale>(window.__lockScale?.9:.55)){slow++;if(slow>2){E.scale=Math.max(window.__lockScale?.9:.55,E.scale-.1);slow=0}}else slow=0}}}
 requestAnimationFrame(frame);
 // ---------- boot
-E.load('./',(m,p)=>{$('msg').textContent=m;$('bar').firstElementChild.style.width=(p*100)+'%'}).then(()=>{
+E.load('./',(m,p)=>{$('msg').textContent=m;$('bar').firstElementChild.style.width=(p*100)+'%'}).then(()=>{try{E.loadStoneTex&&E.loadStoneTex('./')}catch(e){}
  const c=E.J.collide;const raw=atob(c.bits);const bits=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bits[i]=raw.charCodeAt(i);collide={rect:c.rect,n:c.n,bits};
  views=E.J.views;const rail=$('rail');
  views.forEach((v,i)=>{const b=document.createElement('button');b.innerHTML='<b>'+(i+1)+' \u00b7 '+v.n+'</b><span>'+v.d+'</span>';b.onclick=()=>goView(i);rail.appendChild(b)});

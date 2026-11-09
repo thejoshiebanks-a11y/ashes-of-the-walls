@@ -215,6 +215,15 @@
   function cymbal(t, lvl, dur) {                  // crash: bright noise with a long tail
     dur = dur || 2.6; const n = noise(true), hp = ctx.createBiquadFilter(), g = ctx.createGain(); hp.type = 'highpass'; hp.frequency.value = 5200; env(g, t, 0.004, dur, lvl); n.connect(hp); hp.connect(g); out(g, 0.5, musBus); n.start(t); n.stop(t + dur + 0.1);
   }
+
+  /* ---- v0.7: "Attack on Titan"-style drive (original writing, same genre): galloping string ostinato, snare rolls, heroic horn line, choir stabs ---- */
+  function snare(t, lvl) { const n = noise(), bp = ctx.createBiquadFilter(), g = ctx.createGain(), o = osc('triangle', 190, t, t + 0.15), og = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = 2400; bp.Q.value = 0.7; env(g, t, 0.002, 0.13, lvl); n.connect(bp); bp.connect(g); out(g, 0.35, musBus); n.start(t); n.stop(t + 0.2); env(og, t, 0.001, 0.09, lvl * 0.5); o.connect(og); out(og, 0.3, musBus); }
+  function gallop(root, t, steps, step, lvl, wide) {   // the relentless 16th-note string figure: root, root, 3rd, root, 5th ...
+    const P = [0, 0, 3, 0, 7, 0, 3, 0, 0, 0, 3, 0, 10, 7, 5, 3];
+    for (let k = 0; k < steps; k++) { const m = root + 12 + P[k % 16] + (wide && k % 16 > 11 ? 12 : 0); cello(m, t + k * step, step * 0.7, lvl * (k % 4 === 0 ? 1.25 : 1)); }
+  }
+  function roll(t, dur, lvl0, lvl1) { const n = Math.max(4, Math.round(dur / 0.065)); for (let k = 0; k < n; k++) snare(t + k * dur / n, lvl0 + (lvl1 - lvl0) * k / n); }
+  const HERO = [[74, 0, 1.5], [77, 1.5, 0.5], [81, 2, 1], [79, 3, 0.5], [77, 3.5, 0.5], [76, 4, 1.5], [74, 5.5, 0.5], [72, 6, 1], [74, 7, 1]];   // D F A G F E D C D: rising, then falling back (beats)
   const PROG = [[50, 53, 57, 62], [46, 53, 58, 62], [43, 50, 55, 58], [45, 52, 57, 61]];     // Dm, Bb, Gm, A
   const MEL = [[[69, 0, 1.5], [67, 1.5, 0.5], [65, 2, 1], [69, 3, 1]], [[74, 0, 2], [72, 2, 1], [70, 3, 1]], [[69, 0, 1.5], [67, 1.5, 0.5], [70, 2, 1], [74, 3, 1]], [[73, 0, 2], [76, 2, 1], [69, 3, 1]],
                [[74, 0, 1], [77, 1, 1], [76, 2, 1], [74, 3, 1]], [[74, 0, 1.5], [72, 1.5, 0.5], [70, 2, 2]], [[70, 0, 1], [69, 1, 1], [67, 2, 1], [65, 3, 1]], [[64, 0, 2], [69, 2, 2]]];
@@ -228,6 +237,8 @@
       if (bar % 4 === 3) for (let k = 0; k < 6; k++) taiko(t + B * (3 + k / 6), 0.12 + k * 0.05, 100);
       MEL[bar % 8].forEach(([m, b, d]) => brass(m + (big ? 0 : -12), t + b * B, d * B * 0.94, big ? 0.17 : 0.1, true));
       if (big) A.choir(ch.slice(1).map(mhz).map(f => f * 2), B * 4, 0.55);
+      if (big) { gallop(root, t, 16, B / 4, 0.07, true); snare(t, 0.1); snare(t + B * 2, 0.14); }
+      if (bar % 8 === 7) roll(t + B * 2.5, B * 1.5, 0.05, 0.2);
       if (bar % 8 === 0) { A.bell(mhz(50)); cymbal(t, 0.07, 3.4); }
       bar++; musicTimer = setTimeout(play, B * 4000 - 250);
     };
@@ -245,11 +256,15 @@
     taiko(at(T.grab), 0.85, 60); cymbal(at(T.grab), 0.12, 2.4);                                                 // the hand clamps the wall
     [0, 1, 2, 3].forEach(k => { const m = [62, 65, 69, 74][k]; brass(m, at(T.headUp + k * 0.5), 1.2, 0.15 + k * 0.03, true); });
     for (let s = T.headUp; s < T.reveal; s += 0.25) taiko(at(s), 0.1 + (s - T.headUp) / (T.reveal - T.headUp) * 0.3, 80);
-    A.choir([293.7, 349.2, 440, 587.3], 5.5, 0.9);
+    [293.7, 349.2, 440, 587.3].forEach((f, i) => choirVoice(f, at(T.headUp) + i * 0.35, 5.5, 0.9 / (1 + i * 0.25)));   // choir swells in with the heave
     taiko(at(T.reveal), 1, 66); taiko(at(T.reveal) + 0.01, 0.7, 49); cymbal(at(T.reveal), 0.22, 4);             // the face
     [[50, 57, 62, 65, 69], [46, 53, 58, 62, 65]].forEach((c, k) => strings(c, at(T.reveal + k * 1.5), 2, 0.34, 0.3, 2400));
     [74, 77, 76, 74, 72, 70, 69, 74].forEach((m, k) => brass(m, at(T.reveal + 0.2 + k * 0.38), 0.55, 0.2, true));
     const B = 0.25; for (let s = T.reveal + 1.2; s < T.end - 0.3; s += B) { const k = Math.round((s - T.reveal) / B); cello([50, 57, 62, 57][k % 4], at(s), B * 0.8, 0.14); if (k % 2 === 0) taiko(at(s), 0.26, 100); }
+    { const B16 = 0.1; gallop(50, at(T.headUp), Math.round((T.reveal - T.headUp) / B16), B16, 0.07, false); roll(at(T.reveal - 1.4), 1.4, 0.04, 0.26);            // the drive builds under the heave, a snare roll lands on the face
+      gallop(50, at(T.reveal), Math.round((T.end - T.reveal) / B16), B16, 0.12, true);
+      HERO.forEach(([m, b, d]) => { brass(m, at(T.reveal + 0.1 + b * 0.42), d * 0.42 * 0.95, 0.2, true); strings([m - 12], at(T.reveal + 0.1 + b * 0.42), d * 0.42, 0.14, 0.05, 2600); });
+      [0, 1.7, 3].forEach(b => { snare(at(T.reveal + 0.1 + b), 0.22); [293.7, 440, 587.3].forEach((f, i) => choirVoice(f, at(T.reveal + 0.1 + b) + i * 0.05, 2.2, 0.5)); }); }
     taiko(at(T.end), 1.1, 62); taiko(at(T.end) + 0.015, 0.8, 44); cymbal(at(T.end), 0.24, 3);
   });
   A.thunder = safe(function (lvl, crack) {        // thunder: a bright crack (if close), a long rolling rumble and a wash of low noise

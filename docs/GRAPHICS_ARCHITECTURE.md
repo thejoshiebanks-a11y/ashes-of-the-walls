@@ -1,4 +1,7 @@
-# Graphics architecture (phases 1 to 3 design, phase 1 implemented in v0.6.0)
+# Graphics architecture (phases 1 to 5 implemented by v0.7.0)
+
+> **v0.7.0 as built** (differs from the design below in two ways): (1) the scene target is RGBA8 display-space, not RGBA16F linear, because the existing shaders already tone-map and grade; the post shader therefore never tone-maps again, which still guarantees ACES and the anime grade apply exactly once. (2) MSAA is removed entirely; FXAA in the post pass replaces it (LOW has no AA). Post levels per tier: LOW 0 (direct path), MEDIUM 1 (FXAA, vignette, grain), HIGH 2 (+ bloom, sun light shafts), ULTRA 3 (+ SSAO-lite, larger bloom). Files: `js/post.js`, hooks in `js/engine.js` (`postFx`, `deferPost`, `endPost`, `setPost`), `js/game.js` (draws actors/FX into the scene target, then `E.endPost()`), `js/quality.js` (`E.setPost(c.post)`). Sky/clouds: `skyBase/skyColor` in `SKY_GLSL`. Masonry: `stoneFx` in `MAIN_FS` (materials wall, brick, sbrick, stoneg). Titan skin: skin fragment shader in `game.js`.
+
 
 Engine: custom WebGL2 (`js/engine.js`). No Three.js. Every new feature below is additive and has a fallback.
 

@@ -1,4 +1,11 @@
 # Changelog
+## 0.8.0: Gate-centred opening, new houses, landmark home, closer realism
+- **Opening**: Colossal2 and the strike are now centred on the main gate (x=0). The camera can never go under the terrain. The intro waits for the Titan models before frame one. A hidden stone plug inside the gate complex closes the see-through slit in the wall.
+- **Houses**: `tools/patch_district.py` replaced house types 1-4 (all instances, original positions and yaw kept) with the four anime medieval townhouses from `anime_medieval_house.glb` (`h8_v1..v4`). Types 5-8 stay for variety.
+- **Landmark**: your `medieval_house_anime_based` model (stairs, wood, brick, roof, walls, plants with alpha, normal maps) stands at about x=21.8, z=-86.7 (replaces one big house on the south row). This is the character's home.
+- **Ground**: close-range rounded cobbles with dark joints, pebbles on dirt, blade-scale grass breakup (fade with distance).
+- **Music**: drop `intro.mp3` / `title.mp3` (or .m4a/.ogg/.wav) into `assets/music/` and they play instead of the built-in score. The built-in score is original, in the same genre; I cannot reproduce the real "Shinzou wo Sasageyo" (copyrighted).
+- Tests: `tests/district_v08.test.js`.
 ## 0.7.0: Clip-driven Colossal, post pipeline, sky, masonry, Titan shading, AoT-style score
 - **Intro Colossal2 is driven only by its own clips**: `C2:in` (rise), `C2:skl01` (swat), `C2:jt_roar` (roar), `C2:idle` between. No IK grip, no finger curl, no scripted heave. (`OP.c2Seq`, `OP.c2clip`; the old Colossal still uses the IK path.)
 - **Phase 2, post pipeline** (`js/post.js`, new): scene renders into an off-screen colour + depth texture; bloom (bright pass, 3-4 level chain), sun light shafts (screen-space, depth-masked to the sky), SSAO-lite (ULTRA), FXAA, one finishing grade, vignette, film grain. Tiers: LOW off, MEDIUM FXAA+vignette+grain, HIGH +bloom+shafts, ULTRA +SSAO. ACES stays only in the scene shaders (never applied again). MSAA is gone (FXAA replaces it). `E.deferPost` lets game.js draw actors and FX into the scene target before `E.endPost()`. Fallbacks: shader/FBO failure turns post off and the old direct path returns. `?post=0` disables it.

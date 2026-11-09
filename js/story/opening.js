@@ -281,7 +281,8 @@
   OP.intro = async function (run, H) {
     mountOnce(); UI.hideAll(); stage.hidden = false; stage.className = 'op-stage'; cutEl.className = 'op-cut on'; UI.fade.style.transitionDuration = '0s'; UI.fade.classList.remove('on'); OP.setBars('wide'); FX.start(); FX.layers.add(dustLayer);
     const has3D = !!H.has3D, TOTAL = TL.end * 1000, A = root.__actors, FXM = S.fx, R = Math.random;
-    const g = has3D && H.geo ? H.geo() : { x0: -60, front: -20, back: 4, top: 50 };
+    if (has3D && H.ensure) { try { await Promise.race([H.ensure(), new Promise(r => setTimeout(r, 12000))]); if (!(root.__actors && root.__actors.has('colossal2')) && !(root.__actors && root.__actors.has('colossal'))) { await H.ensure(); } } catch (e) { console.warn('[intro] colossal models', e); } }   // the Titan must exist before frame one
+    const g = has3D && H.geo ? H.geo() : { x0: 0, front: -20, back: 4, top: 50 };
     const hasFx = !!(FXM && has3D && H.project), ckey = A && A.has('colossal2') && OP.useC2 !== false ? 'colossal2' : 'colossal';
     let col = null, shot = '', cam = null, curT = 0; OP.clipMode = ckey === 'colossal2';
     const rub = { ps: [] }, wallMid = (g.front + g.back) / 2, handY = g.top + 1, hands = [[g.x0 - 9, handY, wallMid], [g.x0 + 9, handY, wallMid]];
@@ -327,7 +328,8 @@
         if (T_ >= TOTAL) return done();
         if (has3D) {
           const c = OP.camAt(t, g), tr = OP.trauma(t), sh = tr * tr * 1.3, n = t * 31; cam = c;
-          H.cineOn([c.pos[0] + Math.sin(n) * sh, c.pos[1] + Math.sin(n * 1.7 + 1) * sh, c.pos[2] + Math.sin(n * 1.3 + 2) * sh * 0.5], [c.target[0] + Math.sin(n * 1.9) * sh * 1.5, c.target[1] + Math.sin(n * 2.3 + 1) * sh * 1.5, c.target[2]], c.fov);
+          const cx_ = c.pos[0] + Math.sin(n) * sh, cz_ = c.pos[2] + Math.sin(n * 1.3 + 2) * sh * 0.5; let gyc = 0; try { gyc = H.gh(cx_, cz_) || 0; } catch (e) { }   // never let the lens go under the terrain
+          H.cineOn([cx_, Math.max(c.pos[1] + Math.sin(n * 1.7 + 1) * sh, gyc + 2.4), cz_], [c.target[0] + Math.sin(n * 1.9) * sh * 1.5, c.target[1] + Math.sin(n * 2.3 + 1) * sh * 1.5, c.target[2]], c.fov);
           if (t > OP.shotC - 0.6 && t < OP.shotC) cutEl.classList.add('dip'); else if (cutEl.classList.contains('dip')) { cutEl.classList.add('slow'); cutEl.classList.remove('dip'); setTimeout(() => cutEl.classList.remove('slow'), 1000); } shot = c.shot;
           if (col) { const st = OP.colossalState(t); col.reach = st.reach; col.reachR = st.reachR; col.lean = st.lean; col.head = st.head; col.grip = st.grip; col.gripR = st.gripR; if (ckey === 'colossal2') { const c = OP.c2clip(t); col.idle = c.name; col.clipT = c.t; col.roarW = 0; } col.press = st.press; col.vg = col._base + st.lift; col.hidden = !st.show; }
           if (t > TL.rumble && t < TL.strike - 0.2 && t - pebT > 0.22) { pebT = t; burst(rub, [g.x0 + (R() - 0.5) * 80, g.top, g.front - 1], 2, 5, 3, 0.22, 0); }

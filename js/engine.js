@@ -174,7 +174,14 @@ void main(){
     base=mix(base,dcol,road);base=mix(base,mix(base,insideG*1.05,.55),edgeGrass*.7);
     base=mix(base,stone*vec3(1.04,1.0,.93),cob);
     base*=(.84+.24*nz);
-    float hgt=mix(dot(grass,vec3(.33))*.5,dot(dirt,vec3(.33))*1.4,road);hgt=mix(hgt,dot(stone,vec3(.33))*3.0,cob);
+    // v0.8 close-range realism: individual rounded cobbles with dark joints, pebbles on dirt, blade-scale grass breakup (all fade out with distance)
+    float nearK=1.-smoothstep(22.,120.,length(u_cam-v_p));float stoneM=0.;
+    if(nearK>.01){vec2 cq=w*1.7;cq.x+=mod(floor(cq.y),2.)*.5;vec2 cid=floor(cq),cf=fract(cq)-.5;float cr=hash12(cid+9.1);
+      stoneM=smoothstep(.52,.34,max(abs(cf.x)*1.0,abs(cf.y)*1.2)+(vnoise(cq*5.)-.5)*.16);
+      float cw=cob*nearK;base*=mix(1.,mix(.50,.78+.42*cr,stoneM),cw);base=mix(base,base*vec3(.92,.96,1.04),cw*(1.-stoneM)*.5);
+      float peb=step(.84,hash12(floor(w*8.)))*smoothstep(.3,.8,vnoise(floor(w*8.)*.37));base=mix(base,base*1.38,peb*road*(1.-cob)*nearK*.7);
+      float bl=(vnoise(w*17.)-.5)*.30+(vnoise(w*41.)-.5)*.18;base*=1.+bl*nearK*(1.-road)*(1.-cob)*(.4+.6*(1.-town));}
+    float hgt=mix(dot(grass,vec3(.33))*.5,dot(dirt,vec3(.33))*1.4,road);hgt=mix(hgt,dot(stone,vec3(.33))*3.0+stoneM*1.3*nearK,cob);
     vec3 dpx=dFdx(v_p),dpy=dFdy(v_p);vec3 r1=cross(dpy,N),r2=cross(N,dpx);float det=dot(dpx,r1);
     if(abs(det)>1e-9){vec3 gr=sign(det)*(dFdx(hgt)*r1+dFdy(hgt)*r2);N=normalize(abs(det)*N-gr*.2*(1.-cob));}
     al=vec4(base,1.);

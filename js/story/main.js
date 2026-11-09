@@ -231,10 +231,8 @@
     project: (x, y, z) => { const E = root.__E, m = E && E.vp; if (!m) return null; return { cx: m[0] * x + m[4] * y + m[8] * z + m[12], cy: m[1] * x + m[5] * y + m[9] * z + m[13], cw: m[3] * x + m[7] * y + m[11] * z + m[15] }; },
     ensure: () => ensureModels(['colossal2', 'colossal']),
     info: () => titleInfo,
-    geo() {                                                 // where the wall really is (measured with rays), so the cutscene fits any wall change
-      const W = root.__world, x0 = -60, f = W.cast([x0, 25, -400], [0, 0, 1], 800), b = W.cast([x0, 25, 400], [0, 0, -1], 800);
-      const front = f ? -400 + f.t : -20, back = b ? 400 - b.t : front + 8, m = (front + back) / 2, h = W.cast([x0, 300, m], [0, -1, 0], 600);
-      return { x0, front, back: Math.max(back, front + 2), top: h ? 300 - h.t : 50 };
+    geo() {                                                 // the main gate: its passage has no collision, so rays can't measure it; these are its real measured bounds (front/back faces, roof)
+      return { x0: 0, front: -2.07, back: 14.8, top: 47.1 };
     },
     async prepTitle() {                                    // everything the title needs, while the screen is black
       mode = null; S.fsm.set('title'); applyFsm(); ACT.removeColossal(); await placeTitleShot();

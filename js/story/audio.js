@@ -28,10 +28,24 @@
      So on every gesture: ask Safari for "playback" audio, loop a silent <audio> element (media audio ignores the switch), resume the context and play one empty buffer. */
   let silentEl = null;
   const silentWav = () => { const n = 8000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), w = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); }; w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true); for (let i = 0; i < n; i++) b[44 + i] = 128 + (i % 2); return URL.createObjectURL(new Blob([b], { type: 'audio/wav' })); };
+  /* ---- v0.8: your own music files. Put intro.mp3 and/or title.mp3 (also .m4a/.ogg/.wav) in assets/music/ and they play instead of the built-in score ---- */
+  const FILES = {}; let fileSrc = null, fileBus = null, filesLoading = false;
+  A.loadMusicFiles = async function () {
+    if (filesLoading || !ctx) return; filesLoading = true;
+    for (const name of ['intro', 'title']) for (const ext of ['mp3', 'm4a', 'ogg', 'wav']) {
+      try { const r = await root.fetch('assets/music/' + name + '.' + ext); if (!r.ok) continue; const ab = await r.arrayBuffer(); if (ab.byteLength < 2000) continue; FILES[name] = await new Promise((ok, no) => ctx.decodeAudioData(ab, ok, no)); break; } catch (e) { }
+    }
+  };
+  A.hasFile = n => !!FILES[n];
+  A.playFile = function (n, loop, vol) {
+    if (!ctx || !FILES[n]) return false; A.stopFile(0.05);
+    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = FILES[n]; src.loop = !!loop; g.gain.setValueAtTime(0.0001, now()); g.gain.linearRampToValueAtTime(vol || 0.9, now() + 0.6); src.connect(g); g.connect(master); src.start(now() + 0.03); fileSrc = { src, g }; return true;
+  };
+  A.stopFile = function (fade) { if (!fileSrc || !ctx) return; const f = fileSrc; fileSrc = null; try { f.g.gain.cancelScheduledValues(now()); f.g.gain.setValueAtTime(f.g.gain.value, now()); f.g.gain.linearRampToValueAtTime(0.0001, now() + (fade || 0.8)); f.src.stop(now() + (fade || 0.8) + 0.05); } catch (e) { } };
   A.unlock = function () {
     try { if (root.navigator && root.navigator.audioSession) root.navigator.audioSession.type = 'playback'; } catch (e) {}
     try { if (!silentEl && root.document && root.URL && root.Blob) { silentEl = root.document.createElement('audio'); silentEl.src = silentWav(); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); silentEl.preload = 'auto'; } if (silentEl) { const p = silentEl.play(); if (p && p.catch) p.catch(() => {}); } } catch (e) {}
-    A.init(); if (!ctx) return false;
+    A.init(); if (!ctx) return false; try { A.loadMusicFiles(); } catch (e) { }
     try { if (ctx.state !== 'running') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); } const b = ctx.createBuffer(1, 1, 22050), src = ctx.createBufferSource(); src.buffer = b; src.connect(ctx.destination); src.start(0); } catch (e) {}
     return ctx.state === 'running';
   };
@@ -140,7 +154,7 @@
     };
     play();
   };
-  A.stopMusic = () => { musicOn = null; clearTimeout(musicTimer); };
+  A.stopMusic = () => { musicOn = null; clearTimeout(musicTimer); try { A.stopFile(1.0); } catch (e) { } };
   A.duck = (v, s) => { if (ctx) { musBus.gain.cancelScheduledValues(now()); musBus.gain.linearRampToValueAtTime(v * store.music, now() + (s || 0.4)); } };
 
   /* ---- opening additions (v0.4): studio sting, risers, steam, a drone, choir pad, stamp hit ---- */
@@ -228,6 +242,7 @@
   const MEL = [[[69, 0, 1.5], [67, 1.5, 0.5], [65, 2, 1], [69, 3, 1]], [[74, 0, 2], [72, 2, 1], [70, 3, 1]], [[69, 0, 1.5], [67, 1.5, 0.5], [70, 2, 1], [74, 3, 1]], [[73, 0, 2], [76, 2, 1], [69, 3, 1]],
                [[74, 0, 1], [77, 1, 1], [76, 2, 1], [74, 3, 1]], [[74, 0, 1.5], [72, 1.5, 0.5], [70, 2, 2]], [[70, 0, 1], [69, 1, 1], [67, 2, 1], [65, 3, 1]], [[64, 0, 2], [69, 2, 2]]];
   A.titleScore = safe(function () {               // the title theme: strings, a cello drive, taiko, horns and choir. D minor, 84 bpm
+    if (A.hasFile('title') && A.playFile('title', true, 0.9)) return;
     const B = 60 / 84; let bar = 0;
     const play = () => {
       if (musicOn !== 'title') return; const t = now() + 0.08, ch = PROG[bar % 4], big = (bar % 8) >= 4, root = ch[0];
@@ -246,6 +261,7 @@
   });
   /* ---- the opening cue: a hit at every beat of the cutscene. T = timeline offsets in seconds from now ---- */
   A.introScore = safe(function (T) {
+    if (A.hasFile('intro') && A.playFile('intro', false, 0.95)) { /* your track plays; the synth score is skipped, thunder/strike SFX still come from the intro */ return; }
     const t0 = now() + 0.05, at = s => t0 + s;
     strings([38, 45, 50], at(0), T.strike - 0.2, 0.18, T.strike * 0.8, 700);                                    // a held low D, a storm gathering
     for (let s = T.rumble; s < T.strike; s += 0.5) taiko(at(s), 0.06 + (s - T.rumble) / (T.strike - T.rumble) * 0.22, 55);

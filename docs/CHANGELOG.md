@@ -1,4 +1,9 @@
 # Changelog
+## 0.6.1: Cinematic sky pass (graphics work in progress)
+- Reworked the procedural sky cloud field with multi-scale billows, gentle domain warping, finer cloud detail, sun-facing rim illumination and a subtle sunset haze band.
+- Kept the sky procedural and dependency-free to avoid adding large texture downloads or memory pressure on mobile.
+- Updated the app version to 0.6.1 for GitHub Pages cache busting.
+- Validation: boot, quality, FX, actor pose, opening, story smoke and story logic suites pass. Actual Safari visual/performance validation is still required.
 ## 0.6.0: Colossal 2, graphics foundation (phase 1)
 - **colossal2 is now the intro Titan.** Its bones were named like `Bip001 Pelvis_51`, so the game's rig could not find them; the names are fixed in `data/npc_models.json` and its real height (0.257) replaces the wrong 0.36. Its own clips (roar, atk01, atk02, hit, die, idle, in, skl01, jt_*) are baked into the game's clip format by `tools/add_glb_clips.py` and are in `assets/models.pack` as `C2:*`. The intro plays `C2:idle`, then `C2:jt_roar` at the reveal, with the hands planted on the wall by IK. Set `STORY.opening.useC2 = false` to fall back to the old Colossal.
 - **Graphics phase 1** (`js/quality.js`): LOW/MEDIUM/HIGH/ULTRA tiers, capability probe, adaptive resolution, frame-time monitor (p90/p99, jank, thermal baseline, 30 Hz cap detection), per-tier shadow size and cascades (LOW = one cascade). Options > Graphics chooses a tier or Auto. `?gfx=low` also works. `GFX.report()` prints the numbers. Engine changes are small: `setShadowSize`, `cascades`, `antialias` option, aniso cap.

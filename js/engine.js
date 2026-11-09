@@ -31,20 +31,42 @@ uniform vec4 u_for[24];uniform vec3 u_skyH;uniform vec3 u_skyZ;uniform vec3 u_cl
 float hash12(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
 float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash12(i),hash12(i+vec2(1,0)),f.x),mix(hash12(i+vec2(0,1)),hash12(i+vec2(1,1)),f.x),f.y);}
 float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*vnoise(p);p=p*2.03+vec2(17.1,9.2);a*=.5;}return s;}
+// Multi-scale, gently warped cloud field. Kept procedural so no large sky texture
+// needs to be downloaded or held in memory on mobile devices.
+float cloudField(vec2 p){
+  float warp=fbm(p*.42+vec2(3.7,1.9));
+  vec2 q=p+vec2(warp-.5,(fbm(p*.42+vec2(8.1,4.2))-.5))*.72;
+  float broad=fbm(q*.78);
+  float billow=fbm(q*2.05+vec2(2.4,7.1));
+  float detail=fbm(q*5.1+vec2(9.2,1.3));
+  return broad*.66+billow*.25+detail*.09;
+}
 vec3 skyColor(vec3 d,vec3 sun,float t){
   float h=clamp(d.y,0.,1.);
   vec3 hor=u_skyH,zen=u_skyZ;
   vec3 c=mix(hor,zen,pow(h,.55));
   float sd=max(dot(d,sun),0.);
-  c+=u_halo*(pow(sd,900.)*2.+pow(sd,14.)*.20+pow(sd,3.)*.10);
+  // Broad atmospheric glow plus a compact solar core.
+  c+=u_halo*(pow(sd,700.)*2.4+pow(sd,24.)*.28+pow(sd,4.)*.12);
   if(d.y>0.){
-    vec2 p=d.xz/(d.y+.18)*1.15+vec2(t*.004,0.);
-    float n=fbm(p*1.3);float n2=fbm(p*1.3+vec2(.18,.26)*vec2(sun.x,sun.z)*-1.);
-    float cl=smoothstep(.46,.72,n);
-    float shade=clamp((n-n2)*5.+.55,0.,1.);
-    vec3 cc=mix(u_cl0,u_cl1,shade);
-    cl*=smoothstep(0.,.14,d.y);
-    c=mix(c,cc,cl*.97);
+    vec2 p=d.xz/(d.y+.16)*1.05+vec2(t*.0035,-t*.0011);
+    float n=cloudField(p*1.22);
+    float nBack=cloudField(p*1.22+vec2(.16,.23)*-sun.xz);
+    float horizonBoost=1.-smoothstep(.12,.82,d.y);
+    float threshold=mix(.64,.57,horizonBoost);
+    float cloud=smoothstep(threshold-.075,threshold+.105,n);
+    float edge=1.-smoothstep(.015,.19,abs(n-threshold));
+    float body=clamp((n-nBack)*3.1+.52,0.,1.);
+    // Sun-facing cloud rims and warm undersides create layered sunset depth.
+    float sunFacing=clamp(dot(normalize(vec3(sun.x,.22,sun.z)),normalize(vec3(d.x,.35,d.z)))*.5+.5,0.,1.);
+    vec3 cloudLit=mix(u_cl0,u_cl1,clamp(body*.72+sunFacing*.28,0.,1.));
+    cloudLit=mix(cloudLit,cloudLit*vec3(1.18,.78,.62),edge*.30*horizonBoost);
+    cloudLit+=u_halo*edge*sunFacing*.16;
+    cloud*=smoothstep(0.,.10,d.y);
+    c=mix(c,cloudLit,cloud*.985);
+    // A subtle high-altitude haze band avoids a flat colour transition.
+    float haze=exp(-pow((d.y-.075)*12.,2.));
+    c=mix(c,u_fogC,haze*.10);
   }
   return c;
 }`;

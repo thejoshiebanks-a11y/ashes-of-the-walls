@@ -726,9 +726,9 @@ function setOn(f){if(f&&!on){if(!A)build();if(!gl)initGL();document.getElementBy
  else if(!f&&on){on=false;document.body.classList.remove('odm');document.body.classList.add('viewer');document.getElementById('mOdm').setAttribute('aria-pressed','false');E.light=E.light;E.setPreset('golden')}}
 // ---------- time of day: 24 h = 90 real minutes (1 game hour = 3.75 min)
 const NIGHT={sun:[.3,.55,.35],sunC:[.2,.25,.42],ambS:[.07,.09,.17],ambG:[.04,.04,.07],skyH:[.07,.09,.17],skyZ:[.01,.02,.08],cl0:[.07,.09,.16],cl1:[.18,.2,.3],fogC:[.06,.08,.15],halo:[.25,.3,.45]};
-let DAYP=null,GOLP=null,DUSK=null;
-function tod(dt){if(!DAYP){const cur=E.preset;E.setPreset('day');DAYP=E.light;E.setPreset('golden');GOLP=E.light;DUSK=Object.assign({},GOLP,{sun:[GOLP.sun[0],.2,GOLP.sun[2]],sunC:[2.2,1.25,.75],skyH:[1,.62,.45],fogC:[.9,.62,.5],halo:[1.3,.7,.4],cl1:[1,.65,.5],ambS:[.38,.36,.45]});E.setPreset(cur)}
- hour=(hour+dt*24/5400)%24;const K_=[[0,NIGHT],[4.6,NIGHT],[5.9,DUSK],[7.6,GOLP],[9.2,DAYP],[15.3,DAYP],[17.2,GOLP],[18.8,DUSK],[20.2,NIGHT],[24,NIGHT]];let i=1;while(i<K_.length-1&&hour>K_[i][0])i++;
+let DAYP=null,GOLP=null,DUSK=null,MORN=null;
+function tod(dt){if(!DAYP){const cur=E.preset;E.setPreset('day');DAYP=E.light;E.setPreset('golden');GOLP=E.light;DUSK=Object.assign({},GOLP,{sun:[GOLP.sun[0],.2,GOLP.sun[2]],sunC:[2.2,1.25,.75],skyH:[1,.62,.45],fogC:[.9,.62,.5],halo:[1.3,.7,.4],cl1:[1,.65,.5],ambS:[.38,.36,.45]});MORN={};for(const k in DAYP)MORN[k]=DAYP[k].map((x,j)=>GOLP[k][j]*.25+x*.75);E.setPreset(cur)}
+ hour=(hour+dt*24/5400)%24;const K_=[[0,NIGHT],[4.6,NIGHT],[5.9,DUSK],[6.7,GOLP],[8.0,MORN],[9.4,DAYP],[15.0,DAYP],[16.4,MORN],[17.6,GOLP],[18.8,DUSK],[20.2,NIGHT],[24,NIGHT]];let i=1;while(i<K_.length-1&&hour>K_[i][0])i++;
  const a=K_[i-1],b=K_[i],t=Math.max(0,Math.min(1,(hour-a[0])/(b[0]-a[0]))),k=t*t*(3-2*t),L={};for(const key in a[1])L[key]=a[1][key].map((x,j)=>x+(b[1][key][j]-x)*k);
  const az=(hour-12)*Math.PI/12*.85,sx=L.sun[0],sz=L.sun[2],c=Math.cos(az),s_=Math.sin(az);L.sun=[sx*c+sz*s_,L.sun[1],-sx*s_+sz*c];E.light=L;E.sunDir=nrm(L.sun);E.preset=(hour>5.5&&hour<8.5)||(hour>16.8&&hour<19.2)?'golden':'day'}
 function hudUpdate(dt){const sp=len(v);dodgeCD=Math.max(0,dodgeCD-dt);supplyCD=Math.max(0,supplyCD-dt);hud.gb.style.width=gas+'%';hud.gn.textContent=Math.round(gas)+'/100';hud.hb.style.width=(hp/hpMax*100)+'%';hud.hn.textContent=Math.ceil(hp)+'/'+hpMax;

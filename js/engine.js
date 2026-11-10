@@ -35,17 +35,17 @@ vec3 skyBase(vec3 d,vec3 sun){
   float h=clamp(d.y,0.,1.);
   vec3 c=mix(u_skyH,u_skyZ,pow(h,.55));
   float sd=max(dot(d,sun),0.);
-  float low=1.-smoothstep(.12,.62,sun.y);                                   // 0 high noon .. 1 sun on the horizon
+  float low=1.-smoothstep(.20,.55,sun.y);                                   // 0 high noon .. 1 sun on the horizon
   vec2 sa=normalize(sun.xz+1e-4),da=normalize(d.xz+1e-4);float az=max(dot(sa,da),0.);
   c+=u_halo*(pow(sd,900.)*2.4+pow(sd,14.)*.22+pow(sd,3.)*.10);
-  c+=u_halo*vec3(1.,.62,.36)*pow(az,2.5)*pow(1.-h,3.2)*(.18+.5*low);        // sunset glow band on the horizon, strongest toward the sun
+  c+=u_halo*vec3(1.,.62,.36)*pow(az,2.5)*pow(1.-h,3.2)*(.05+.62*low);        // sunset glow band on the horizon, strongest toward the sun
   c=mix(c,c*vec3(1.04,.9,.82),low*pow(1.-h,2.)*(1.-az)*.5);                  // opposite horizon turns dusty rose
   return c;}
 vec3 skyFog(vec3 d,vec3 sun){return skyBase(d,sun);}
 vec3 skyColor(vec3 d,vec3 sun,float t){
   vec3 c=skyBase(d,sun);
   if(d.y>0.){
-    float low=1.-smoothstep(.12,.62,sun.y);
+    float low=1.-smoothstep(.20,.55,sun.y);
     vec2 sdir=normalize(sun.xz+1e-4);
     float fadeH=smoothstep(0.,.10,d.y);
     // layer 1: high, broad, soft cover.  layer 2: low, big dramatic cumulus with sun-lit rims
@@ -59,12 +59,12 @@ vec3 skyColor(vec3 d,vec3 sun,float t){
       float n2=fbm((p+sdir*.16)*1.25);                                    // same field nudged toward the sun: difference = lit side
       float lit=clamp((n-n2)*7.+.5,0.,1.);
       float thick=clamp((n-cover)*3.,0.,1.);
-      vec3 shadow=mix(u_cl0*.52,u_ambS*.55,.35)*(1.-.25*low);          // dark, cool-warm underbelly
-      vec3 lite=u_cl1*(1.25+.5*low);
+      vec3 shadow=mix(u_cl0*(.66-.14*low),u_ambS*.55,.30*low)*(1.-.2*low);          // dark, cool-warm underbelly
+      vec3 lite=u_cl1*(1.10+.45*low);
       vec3 cc=mix(shadow,lite,lit*(1.-.55*thick)+.1);
       float edge=(1.-smoothstep(0.,.35,thick))*cl;                      // thin cloud edge
       float toSun=pow(max(dot(normalize(vec3(d.x,max(d.y,.0)+.12,d.z)),sun),0.),4.);
-      cc+=u_halo*(edge*(.35+1.4*toSun)*(.5+low))+u_halo*thick*lit*.18*low;   // glowing silver/gold lining
+      cc+=u_halo*(edge*(.08+.9*toSun*low+.25*low))+u_halo*thick*lit*.18*low;   // glowing silver/gold lining
       cc=mix(cc,cc*vec3(1.15,.82,.62),low*.5*(1.-thick));                // sunset tint
       cl*=fadeH*(L==0?.80:.97);
       c=mix(c,cc,cl);
@@ -175,13 +175,11 @@ void main(){
     base=mix(base,stone*vec3(1.04,1.0,.93),cob);
     base*=(.84+.24*nz);
     // v0.8 close-range realism: individual rounded cobbles with dark joints, pebbles on dirt, blade-scale grass breakup (all fade out with distance)
-    float nearK=1.-smoothstep(22.,120.,length(u_cam-v_p));float stoneM=0.;
-    if(nearK>.01){vec2 cq=w*1.7;cq.x+=mod(floor(cq.y),2.)*.5;vec2 cid=floor(cq),cf=fract(cq)-.5;float cr=hash12(cid+9.1);
-      stoneM=smoothstep(.52,.34,max(abs(cf.x)*1.0,abs(cf.y)*1.2)+(vnoise(cq*5.)-.5)*.16);
-      float cw=cob*nearK;base*=mix(1.,mix(.50,.78+.42*cr,stoneM),cw);base=mix(base,base*vec3(.92,.96,1.04),cw*(1.-stoneM)*.5);
-      float peb=step(.84,hash12(floor(w*8.)))*smoothstep(.3,.8,vnoise(floor(w*8.)*.37));base=mix(base,base*1.38,peb*road*(1.-cob)*nearK*.7);
-      float bl=(vnoise(w*17.)-.5)*.30+(vnoise(w*41.)-.5)*.18;base*=1.+bl*nearK*(1.-road)*(1.-cob)*(.4+.6*(1.-town));}
-    float hgt=mix(dot(grass,vec3(.33))*.5,dot(dirt,vec3(.33))*1.4,road);hgt=mix(hgt,dot(stone,vec3(.33))*3.0+stoneM*1.3*nearK,cob);
+    float nearK=1.-smoothstep(22.,120.,length(u_cam-v_p));       // close-range detail only: pebbles, grain and blade breakup (no joint lines)
+    if(nearK>.01){float peb=step(.86,hash12(floor(w*8.)))*smoothstep(.3,.8,vnoise(floor(w*8.)*.37));base=mix(base,base*1.22,peb*road*(1.-cob)*nearK*.5);
+      float bl=(vnoise(w*17.)-.5)*.22+(vnoise(w*41.)-.5)*.12;base*=1.+bl*nearK*(1.-cob)*(.4+.6*(1.-town));
+      base*=1.+((vnoise(w*2.3)-.5)*.10+(vnoise(w*9.)-.5)*.07)*nearK*cob;}
+    float hgt=mix(dot(grass,vec3(.33))*.5,dot(dirt,vec3(.33))*1.4,road);hgt=mix(hgt,dot(stone,vec3(.33))*3.0,cob);
     vec3 dpx=dFdx(v_p),dpy=dFdy(v_p);vec3 r1=cross(dpy,N),r2=cross(N,dpx);float det=dot(dpx,r1);
     if(abs(det)>1e-9){vec3 gr=sign(det)*(dFdx(hgt)*r1+dFdy(hgt)*r2);N=normalize(abs(det)*N-gr*.2*(1.-cob));}
     al=vec4(base,1.);
@@ -213,7 +211,7 @@ void main(){
   vec3 V=u_cam-v_p;float dist=length(V);V/=dist;
   float fog=1.-exp(-dist*u_fogK*(1.+clamp((34.-v_p.y)/34.,0.,1.)*.9));fog=max(fog,smoothstep(1700.,3100.,dist));
   vec3 fogc=skyFog(normalize(vec3(-V.x,max(-V.y,.0),-V.z)),u_sun);
-  fogc=mix(u_fogC,fogc,.35);fogc+=u_halo*pow(max(dot(-V,u_sun),0.),5.)*.30;
+  fogc=mix(u_fogC,fogc,.35);fogc+=u_halo*pow(max(dot(-V,u_sun),0.),5.)*(.08+.26*(1.-smoothstep(.2,.55,u_sun.y)));
   vec3 col=aces(lit*.80);
   col=pow(col,vec3(1./2.2));
   // painted wash + anime grade (warm shadows, gentle desaturation, soft contrast)
@@ -316,7 +314,7 @@ class Engine{
    gl.drawBuffers([gl.NONE]);gl.readBuffer(gl.NONE);this.sm.push({t,f,S,m:M4.id()})}
   gl.bindFramebuffer(gl.FRAMEBUFFER,null)}
  async loadStoneTex(base){try{const g=async f=>{const r=await fetch(base+f);if(!r.ok)throw 0;return createImageBitmap(await r.blob(),{premultiplyAlpha:'none',colorSpaceConversion:'none'})};const a=await g('assets/stone_albedo.jpg'),n=await g('assets/stone_normal.jpg');this.stoneTex={a:this.texFromBitmap(a,true,true,true),n:this.texFromBitmap(n,false,true,true)};return true}catch(e){return false}}   // optional: drop stone_albedo.jpg + stone_normal.jpg into assets/
- endPost(){const q=this._pp;this._pp=null;if(q&&this.postFx&&this.postFx.on)this.postFx.end(q.cam,q.su,q.col)}   // resolve the off-screen frame to the screen (game.js calls this after drawing actors/FX into it)
+ endPost(){const q=this._pp;this._pp=null;if(q&&this.postFx&&this.postFx.on)this.postFx.end(q.cam,q.su,q.col,q.warm)}   // resolve the off-screen frame to the screen (game.js calls this after drawing actors/FX into it)
  setPost(level){if(!window.AotPost){return}if(!this.postFx)this.postFx=new window.AotPost(this);this.postFx.set(level)}
  setShadowSize(S){if(!this.sm||S===this.smSize)return;const gl=this.gl;for(const s of this.sm){gl.deleteTexture(s.t);gl.deleteFramebuffer(s.f)}this.initShadow(S)}   // quality tiers resize the shadow maps (frees the old ones)
  // ---- data loading ----
@@ -430,7 +428,7 @@ class Engine{
   gl.depthMask(true);gl.disable(gl.BLEND);
   if(PO&&PO.on){let su=null;{const sd=this.sunDir,q=[cam.pos[0]+sd[0]*1000,cam.pos[1]+sd[1]*1000,cam.pos[2]+sd[2]*1000,1],m=vp,cx=m[0]*q[0]+m[4]*q[1]+m[8]*q[2]+m[12],cy=m[1]*q[0]+m[5]*q[1]+m[9]*q[2]+m[13],cw=m[3]*q[0]+m[7]*q[1]+m[11]*q[2]+m[15];
    if(cw>0.01){const sx=cx/cw*.5+.5,sy=cy/cw*.5+.5,edge=Math.max(Math.abs(sx-.5),Math.abs(sy-.5));su=[sx,sy,Math.max(0,1-Math.max(0,edge-.5)*2.2)]}}
-   this._pp={cam,su,col:this.light.halo.map(v=>v*.55)};if(!this.deferPost)this.endPost()}
+   this._pp={cam,su,col:this.light.halo.map(v=>v*.55),warm:1-Math.min(1,Math.max(0,(this.sunDir[1]-.2)/.35))};if(!this.deferPost)this.endPost()}
   this.tris=tris;this.lastCalls=this.calls;this.calls=0;this.proj=proj;this.view=view;
  }
 }

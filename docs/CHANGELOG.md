@@ -1,4 +1,8 @@
 # Changelog
+## 0.8.2
+- Gate: hidden stone plugs on both sides of the gate close the cracks (`tools/patch_gap.py`).
+- Ground: removed the dark cobble joint lines added in 0.8.0; kept pebbles, grain and grass breakup.
+- Day cycle: sky/cloud/fog/post warmth now depends on real sun height (golden only near the horizon); new MORN keyframe so 7-8 am and 4-5 pm look like morning/afternoon; noon blue and white; dusk and night unchanged.
 ## 0.8.1
 - Intro Colossal: only two clips now, `C2:in` (rise) then `C2:jt_roar`; the swat is gone. Title screen: removed the old version label and ticker that overlapped the Credits button.
 ## 0.8.0: Gate-centred opening, new houses, landmark home, closer realism

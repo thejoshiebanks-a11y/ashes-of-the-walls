@@ -20,7 +20,7 @@ void main(){vec3 c=texture(u_t,v_uv+u_px*vec2(-1,0)).rgb+texture(u_t,v_uv+u_px*v
  c+=(texture(u_t,v_uv+u_px*vec2(-1,-1)).rgb+texture(u_t,v_uv+u_px*vec2(1,-1)).rgb+texture(u_t,v_uv+u_px*vec2(-1,1)).rgb+texture(u_t,v_uv+u_px*vec2(1,1)).rgb)*.5;o=vec4(c/6.,1.);}`;
   const POST = `#version 300 es
 precision highp float;in vec2 v_uv;uniform sampler2D u_scene;uniform sampler2D u_bloom;uniform sampler2D u_depth;
-uniform vec2 u_px;uniform float u_bl;uniform float u_time;uniform vec4 u_sun;uniform vec3 u_sunC;uniform float u_god;uniform float u_ao;uniform vec2 u_nf;uniform float u_vig;uniform float u_grain;uniform float u_fx;
+uniform vec2 u_px;uniform float u_bl;uniform float u_time;uniform vec4 u_sun;uniform vec3 u_sunC;uniform float u_god;uniform float u_ao;uniform vec2 u_nf;uniform float u_vig;uniform float u_grain;uniform float u_fx;uniform float u_warm;
 out vec4 o;
 float luma(vec3 c){return dot(c,vec3(.299,.587,.114));}
 vec3 fxaa(vec2 uv){
@@ -41,12 +41,12 @@ void main(){
   for(int i=0;i<8;i++){float a=float(i)*.785398+fract(sin(dot(uv*1000.,vec2(12.9898,78.233)))*43758.5)*.785;vec2 off=vec2(cos(a),sin(a))*rad*u_px*(.55+.45*float(i&1));
    float zs=lin(texture(u_depth,uv+off).r);float d=zl-zs;occ+=smoothstep(.15,.9,d/(zl*.02+.4))*(1.-smoothstep(1.,1.+zl*.05+4.,d));}
   c*=1.-clamp(occ/8.*u_ao,0.,.55);}
- if(u_bl>0.){vec3 bl=texture(u_bloom,uv).rgb;c+=bl*u_bl*vec3(1.08,1.0,.9);}
- if(u_god>0.&&u_sun.w>0.){vec2 d=(u_sun.xy-uv);float len=length(d);vec2 st=d/24.*.92;vec2 p=uv;float acc=0.,w=1.;
+ if(u_bl>0.){vec3 bl=texture(u_bloom,uv).rgb;c+=bl*u_bl*mix(vec3(1.0,1.0,1.02),vec3(1.08,1.0,.9),u_warm);}
+ if(u_god>0.&&u_sun.w>0.){vec2 d=(u_sun.xy-uv);float len=length(d);vec2 st=d/24.*.92;vec2 p=uv+st*fract(sin(dot(uv*vec2(913.,517.),vec2(12.9898,78.233)))*43758.5453);float acc=0.,w=1.;
   for(int i=0;i<24;i++){p+=st;float zz=texture(u_depth,p).r;float sk=step(.99999,zz);vec3 s=texture(u_scene,p).rgb;acc+=sk*smoothstep(.55,1.,luma(s))*w;w*=.93;}
   float fall=1.-smoothstep(.2,1.4,len);c+=u_sunC*acc/24.*u_god*u_sun.w*(.35+fall);}
  // finishing grade (once): gentle filmic S-curve + warmth in the lights, cool lift in the deepest shadows
- float l=luma(c);c=mix(vec3(l),c,1.07);c=mix(c,c*c*(3.-2.*c),.16);c*=mix(vec3(.985,1.0,1.03),vec3(1.03,1.0,.95),smoothstep(.1,.7,l));
+ float l=luma(c);c=mix(vec3(l),c,1.07);c=mix(c,c*c*(3.-2.*c),.10);c*=mix(vec3(.99,1.0,1.02),mix(vec3(1.0),vec3(1.03,1.0,.95),u_warm),smoothstep(.1,.7,l));
  vec2 q=uv-.5;float v=1.-dot(q,q)*u_vig*1.9;c*=clamp(v,.25,1.);
  float g=fract(sin(dot(uv*vec2(1731.,1283.)+fract(u_time*.37)*91.,vec2(12.9898,78.233)))*43758.5453)-.5;c+=g*u_grain*(1.-l*.6);
  o=vec4(clamp(c,0.,1.),1.);}`;
@@ -55,7 +55,7 @@ void main(){
   function prog(gl, fs) { const p = gl.createProgram(); gl.attachShader(p, mk(gl, gl.VERTEX_SHADER, VS)); gl.attachShader(p, mk(gl, gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error('post link: ' + gl.getProgramInfoLog(p)); const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name] = gl.getUniformLocation(p, a.name); } return { p, u }; }
 
   class Post {
-    constructor(E) { this.E = E; this.gl = E.gl; this.level = 0; this.on = false; this.W = 0; this.H = 0; this.ok = null; this.vao = this.gl.createVertexArray(); this.strength = 1; this.cfg = { th2: 0.78, th3: 0.72, bl2: 0.34, bl3: 0.42, god: 0.30, ao: 0.8, vig: 0.5, grain: 0.03 }; }
+    constructor(E) { this.E = E; this.gl = E.gl; this.level = 0; this.on = false; this.W = 0; this.H = 0; this.ok = null; this.vao = this.gl.createVertexArray(); this.strength = 1; this.cfg = { th2: 0.78, th3: 0.72, bl2: 0.34, bl3: 0.42, god: 0.17, ao: 0.8, vig: 0.5, grain: 0.03 }; }
     init() {
       if (this.ok !== null) return this.ok; const gl = this.gl;
       try { this.progs = { bright: prog(gl, BRIGHT), down: prog(gl, DOWN), up: prog(gl, UP), post: prog(gl, POST) }; this.ok = true; } catch (e) { console.warn('[post] disabled:', e.message); this.ok = false; }
@@ -85,7 +85,7 @@ void main(){
     }
     pass(P, srcTex, dst, w, h, extra) { const gl = this.gl; gl.bindFramebuffer(gl.FRAMEBUFFER, dst); gl.viewport(0, 0, w, h); gl.useProgram(P.p); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, srcTex); gl.uniform1i(P.u.u_t, 0); gl.uniform2f(P.u.u_px, 1 / (w), 1 / (h)); if (extra) extra(P); gl.drawArrays(gl.TRIANGLES, 0, 3); }
     /* end of the scene pass: bloom chain + the single post shader into the screen. sunScreen = [x,y,visible] in 0..1 uv or null */
-    end(cam, sunUv, sunCol) {
+    end(cam, sunUv, sunCol, warm) {
       const gl = this.gl, L = this.level, W = this.W, H = this.H, E = this.E; gl.bindVertexArray(null); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(false);
       const bloomOn = L >= 2 && this.strength > 0;
       if (bloomOn) {
@@ -103,7 +103,7 @@ void main(){
       const grade = E.grade === undefined ? 1 : E.grade;
       gl.uniform2f(u.u_px, 1 / W, 1 / H); gl.uniform1f(u.u_bl, bloomOn ? (L >= 3 ? this.cfg.bl3 : this.cfg.bl2) * this.strength : 0); gl.uniform1f(u.u_time, E.time || 0);
       const sv = sunUv && L >= 2 ? sunUv : null; gl.uniform4f(u.u_sun, sv ? sv[0] : 0, sv ? sv[1] : 0, 0, sv ? sv[2] : 0); gl.uniform3fv(u.u_sunC, sunCol || [1, .8, .5]); gl.uniform1f(u.u_god, L >= 2 ? this.cfg.god : 0);
-      gl.uniform1f(u.u_ao, L >= 3 ? this.cfg.ao : 0); gl.uniform2f(u.u_nf, cam.near || 0.3, cam.far || 3500); gl.uniform1f(u.u_vig, this.cfg.vig * grade + 0.1); gl.uniform1f(u.u_grain, this.cfg.grain); gl.uniform1f(u.u_fx, 1);
+      gl.uniform1f(u.u_ao, L >= 3 ? this.cfg.ao : 0); gl.uniform2f(u.u_nf, cam.near || 0.3, cam.far || 3500); gl.uniform1f(u.u_vig, this.cfg.vig * grade + 0.1); gl.uniform1f(u.u_grain, this.cfg.grain); gl.uniform1f(u.u_fx, 1); gl.uniform1f(u.u_warm, warm === undefined ? 1 : warm);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.bindVertexArray(E.vao); gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
     }

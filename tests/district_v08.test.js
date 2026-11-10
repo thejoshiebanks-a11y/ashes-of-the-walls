@@ -11,4 +11,9 @@ ok(!J.draws.some(d => ['house1', 'house1b', 'house1c', 'house2', 'house3', 'hous
 const hdr = fs.readFileSync(__dirname + '/../assets/textures.pack'), hl = hdr.readUInt32LE(0), TH = JSON.parse(hdr.slice(4, 4 + hl).toString());
 for (const t of J.tex) ok(TH[t.file], 'texture in pack ' + t.file);
 for (const m of J.mats) ok(m.tex < J.tex.length && m.norm < J.tex.length, 'material texture index ' + m.name);
+ok(['gate_plug_0','gate_plug_1','gate_plug_2'].every(k=>J.geoms[k])&&J.draws.some(d=>d.g==='gate_plug_1'),'gate-side plugs present');
+const G=fs.readFileSync(__dirname+'/../js/game.js','utf8'),EN=fs.readFileSync(__dirname+'/../js/engine.js','utf8');
+ok(/\[8\.0,MORN\]/.test(G)&&/\[16\.4,MORN\]/.test(G),'day cycle has a real morning/afternoon between golden and noon');
+ok(!/stoneM/.test(EN),'no cobble joint lines on the ground');
+ok(/smoothstep\(\.20,\.55,sun\.y\)/.test(EN),'sky is golden only when the sun is low');
 console.log('district v0.8 test: ' + pass + ' passed, ' + fail + ' failed'); process.exit(fail ? 1 : 0);

@@ -133,7 +133,7 @@
   let wasPlaying = false, nTick = 0;
   function tick(dt, now) {
     if (S.fsm.is('title') && CINE.on) {                       // the creeping dawn camera
-      const P = S.opening.titlePose((now - titleT0) / 1000 + 6);       // the aerial dawn drift (js/story/opening.js)
+      const P = S.menu.cam(now);                                        // title drift -> menu shot (js/story/menu.js)
       CINE.pos = P.pos; CINE.target = P.target; CINE.fov = P.fov;
     }
     const playing = S.fsm.is('play') && mode !== null;
@@ -210,15 +210,14 @@
   async function placeTitleShot() {
     const P = S.opening.titlePose(6), s = G.snap(P.pos[0], P.pos[2] + 150);   // keep the (hidden) player under the aerial camera so the town streams in
     root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true; ACT.clearAll();
-    G.teleport(s.x, s.z, 0, 0.1); root.ODM.hour = 5.9; await settle(900);
+    G.teleport(s.x, s.z, 0, 0.1); root.ODM.hour = S.menu.cfg.hour; await settle(900);
   }
-  async function showTitle(placed) {
-    mode = null; S.fsm.set('title'); applyFsm(); cineOff();
-    if (!placed) { await UI.fadeTo(true, 450); UI.hideAll(); await placeTitleShot(); } else UI.hideAll();
-    titleT0 = performance.now(); const P = S.opening.titlePose(6); cineOn(P.pos, P.target, P.fov);
-    UI.title({ version: VERSION, latest: await latestSave() }); UI.setTicker(tickerLines());
-    AU.wind(0.07); AU.music('title');
-    if (!placed) await UI.fadeTo(false, 900);
+  async function showTitle(placed) {                          // returning to the title: straight to the menu, never the cinematic, never touching saves
+    mode = null; S.fsm.set('title'); applyFsm(); cineOff(); S.menu.leave(false);
+    if (!placed) { await UI.fadeTo(true, 450); UI.hideAll(); ACT.removeColossal(); await placeTitleShot(); } else UI.hideAll();
+    titleT0 = performance.now(); const P = S.menu.cam(titleT0); cineOn(P.pos, P.target, P.fov);
+    titleInfo = { version: VERSION, latest: await latestSave() }; AU.wind(0.07); AU.music('title');
+    await S.menu.enter({ stage: 'menu' }); if (!placed) await UI.fadeTo(false, 900);
   }
   async function latestSave() { try { const k = await SV.latest(); if (k) return (await SV.list())[k]; } catch (e) { console.warn('[story] save list failed', e); } return null; }
   /* The opening (studio logo, cinematic intro, stamp, title) lives in js/story/opening.js. This host is all it knows about the engine. */
@@ -230,9 +229,16 @@
     cineOn, gh: (x, z) => G.gh(x, z),
     project: (x, y, z) => { const E = root.__E, m = E && E.vp; if (!m) return null; return { cx: m[0] * x + m[4] * y + m[8] * z + m[12], cy: m[1] * x + m[5] * y + m[9] * z + m[13], cw: m[3] * x + m[7] * y + m[11] * z + m[15] }; },
     ensure: () => ensureModels(['colossal2', 'colossal']),
+    ensureMenu: () => ensureModels(['jean', 'fuse_man', 'fuse_woman']),
+    gh2: (x, z) => G.gh(x, z),
     info: () => titleInfo,
     geo() {                                                 // the main gate: its passage has no collision, so rays can't measure it; these are its real measured bounds (front/back faces, roof)
       return { x0: 0, front: -2.07, back: 14.8, top: 47.1 };
+    },
+    async prepMenu() {                                     // title + menu scene: the district at sunset, camera already placed, nothing else
+      mode = null; S.fsm.set('title'); applyFsm(); ACT.removeColossal(); await placeTitleShot();
+      titleT0 = performance.now(); S.menu.state.t0 = titleT0; const P = S.menu.cam(titleT0); cineOn(P.pos, P.target, P.fov);
+      titleInfo = { version: VERSION, latest: await latestSave() }; AU.wind(0.0);
     },
     async prepTitle() {                                    // everything the title needs, while the screen is black
       mode = null; S.fsm.set('title'); applyFsm(); ACT.removeColossal(); await placeTitleShot();
@@ -268,7 +274,15 @@
     UI.creator({ cfg: S.data.config, draft, destiny: dest }, d => { cineOff(); ACT.clearAll(); finishCreation(buildPlayer(d, dest), dest); }, () => { cineOff(); ACT.clearAll(); showTitle(); }, mk, dx => { if (ACT.player) ACT.player.yaw += dx; });
     await UI.fadeTo(false, 700);
   }
-  async function finishCreation(player, dest) { DST.consume(); AU.blade(); await startNewGame(player); }
+  async function finishCreation(player, dest) {              // creator -> opening cinematic (to be polished next) -> the prologue
+    DST.consume(); AU.blade();
+    try { await playCinematic(); } catch (e) { console.error('[opening] cinematic failed, continuing to the prologue', e); }
+    await startNewGame(player);
+  }
+  async function playCinematic() {
+    mode = null; S.fsm.set('intro'); applyFsm(); await UI.fadeTo(true, 500); UI.hideAll(); ACT.clearAll(); root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true;
+    await placeTitleShot(); AU.stopMusic(); AU.wind(0.03); await S.opening.cinematic(openingHost); cineOff(); ACT.clearAll(); ACT.removeColossal && ACT.removeColossal();
+  }
 
   /* ================= story start / load ================= */
   function setPlayerName(n) { const e = doc.querySelector('#odm .lv'); if (e) e.textContent = n; }
@@ -319,7 +333,7 @@
     const slots = await SV.list();
     UI.saves(m, slots, async slot => {
       if (m === 'save') { try { await doSave(slot); UI.toast('Game saved'); } catch (e) { UI.toast('Save failed: ' + e.message); } openSaves('save'); }
-      else { UI.hideAll(); S.fsm.stack.length = 0; if (!fromTitle) S.fsm.set('play'); await loadSlot(slot); }
+      else { UI.hideAll(); S.fsm.stack.length = 0; if (!fromTitle) S.fsm.set('play'); else { await S.menu.leave(true); ACT.clearAll(); } await loadSlot(slot); }
     }, fromTitle ? () => showTitle(true) : showPauseMenu);
   }
   function fastTravel() {
@@ -345,9 +359,8 @@
     closeMap: () => { S.map.close(); if (mapFrom === 'menu') showPauseMenu(); else closeOverlay(); },
     hover: () => AU.hover(), hoverBegin: () => AU.heartbeat(), locked: () => UI.toast('The training grounds open in Act 2.'),
     continue: () => { AU.select(); openSaves('load', true); },
-    new: () => openCreator(),
-    options: () => { AU.select(); UI.optionsPanel(() => UI.show('title')); },
-    exit: async () => { AU.select(); await S.opening.exitCard(); AU.stopMusic(); AU.wind(0); opening(); },
+    new: () => S.menu.leave(true).then(openCreator),
+    options: () => { AU.select(); UI.optionsPanel(() => S.menu.back()); },
     credits: () => { AU.select(); UI.credits(S.data.credits, () => { UI.show('title'); }); }
   };
 
@@ -382,6 +395,7 @@
     ensureModels(['fuse_man', 'fuse_woman', 'colossal']);          // warm the model cache in the background
     await placeTitleShot(); document.documentElement.classList.remove('aow-boot'); await opening();          // the gate stays black until the first tap; the opening handles every fade after that
   }
+  S.flow = { newGame: openCreator, openSaves: () => openSaves('load', true), latestKey: () => SV.latest(), readSave: k => SV.read(k), exportSaves, importSaves };
   root.STORY.debug = { G, scenes, get mode() { return mode; }, startRoam, startNewGame, loadSlot, showTitle, coldOpen, openCreator, spawnCast, syncActors };
   boot().catch(err => { console.error('[story] boot failed', err); document.documentElement.classList.remove('aow-boot'); const m = doc.getElementById('msg'); if (m) m.textContent = 'Story layer failed: ' + err.message; UI.fade && UI.fade.classList.remove('on'); S.fsm.set('play'); mode = 'roam'; root.__freeze = false; root.__noOdm = false; root.__noTitan = false; root.__hideAvatar = false; });
 })(typeof window !== 'undefined' ? window : globalThis);

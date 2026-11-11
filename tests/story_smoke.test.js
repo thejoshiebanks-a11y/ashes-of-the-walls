@@ -54,7 +54,7 @@ global.__world={H:()=>HP,gh:()=>0,cast:()=>null,inCanal:()=>false};
 const MODELS=new Set(),LIST=[]; let AID=1;
 global.__actors={HH:.486,PLS:.54,LEVI_H:1.62,list:LIST,has:k=>MODELS.has(k),loadModel:async k=>{MODELS.add(k);return {}},add(d){const a=Object.assign({id:AID++},d);LIST.push(a);return a},remove(id){const i=LIST.findIndex(a=>a.id===id);if(i>=0)LIST.splice(i,1)},clear(keep){for(let i=LIST.length-1;i>=0;i--)if(!(keep&&LIST[i].isPlayer))LIST.splice(i,1)}};
 /* ---------- load the real modules ---------- */
-for(const f of ['core','audio','destiny','dialogue','world','save','actors','map','ui','opening','main']) require(`${R}/js/story/${f}.js`);
+for(const f of ['core','audio','destiny','dialogue','world','save','actors','map','ui','opening','menu','main']) require(`${R}/js/story/${f}.js`);
 const S=window.STORY, UI=S.ui, ACT=S.actors, D=S.destiny; let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL:',m)}};
 const sleep=ms=>new Promise(r=>_st(r,ms)); const until=async(fn,m,ms=20000)=>{const t=Date.now();while(Date.now()-t<ms){if(fn())return true;await sleep(15)}ok(false,'timeout: '+m);return false};
 const vis=sel=>{const e=document.querySelector(sel);return e&&!e.hidden};
@@ -63,26 +63,23 @@ const talk=async(conv,picks)=>{tapAll.pick=picks||[];S.dialogue.start(conv);awai
 const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=[q.x+1,0,q.z+1]};
 (async()=>{
  UI.settings.textSpeed='instant';
- // ---- gate: silence until the first tap, which unlocks audio ----
- await until(()=>S.fsm.state==='intro'&&document.querySelector('.op-studio.gate'),'tap gate shows'); ok(/Tap/i.test(document.querySelector('.op-tap').textContent),'tap prompt');
- ok(!S.audio.ready(),'no audio before the first tap');
- document.querySelector('.op-studio').onpointerdown(); ok(S.audio.ready(),'audio unlocked by the tap');
- await until(()=>document.querySelector('.op-studio.logo'),'studio logo plays');
- await until(()=>S.fsm.state==='title'&&document.querySelector('.op-title.shown'),'title docks after the stamp'); await until(()=>document.querySelector('.op-item.sel'),'menu goes live');
- ok(window.__freeze===true&&window.__hideAvatar===true,'frozen on title'); ok(window.__cine&&window.__cine.on,'creeping title camera is on'); ok(body.className.includes('sv-hidehud'),'HUD hidden on title');
- const act=a=>document.querySelector('[data-act='+a+']');
- ok(!act('roam'),'free roam is gone from the menu'); ok(act('train').className.includes('locked'),'training grounds shown locked'); ok(act('continue').className.includes('empty'),'Load file is greyed without a save'); ok(act('exit'),'exit item present');
- ok(/Begin/i.test(act('new').textContent),'Begin Journey'); ok(document.querySelector('.op-cbtn')&&!document.querySelector('.op-credit'),'no credit text on the title, only the Credits button');
- act('train').click(); await sleep(10); ok(/Act 2/.test(document.querySelector('.sv-toasts').textContent),'locked toast');
- // options + credits
+ // ---- launch: loading -> studio logo -> 3D title (tap to continue) -> main menu; no cinematic ----
+ await until(()=>S.fsm.state==='title'&&S.menu.stage()==='title','title screen reached without a gate or cinematic',60000);
+ ok(!S.audio.ready(),'no audio before the first tap'); ok(!LIST.some(a=>a.key==='colossal2'||a.key==='colossal'),'no Colossal at launch');
+ ok(window.__cine&&window.__cine.on,'3D title camera is on'); ok(body.className.includes('sv-hidehud'),'HUD hidden on title'); ok(!!document.querySelector('.mn-logo img'),'game logo on the title');
+ document.querySelector('.mn-tap').click(); ok(S.audio.ready(),'audio unlocked by the tap'); await until(()=>S.menu.stage()==='menu','menu after the tap');
+ const act=a=>document.querySelector('.mn-item[data-act='+a+']');
+ ok(act('new')&&act('options')&&act('extras'),'new game / settings / extras present'); ok(!act('continue')&&!act('character'),'no Continue/Character without a save'); ok(!act('exit')&&!act('roam')&&!act('train'),'no dead entries');
+ ok(LIST.some(a=>a.key==='jean'),'Jean stands in the menu scene');
+ // options
  act('options').click(); await sleep(20); ok(vis('#sv-pause')&&document.querySelectorAll('.sv-range').length>=3,'options has volume sliders');
  document.querySelectorAll('.sv-range')[1].dispatch('input',{target:{value:'40'}}); ok(Math.abs(S.audio.settings.music-0.4)<1e-6,'music volume slider works');
- document.querySelector('#sv-pause .sv-pbtn').click(); await sleep(20); ok(vis('#sv-title'),'options back to title');
- document.querySelector('.op-cbtn').click(); await sleep(20); ok(/Prime Slayer3D/.test(document.querySelector('.sv-roll').textContent)&&/Nico Maier/.test(document.querySelector('.sv-roll').textContent),'credits scene'); document.querySelector('#sv-credits .sv-back').onclick(); await sleep(20);
+ document.querySelector('#sv-pause .sv-pbtn').click(); await sleep(20); ok(S.menu.stage()==='menu','options back to the menu');
+ act('extras').click(); await sleep(30); document.querySelector('.mn-row').click(); await sleep(20); ok(/Prime Slayer3D/.test(document.querySelector('.sv-roll').textContent)&&/Nico Maier/.test(document.querySelector('.sv-roll').textContent),'credits scene (Extras)'); document.querySelector('#sv-credits .sv-back').onclick(); await sleep(20);
  // rig the destiny so this file is an Ackerman (it must stay hidden)
  let seed=1; while(D.roll(seed).bloodline!=='ackerman')seed++; localStorage.setItem('ashes_destiny',String(seed)); const dest=D.roll(seed);
  // ---- Begin journey: cold open, then the registry ----
- act('new').click(); await until(()=>S.fsm.state==='intro','cold open begins'); ok(!S.audio.ready()||true,''); 
+ act('new').click(); await sleep(30); document.querySelector('.mn-btn.pri').click(); 
   await until(()=>S.fsm.state==='creator'&&vis('#sv-creator'),'registry opens'); ok(!LIST.some(a=>a.key==='colossal'),'colossal removed after the cold open');
  ok(LIST.some(a=>a.key.startsWith('fuse_')&&!a.isPlayer&&a.scale>0.5),'the Anchor stands in the preview'); const pv=LIST.find(a=>a.key.startsWith('fuse_')&&a.look&&a.skipRe);
  ok(/Shiganshina District Registry/.test(document.querySelector('.sv-stage-head').textContent),'registry framing');
@@ -129,8 +126,8 @@ const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=
  await until(()=>S.fsm.state==='dialogue'&&/ground jumps/.test(document.querySelector('.sv-line').textContent),'breach dialogue'); ok(document.body.className.includes('sv-letterbox'),'letterbox on');
  tapAll.pick=[0]; await tapAll(); await until(()=>S.fsm.state==='ending'&&vis('#sv-ending'),'ending card'); ok(S.flag('breach_choice')==='hand','choice saved');
  const auto=await S.save.read('auto'); ok(auto&&auto.state.flags.prologue_part1_done&&auto.state.day===3&&auto.state.player.look.scar===1,'autosave holds day, look and flags');
- document.querySelectorAll('.sv-pbtn').find(b=>/Return to title/.test(b.textContent)).click(); await until(()=>S.fsm.state==='title'&&vis('#sv-title'),'title again'); await until(()=>document.querySelector('.op-item.sel'),'menu live again');
- ok(!act('continue').className.includes('empty')&&/Sera/.test(act('continue').querySelector('small').textContent),'Load file appears: '+act('continue').querySelector('small').textContent);
+ document.querySelectorAll('.sv-pbtn').find(b=>/Return to title/.test(b.textContent)).click(); await until(()=>S.fsm.state==='title'&&S.menu.stage()==='menu'&&act('continue'),'back at the menu, directly (no cinematic, no tap screen)');
+ ok(/Sera/.test(act('continue').querySelector('small').textContent),'Load file appears: '+act('continue').querySelector('small').textContent);
  S.reset(); act('continue').click(); await sleep(30); ok(vis('#sv-saves'),'load list'); document.querySelectorAll('.sv-slot').find(b=>/Autosave/.test(b.textContent)).click();
  await until(()=>S.fsm.state==='play'&&S.state.player&&S.state.player.name==='Sera','load restores'); ok(S.state.day===3&&S.flag('breach_choice')==='hand','day and flags restored'); ok(LIST.some(a=>a.isPlayer),'player actor respawned after load');
  console.log(`smoke test: ${pass} passed, ${fail} failed`); process.exit(fail?1:0);

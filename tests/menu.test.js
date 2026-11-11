@@ -1,0 +1,21 @@
+// v0.9 launch flow: static wiring checks (no DOM): scripts, assets, hooks, and the rule that the Colossal cinematic is not part of launch.
+const fs = require('fs'); let pass = 0, fail = 0; const ok = (c, m) => { c ? pass++ : (fail++, console.log('FAIL ' + m)); };
+const rd = f => fs.readFileSync(__dirname + '/../' + f, 'utf8');
+const boot = rd('js/boot.js'), menu = rd('js/story/menu.js'), main = rd('js/story/main.js'), op = rd('js/story/opening.js'), html = rd('index.html');
+ok(/opening\.js', 'js\/story\/menu\.js', 'js\/story\/main\.js/.test(boot), 'menu.js loads after opening.js and before main.js');
+ok(html.includes('css/menu.css') && fs.existsSync(__dirname + '/../css/menu.css'), 'menu.css linked');
+ok(fs.existsSync(__dirname + '/../assets/ui/game_logo.webp') && menu.includes('assets/ui/game_logo.webp'), 'game logo asset exists and is used');
+ok(!/H\.ensure\(\)/.test(menu) && !/OP\.intro\(/.test(menu), 'launch never starts the Colossal intro');
+ok(/OP\.runOpening = M\.run/.test(menu), 'runOpening replaced by the new launch flow');
+ok(/OP\.cinematic = async function/.test(op) && /S\.opening\.cinematic\(openingHost\)/.test(main), 'cinematic is available and only called from the new-game path');
+ok(/finishCreation[\s\S]{0,300}playCinematic/.test(main), 'creator -> cinematic -> prologue');
+const mainNoCine = main.replace(/async function playCinematic[\s\S]*?\n  }\n/, ''); ok(!/opening\.cinematic/.test(mainNoCine), 'no other caller of the cinematic');
+ok(/'new'.*'continue'.*'character'.*'options'.*'extras'/s.test(menu), 'menu has NEW GAME / CONTINUE / CHARACTER / SETTINGS / EXTRAS');
+ok(/has && \['continue'/.test(menu) && /has && \['character'/.test(menu), 'Continue and Character only exist when a save exists');
+ok(/openSaves\('load', true\)/.test(main) && /S\.menu\.leave\(true\)/.test(main), 'Continue lists saves and leaves the menu scene before loading');
+ok(/SV\.latest\(\)/.test(main) && !/SV\.remove|S\.reset\(\)/.test(menu), 'menu never resets or deletes progress');
+ok(/AU\.unlock\(\)/.test(menu) && /AU\.music\('title'\)/.test(menu), 'audio unlocked on the tap, one title track');
+ok(/removeJean/.test(menu) && /cancelAnimationFrame|fxRaf = D\.live/.test(menu), 'leaving cleans actors and effect loops');
+const np = JSON.parse(rd('data/npc_models.json')), mm = JSON.parse(rd('data/models.json')); ok(!!np.jean || Object.keys(np).some(k => /jean/.test(k)), 'jean model registered');
+ok(JSON.stringify(mm).includes('J:idle'), 'J:idle clip baked');
+console.log('menu test: ' + pass + ' passed, ' + fail + ' failed'); process.exit(fail ? 1 : 0);

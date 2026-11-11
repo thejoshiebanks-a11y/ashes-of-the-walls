@@ -1,4 +1,11 @@
 # Changelog
+## 0.9.0: New launch flow, 3D title screen, main menu with Jean
+- **Flow**: launch -> loading bar -> Joshie Sama logo (blue identity, name only, about 3.5 s, tap skips) -> 3D title (Shiganshina at sunset, drifting camera, TAP TO CONTINUE) -> main menu. The Colossal cinematic no longer plays at launch, on Continue, or when returning to the title.
+- **NEW GAME** -> confirmation -> character creator -> Colossal opening cinematic (`OP.cinematic`, to be polished next) -> prologue. **CONTINUE** lists saves, loads the chosen one and goes straight into the game. Saves are never touched by the menu.
+- **Menu** (`js/story/menu.js`, `css/menu.css`): NEW GAME, CONTINUE and CHARACTER (only when a save exists), SETTINGS, EXTRAS (credits, back up / restore saves). Touch, keyboard (arrows/W S, Enter, Esc) and gamepad (d-pad/stick, A, B). Hover/select sounds, one title track, audio unlocked on the first tap, everything cleaned up when leaving (Jean, effect loops, camera).
+- **Scene**: the new official logo (`assets/ui/game_logo.webp`, separate from the studio mark) glides from the title centre to the top right; animated banner and birds on a light 2D layer over the live 3D scene.
+- **Jean (Scout Regiment)**: converted from your FBX with `tools/fbx2glb.py` (mesh, skeleton, textures, idle). Added to `npc.pack` / `models.pack` as `jean` with clip `J:idle`.
+- Tests: `tests/menu.test.js`, smoke test updated for the new flow.
 ## 0.8.2
 - Gate: hidden stone plugs on both sides of the gate close the cracks (`tools/patch_gap.py`).
 - Ground: removed the dark cobble joint lines added in 0.8.0; kept pebbles, grain and grass breakup.

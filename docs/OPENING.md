@@ -32,3 +32,8 @@ gate (game crest, tap) -> studio mark -> cinematic intro -> stamp -> dock -> tit
 
 ## Tuning the hand grip (v0.5.2)
 `OP.K.fd` and `OP.K.pn` are the finger direction and palm normal of the left hand in the pelvis frame (+y up, +z forward); the right hand mirrors x. `OP.K.curlT` is where the fingers curl toward, in hand lengths from the wrist, and `OP.K.curl` is the curl amount. If the hand sinks into the stone, raise `liftGrab` or the arm y values in `armU/armF`; if the fingers point the wrong way, flip the sign of `fd[1]` and `curlT[1]`.
+
+## v0.9.0 flow (supersedes the launch order above)
+launch -> loading bar (models: Jean, creator bodies) -> studio logo (name only, ~3.5 s) -> 3D title (TAP TO CONTINUE) -> main menu.
+`js/story/menu.js` owns all of it (`OP.runOpening = M.run`). The Colossal cinematic is `OP.cinematic(H)` and only runs from `finishCreation` in main.js (New Game -> confirm -> creator -> cinematic -> prologue).
+Menu scene tuning: `STORY.menu.cfg` (hour, Jean x/z/yaw, camera back/side/up/look/lookUp/fov). Jean stands on the long avenue at x=-130 facing the wall.

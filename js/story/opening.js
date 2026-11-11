@@ -472,6 +472,14 @@
     }, legal);
   };
 
+  OP.hexSVG = (...a) => hexSVG(...a);
+  OP.cinematic = async function (H) {                        // the Colossal opening: now only after NEW GAME -> confirm -> character creator
+    mountOnce(); FX.stop(); const run = OP.newRun(); OP.run = run; const t0i = performance.now(); const ensured = H.ensure();
+    const key = e => { if (e.code === 'Escape' || e.code === 'Space' || e.code === 'Enter') run.skip(); }; doc.addEventListener('keydown', key); await ensured; FX.start();
+    skipEl.onclick = () => run.skip(); stage.onpointerdown = () => { if (performance.now() > 1400 + t0i) run.skip(); };
+    try { await OP.intro(run, H); } finally { stage.onpointerdown = null; doc.removeEventListener('keydown', key); stage.hidden = true; cutEl.classList.remove('on'); FX.stop(); AU.stopMusic(); UI.fade.classList.remove('on'); }
+  };
+
   /* ---- hooks into the existing UI ---- */
   const mountOld = UI.mount; UI.mount = function () { mountOld.apply(this, arguments); OP.mount(); };
   UI.setTicker = lines => OP.ticker(lines);

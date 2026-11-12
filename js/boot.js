@@ -3,7 +3,7 @@
  * already expects, then starts engine.js -> viewer.js -> game.js in order. */
 (function () {
   'use strict';
-  const VERSION = '0.9.1';
+  const VERSION = '0.9.2';
   window.__APP_VERSION = VERSION;            // bump on every release to bust the GitHub Pages cache
   const $ = id => document.getElementById(id);
   const say = (m, p) => {

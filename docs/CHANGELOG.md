@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.2
+- Menu framing: closer, head-to-hips shot of Jean, so his legs and the roof edge no longer show.
+- Cape and hair: silkier wind (waves travelling down the cloth, a steady blow-out plus gusts and side drift instead of an up/down bob).
+- Hands and arms follow the idle: arms and forearms sway with the breathing and the fingers keep a relaxed, breathing half-curl.
+
 ## 0.9.1
 - Loading screen now opens with the key-art logo (assets/ui/key_art.webp), then the Joshie Sama studio logo, then the title.
 - Fixed the menu scene flashing between the studio logo and the title: the camera stays on the title shot and a black cover holds until the title is placed.

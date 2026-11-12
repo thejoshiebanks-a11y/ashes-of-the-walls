@@ -14,7 +14,8 @@
     hour: 18.0,
     title: { pos: [-70, 30, -262], target: [6, 33, 0], fov: 0.82, drift: 7 },
     jean: { x: -141, z: -287, y: 8.4, yaw: 0.35, turn: 0, meters: 1.74 },
-    menu: { pos: [-139.8, 9.6, -291.5], target: [-144.4, 10.0, -271.9], fov: 0.62 },
+    menu: { pos: [-140.9, 9.65, -289.2], target: [-140.8, 9.78, -287.0], fov: 0.56 },
+    hand: { base: .3, sign: 1, axis: 2 },
   };
   const BLEND = 4200;
   const D = { stage: 'off', t0: 0, blend: null, jean: null, live: false, sel: 0, items: [], modal: null, info: { latest: null, version: '' }, ready: false };
@@ -163,8 +164,21 @@
     a.wind = { dir: [-.8, -.6], str: 1, parts: { cape: { prim: 3, k: .26, top: 1.58, span: .64, flutter: .55 }, hair: { prim: 0, k: .05, top: 1.77, span: .2, flutter: .7 } } };
     a.poseFn = idlePose; D.jean = a; return a;
   }
+  /* hands: a relaxed half-curl that breathes, each finger a little out of step (local rest matrices are re-derived every frame, so nothing accumulates) */
+  function fingers(M, t, br) {
+    if (!M._fg) {
+      M._fg = []; for (const sd of ['L', 'R']) for (const f of [0, 1, 2, 3, 4]) [f, f + '1', f + '2'].forEach((suf, seg) => { const i = M.id('Bip001 ' + sd + ' Finger' + suf); if (i >= 0) M._fg.push({ i, rest: M.loc.slice(i * 16, i * 16 + 16), seg, f, sd }); });
+    }
+    const H = CFG.hand || { base: .3, sign: 1, axis: 2 };
+    for (const g of M._fg) {
+      const thumb = g.f === 0, base = (thumb ? .1 : .16 + g.f * .03) * (g.seg === 0 ? 1.1 : 1.35) * H.base / .3, a = H.sign * (base + .045 * Math.sin(t * 1.1 + g.f * .7 + g.seg * .4) + br * .012), c = Math.cos(a), s_ = Math.sin(a), L = M.loc, r = g.rest, o = g.i * 16;
+      for (let k = 0; k < 16; k++) L[o + k] = r[k];
+      const A = H.axis === 2 ? [0, 1] : H.axis === 1 ? [0, 2] : [1, 2], p0 = A[0] * 4, p1 = A[1] * 4;           // rotate about the chosen local axis: post-multiply the 3x3
+      for (let q = 0; q < 3; q++) { const x = r[p0 + q], y = r[p1 + q]; L[o + p0 + q] = x * c + y * s_; L[o + p1 + q] = -x * s_ + y * c; }
+    }
+  }
   /* living idle: breathing, a slow weight shift, the head drifting along the skyline, the arms hanging loose (added on top of the baked idle clip) */
-  function idlePose(pz, a) {
+  function idlePose(pz, a, M) {
     const bi = root.__actors.bi; if (!bi) return; const t = performance.now() * .001, d = pz.d;
     const prev = idlePose.prev || (idlePose.prev = {}), add = (n, x, y, z) => { const k = bi('Bip001 ' + n); if (k === undefined) return; const i = k * 3, p = prev[k] || (prev[k] = [0, 0, 0]);       // the pose buffer can persist between frames: take back last frame's offset first so nothing accumulates
       d[i] += x - p[0]; d[i + 1] += y - p[1]; d[i + 2] += z - p[2]; p[0] = x; p[1] = y; p[2] = z; };
@@ -172,7 +186,9 @@
     add('Spine', sh * .012, 0, br * .006); add('Spine1', sh * .01, 0, br * .008); add('Spine2', -sh * .006, br * .004, br * .012);
     add('Neck', look * .02, 0, 0); add('Head', look * .07, Math.sin(t * .19) * .012, Math.sin(t * .31) * .02 - br * .004);
     add('L Clavicle', 0, br * .012, 0); add('R Clavicle', 0, br * .012, 0);
-    add('L UpperArm', Math.sin(t * .9) * .012, 0, Math.sin(t * 1.1 + 1) * .01); add('R UpperArm', Math.sin(t * .8 + 2) * .012, 0, Math.sin(t * 1.0) * .01);
+    add('L UpperArm', Math.sin(t * .9) * .03 + br * .008, br * .006, Math.sin(t * 1.1 + 1) * .026); add('R UpperArm', Math.sin(t * .8 + 2) * .03 - br * .008, br * .006, Math.sin(t * 1.0) * .026);
+    add('L Forearm', Math.sin(t * 1.3 + .6) * .035, Math.sin(t * .7) * .015, Math.sin(t * 1.05 + 2) * .05); add('R Forearm', Math.sin(t * 1.2 + 2.4) * .035, Math.sin(t * .75 + 1) * .015, Math.sin(t * .95 + .5) * .05);
+    if (M) fingers(M, t, br);
     if (D.jean) { D.jean.vg = CFG.jean.y + br * .0035; D.jean.yaw = CFG.jean.yaw + (CFG.jean.turn || 0) + sh * .018; }
   }
   function removeJean() { if (D.jean) { root.__actors.remove(D.jean.id); D.jean = null; } }

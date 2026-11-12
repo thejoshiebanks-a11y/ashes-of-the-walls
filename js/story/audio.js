@@ -190,6 +190,11 @@
     const t = now(), g = ctx.createGain(), o = osc('sine', 58, t, t + 3); o.frequency.exponentialRampToValueAtTime(30, t + 2); env(g, t, 0.01, 2.6, 1); o.connect(g); out(g, 0.6);
     [311, 487, 905, 1430].forEach((f, i) => { const cg = ctx.createGain(), co = osc('triangle', f, t, t + 2.4); env(cg, t, 0.002, 1.8 - i * 0.3, 0.16 / (1 + i * 0.4)); co.connect(cg); out(cg, 0.7); });
   });
+  A.menuSelect = safe(function () {               // choosing a menu entry: a low stone thud under a short ring of steel
+    const t = now(), o = osc('sine', 118, t, t + 0.5), g = ctx.createGain(); o.frequency.exponentialRampToValueAtTime(52, t + 0.32); env(g, t, 0.004, 0.34, 0.5); o.connect(g); out(g, 0.15);
+    [1480, 2210].forEach((f, i) => { const og = ctx.createGain(), q = osc('triangle', f, t, t + 0.3); env(og, t, 0.002, 0.16 + i * 0.05, 0.07 / (i + 1)); q.connect(og); out(og, 0.25); });
+    const n = noise(), hp = ctx.createBiquadFilter(), ng = ctx.createGain(); hp.type = 'highpass'; hp.frequency.value = 3200; env(ng, t, 0.002, 0.07, 0.12); n.connect(hp); hp.connect(ng); out(ng, 0.08); n.start(t); n.stop(t + 0.12);
+  });
   A.menuTick = safe(function () {                 // a soft steel tick for moving through the menu
     const t = now(), n = noise(), bp = ctx.createBiquadFilter(), g = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 5; env(g, t, 0.002, 0.05, 0.16);
     n.connect(bp); bp.connect(g); out(g, 0.05); n.start(t); n.stop(t + 0.08);

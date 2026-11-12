@@ -58,7 +58,7 @@
       '<nav class="mn-list" role="menu" aria-label="Main menu"></nav>' +
       '<p class="mn-tag">Fight for Humanity…</p>' +
       '<aside class="mn-news"><img src="assets/ui/emblem.webp" alt="" draggable="false"><div><b>Welcome to Ashes of the Walls</b><span>Stand, fight, and protect what remains.</span></div></aside>' +
-      '<footer class="mn-bar"><span class="mn-ver"></span><span class="mn-prompt"><kbd class="mn-key">⏎</kbd><em>Select</em></span></footer>' +
+      '<footer class="mn-bar"><span class="mn-ver"></span><button class="mn-snd" type="button" aria-label="Toggle sound"></button><span class="mn-prompt"><kbd class="mn-key">⏎</kbd><em>Select</em></span></footer>' +
       '<div class="mn-modal" hidden></div>';
     const fx = root_.querySelector('.mn-fx'); canvas = fx; cg = fx.getContext('2d');
     listEl = root_.querySelector('.mn-list'); logoEl = root_.querySelector('.mn-logo'); tapEl = root_.querySelector('.mn-tap'); modalEl = root_.querySelector('.mn-modal'); newsEl = root_.querySelector('.mn-news'); tagEl = root_.querySelector('.mn-tag');
@@ -87,18 +87,19 @@
     });
     select(0, false, true);
     root_.querySelector('.mn-ver').textContent = 'v' + (D.info.version || '');
+    const sb = root_.querySelector('.mn-snd'); sb.onclick = e => { e.stopPropagation(); const m = !(AU.settings && AU.settings.muted); AU.setMuted(m); soundBtn(); if (!m) { startAudio(true); AU.menuTick && AU.menuTick(); } }; soundBtn();
   }
   function promptGlyph() { const k = root_.querySelector('.mn-key'), e = root_.querySelector('.mn-prompt em'); if (D.pad) { k.textContent = 'A'; k.className = 'mn-key pad'; e.textContent = 'Select'; } else if (root.matchMedia && root.matchMedia('(pointer: coarse)').matches) { k.textContent = '☝'; k.className = 'mn-key touch'; e.textContent = 'Tap to select'; } else { k.textContent = '⏎'; k.className = 'mn-key'; e.textContent = 'Select'; } }
   function select(i, snd, silent) {
     i = (i + D.items.length) % D.items.length; if (i === D.sel && !silent && D.items[i].classList.contains('sel')) return;
-    D.items.forEach((b, k) => { b.classList.toggle('sel', k === i); b.setAttribute('aria-selected', k === i); }); D.sel = i; if (snd) AU.hover();
+    D.items.forEach((b, k) => { b.classList.toggle('sel', k === i); b.setAttribute('aria-selected', k === i); }); D.sel = i; if (snd) (AU.menuTick || AU.hover)();
   }
 
   /* ---- modals (new game confirm, character sheet, extras) ---- */
   function modal(o) {
     D.modal = o; modalEl.hidden = false; modalEl.textContent = '';
     const card = el('div', 'mn-card'); card.append(el('h2', '', o.title)); if (o.body) { const p = el('div', 'mn-body'); if (typeof o.body === 'string') p.textContent = o.body; else p.append(o.body); card.append(p); }
-    const row = el('div', 'mn-btns'); o.buttons.forEach((bd, i) => { const b = el('button', 'mn-btn' + (bd.primary ? ' pri' : ''), bd.text); b.type = 'button'; b.onclick = () => { AU.select(); bd.run && bd.run(); }; b.onpointerenter = () => AU.hover(); row.append(b); if (i === (o.focus || 0)) setTimeout(() => b.focus?.({ preventScroll: true }), 30); });
+    const row = el('div', 'mn-btns'); o.buttons.forEach((bd, i) => { const b = el('button', 'mn-btn' + (bd.primary ? ' pri' : ''), bd.text); b.type = 'button'; b.onclick = () => { (AU.menuSelect || AU.select)(); bd.run && bd.run(); }; b.onpointerenter = () => AU.hover(); row.append(b); if (i === (o.focus || 0)) setTimeout(() => b.focus?.({ preventScroll: true }), 30); });
     card.append(row); modalEl.append(card); void modalEl.offsetWidth; modalEl.classList.add('in'); root_.classList.add('dim');
   }
   function closeModal() { D.modal = null; modalEl.classList.remove('in'); root_.classList.remove('dim'); setTimeout(() => { if (!D.modal) modalEl.hidden = true; }, 220); }
@@ -107,7 +108,7 @@
 
   const sub = () => { D.stage = 'menu-sub'; root_.hidden = true; };
   async function activate(act) {
-    const F = S.flow; AU.select();
+    const F = S.flow; (AU.menuSelect || AU.select)();
     if (act === 'new') return modal({ title: 'Begin a new game?', body: D.info.latest ? 'You will create a new character. Your existing saves are not touched and stay available under Continue.' : 'You will create your character, then the story begins.',
       buttons: [{ text: 'Begin', primary: true, run: async () => { closeModal(); await M.leave(true); F.newGame(); } }, { text: 'Back', run: closeModal }], focus: 1 });
     if (act === 'continue') { sub(); return F.openSaves(); }
@@ -118,7 +119,7 @@
       return modal({ title: pl ? pl.name : 'Character', body: pl ? kv([['Role', 'Recruit, Wall Maria'], ['Bloodline', cap(pl.bloodline && (pl.bloodline.name || pl.bloodline.id || pl.bloodline))], ['Difficulty', cap(pl.difficulty)], ['Progress', l.quest || 'Prologue'], ['Time played', fmtTime(l.playSec)]]) : 'No character found.', buttons: [{ text: 'Close', primary: true, run: closeModal }] });
     }
     if (act === 'extras') {
-      const b = el('div', 'mn-sub'); const add = (t, d, f) => { const x = el('button', 'mn-row', '<b>' + t + '</b><span>' + d + '</span>'); x.type = 'button'; x.onclick = () => { AU.select(); f(); }; x.onpointerenter = () => AU.hover(); b.append(x); };
+      const b = el('div', 'mn-sub'); const add = (t, d, f) => { const x = el('button', 'mn-row', '<b>' + t + '</b><span>' + d + '</span>'); x.type = 'button'; x.onclick = () => { (AU.menuSelect || AU.select)(); f(); }; x.onpointerenter = () => AU.hover(); b.append(x); };
       add('Credits', 'Who made what, and the licences', () => { closeModal(); sub(); UI.credits(S.data.credits, () => M.back()); });
       add('Back up saves', 'Download all saves as a file', () => F.exportSaves());
       add('Restore saves', 'Load a backup file', () => F.importSaves());
@@ -144,12 +145,21 @@
     else if (D.stage === 'menu') { if (D.modal) { if (bk) closeModal(); return; } if (up) select(D.sel - 1, true); if (dn) select(D.sel + 1, true); if (ok) activate(D.items[D.sel].dataset.act); }
   }
 
+  /* ---- audio: start the score and the wind as soon as the browser lets us, from any tap or key; if the first attempt was too early (phones keep audio locked until a real touch) the next one finishes the job ---- */
+  function startAudio(force) {
+    try { AU.unlock(); } catch (e) { return; } if (!AU.ready || !AU.ready()) { if (!force) return; }
+    if (D.audOn && AU.ready()) return; if (AU.ready()) D.audOn = true; AU.wind(0.06); AU.music('title');
+  }
+  ['pointerup', 'touchend', 'click', 'keydown'].forEach(ev => doc.addEventListener(ev, () => { if (D.stage === 'off') return; startAudio(false); }, { capture: true, passive: true }));
+  function soundBtn() {
+    const b = root_.querySelector('.mn-snd'); if (!b) return; const m = !!(AU.settings && AU.settings.muted); b.textContent = m ? 'Sound  Off' : 'Sound  On'; b.classList.toggle('off', m);
+  }
   /* ---- stages ---- */
   const setStage = s => { D.stage = s; root_.dataset.s = s === 'menu-sub' ? 'menu' : s; };
   async function onTap() {
-    if (D.stage !== 'title') return; D.stage = 'busy'; AU.unlock(); AU.select(); AU.wind(0.07); AU.music('title');
+    if (D.stage !== 'title') return; D.stage = 'busy'; AU.unlock(); (AU.menuSelect || AU.select)(); startAudio(true); AU.whoosh && AU.whoosh(2.4); AU.bell && AU.bell(98);
     D.blend = performance.now(); root_.classList.add('go'); tapEl.blur?.();
-    await sleep(1900); setStage('menu'); fit(); root_.classList.add('menu-in'); await sleep(2200);
+    await sleep(1900); setStage('menu'); fit(); root_.classList.add('menu-in'); D.items.forEach((b, k) => setTimeout(() => AU.menuTick && AU.menuTick(), 520 + k * 140)); await sleep(2200);
     D.items[D.sel] && D.items[D.sel].focus?.({ preventScroll: true });
   }
   M.back = function () {                                     // from options / credits / saves: straight back to the menu
@@ -165,13 +175,13 @@
     a.poseFn = idlePose; D.jean = a; return a;
   }
   /* hands: a relaxed half-curl that breathes, each finger a little out of step (local rest matrices are re-derived every frame, so nothing accumulates) */
-  function fingers(M, t, br) {
+  function fingers(M, t, br, G) {
     if (!M._fg) {
       M._fg = []; for (const sd of ['L', 'R']) for (const f of [0, 1, 2, 3, 4]) [f, f + '1', f + '2'].forEach((suf, seg) => { const i = M.id('Bip001 ' + sd + ' Finger' + suf); if (i >= 0) M._fg.push({ i, rest: M.loc.slice(i * 16, i * 16 + 16), seg, f, sd }); });
     }
     const H = CFG.hand || { base: .3, sign: 1, axis: 2 };
     for (const g of M._fg) {
-      const thumb = g.f === 0, base = (thumb ? .1 : .16 + g.f * .03) * (g.seg === 0 ? 1.1 : 1.35) * H.base / .3, a = H.sign * (base + .045 * Math.sin(t * 1.1 + g.f * .7 + g.seg * .4) + br * .012), c = Math.cos(a), s_ = Math.sin(a), L = M.loc, r = g.rest, o = g.i * 16;
+      const thumb = g.f === 0, base = (thumb ? .1 : .16 + g.f * .03) * (g.seg === 0 ? 1.1 : 1.35) * H.base / .3, a = H.sign * (base + .045 * Math.sin(t * 1.1 + g.f * .7 + g.seg * .4) + br * .012 + (G && g.sd === 'L' ? (g.f === 1 ? -base * G.p : (.55 + g.seg * .25) * G.p * (g.f === 0 ? .6 : 1)) - base * .7 * G.s : 0) + (G && g.sd === 'R' ? -base * .7 * G.s : 0)), c = Math.cos(a), s_ = Math.sin(a), L = M.loc, r = g.rest, o = g.i * 16;
       for (let k = 0; k < 16; k++) L[o + k] = r[k];
       const A = H.axis === 2 ? [0, 1] : H.axis === 1 ? [0, 2] : [1, 2], p0 = A[0] * 4, p1 = A[1] * 4;           // rotate about the chosen local axis: post-multiply the 3x3
       for (let q = 0; q < 3; q++) { const x = r[p0 + q], y = r[p1 + q]; L[o + p0 + q] = x * c + y * s_; L[o + p1 + q] = -x * s_ + y * c; }
@@ -190,30 +200,40 @@
     const add = (n, x, y, z) => mod(n, b => [b[0] + x, b[1] + y, b[2] + z]);
     const toward = (n, w, x, y, z) => mod(n, b => { const l = Math.hypot(x, y, z); return [lerp(b[0], x / l, w), lerp(b[1], y / l, w), lerp(b[2], z / l, w)]; });
     const br = Math.sin(t * 1.55), sh = Math.sin(t * .23), look = Math.sin(t * .27) * .6 + Math.sin(t * .11 + 1) * .4;
-    /* a gesture every ~34 s, alternating: pointing out at the Wall, then a tired stretch. The first one comes a few seconds after the menu appears. */
-    if (D.stage === 'menu' && !D.gt0) D.gt0 = now; const ph = D.gt0 ? (now - D.gt0) / 1000 - 5 : -1, sm = x => x * x * (3 - 2 * x);
-    const env = (x, a_, h, o) => x < 0 ? 0 : x < a_ ? sm(x / a_) : x < a_ + h ? 1 : x < a_ + h + o ? 1 - sm((x - a_ - h) / o) : 0;
-    const cyc = ph < 0 ? -1 : ph % 34, wp = cyc < 0 ? 0 : env(cyc, 1.5, 3.2, 1.8), ws = cyc < 0 ? 0 : env(cyc - 17, 2.0, 2.6, 2.8);
+    /* a gesture every ~34 s, alternating: pointing out at the Wall, then a tired stretch. The first comes a few seconds after the menu appears.
+       Every joint has its own timing: the shoulder leads, the upper arm swings, the forearm lags behind and whips past (easeOutBack), the elbow folds before it extends,
+       and on release the forearm trails the upper arm down. */
+    if (D.stage === 'menu' && !D.gt0) D.gt0 = now; const ph = D.gt0 ? (now - D.gt0) / 1000 - 5 : -1, sm = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
+    const back = x => { const u = x - 1; return 1 + 2.4 * u * u * u + 1.4 * u * u; };
+    const seg = (c, a_, h, o_, dl) => { const x = c - dl; return x < 0 ? 0 : x < a_ ? back(x / a_) : x < a_ + h ? 1 : x < a_ + h + o_ ? 1 - sm((x - a_ - h) / o_) : 0; };
+    const cyc = ph < 0 ? -1 : ph % 34, cp = cyc, cs = cyc - 17;
     if (idlePose.out === undefined) { const k = bi('Bip001 R UpperArm'); idlePose.out = k !== undefined && d[k * 3] < 0 ? -1 : 1; }
-    const o = idlePose.out, free = 1 - Math.max(wp, ws);                       // idle arm sway fades out while a gesture owns the arm
+    const o = idlePose.out, ol = -o, V = (x, y, z) => [x, y, z];
+    const pC = cp < 0 ? 0 : seg(cp, 1.0, 4.3, 1.6, -.15), pU = cp < 0 ? 0 : seg(cp, 1.5, 3.8, 1.9, 0), pF = cp < 0 ? 0 : seg(cp, 1.4, 3.6, 2.3, .3), pX = cp < 0 ? 0 : sm((cp - .55) / 1.1) * (cp < 4.9 ? 1 : 1 - sm((cp - 4.9) / 1.2)), pH = cp < 0 ? 0 : seg(cp, 1.2, 4.2, 1.8, .45);
+    const sC = cs < 0 ? 0 : seg(cs, 1.4, 3.0, 2.4, -.2), sU = cs < 0 ? 0 : seg(cs, 2.1, 2.7, 2.6, 0), sF = cs < 0 ? 0 : seg(cs, 2.0, 2.5, 3.1, .35), sU2 = cs < 0 ? 0 : seg(cs, 2.1, 2.7, 2.6, .14), sF2 = cs < 0 ? 0 : seg(cs, 2.0, 2.5, 3.1, .5), sB = cs < 0 ? 0 : seg(cs, 2.4, 2.4, 2.6, .1), sR = cs < 0 ? 0 : sm((cs - 7.2) / .9) * (cs < 8.8 ? 1 : 1 - sm((cs - 8.8) / 1.6));
+    const freeL = 1 - Math.max(Math.min(pU, 1), Math.min(sU2, 1)), freeR = 1 - Math.min(sU, 1);       // idle sway fades out of an arm while a gesture owns it
     add('Spine', sh * .012, 0, br * .006); add('Spine1', sh * .01, 0, br * .008); add('Spine2', -sh * .006, br * .004, br * .012);
     add('Neck', look * .02, 0, 0); add('Head', look * .07, Math.sin(t * .19) * .012, Math.sin(t * .31) * .02 - br * .004);
     add('L Clavicle', 0, br * .012, 0); add('R Clavicle', 0, br * .012, 0);
-    add('L UpperArm', (Math.sin(t * .9) * .03 + br * .008) * free, br * .006 * free, Math.sin(t * 1.1 + 1) * .026 * free); add('R UpperArm', (Math.sin(t * .8 + 2) * .03 - br * .008) * free, br * .006 * free, Math.sin(t * 1.0) * .026 * free);
-    add('L Forearm', Math.sin(t * 1.3 + .6) * .035 * free, Math.sin(t * .7) * .015 * free, Math.sin(t * 1.05 + 2) * .05 * free); add('R Forearm', Math.sin(t * 1.2 + 2.4) * .035 * free, Math.sin(t * .75 + 1) * .015 * free, Math.sin(t * .95 + .5) * .05 * free);
-    if (wp > 0) {                                                            // point at the Wall with the arm the camera can see (his left, away from the cape): shoulder lifts, the arm swings up and out in front, a small tremor of attention, the head follows the finger
-      const tr = Math.sin(t * 7) * .004 * wp, ol = -o;
-      toward('L Clavicle', wp * .6, ol * .15, .45, .35); toward('L UpperArm', wp, ol * .34, .26 + tr, .9); toward('L Forearm', wp * Math.min(1, wp * 1.15), ol * .26, .30 - tr, .92);
-      add('Spine2', ol * .03 * wp, 0, .02 * wp); add('Head', ol * .05 * wp, .03 * wp, .05 * wp);
+    add('L UpperArm', (Math.sin(t * .9) * .03 + br * .008) * freeL, br * .006 * freeL, Math.sin(t * 1.1 + 1) * .026 * freeL); add('R UpperArm', (Math.sin(t * .8 + 2) * .03 - br * .008) * freeR, br * .006 * freeR, Math.sin(t * 1.0) * .026 * freeR);
+    add('L Forearm', Math.sin(t * 1.3 + .6) * .035 * freeL, Math.sin(t * .7) * .015 * freeL, Math.sin(t * 1.05 + 2) * .05 * freeL); add('R Forearm', Math.sin(t * 1.2 + 2.4) * .035 * freeR, Math.sin(t * .75 + 1) * .015 * freeR, Math.sin(t * .95 + .5) * .05 * freeR);
+    const mix = (a_, b_, k) => V(lerp(a_[0], b_[0], k), lerp(a_[1], b_[1], k), lerp(a_[2], b_[2], k)), T = (n, w, v) => w !== 0 && toward(n, w, v[0], v[1], v[2]);
+    if (pU > 0 || pF > 0 || pC > 0) {                                        // point at the Wall with the arm the camera can see (his left, away from the cape)
+      const hold = Math.sin(t * 1.3) * .012 + Math.sin(t * 2.9) * .005, wob = Math.sin(t * 6.3) * .004 * pU;
+      T('L Clavicle', pC * .7, V(ol * .16, .46, .34));
+      T('L UpperArm', pU, V(ol * .40, .24 + hold + wob, .88));
+      T('L Forearm', pF, mix(V(ol * .02, .90, .42), V(ol * .30, .34 + hold * 1.4, .90), pX));        // the elbow folds up first, then the forearm extends toward the Wall
+      add('Spine1', ol * .02 * pU, 0, .015 * pU); add('Spine2', ol * .035 * pU, 0, .02 * pU); add('Neck', ol * .03 * pH, 0, 0); add('Head', ol * .06 * pH, .03 * pH, .05 * pH);
     }
-    if (ws > 0) {                                                            // tired stretch: both arms reach up and back, chest opens, head tips back, a small shiver at the top, then it all lets go
-      const top = Math.sin(t * 8) * .005 * ws;
-      toward('R Clavicle', ws * .6, o * .2, .5, .1); toward('L Clavicle', ws * .6, -o * .2, .5, .1);
-      toward('R UpperArm', ws, o * .30, .94, -.02); toward('L UpperArm', ws, -o * .30, .94, -.02);
-      toward('R Forearm', ws, o * .12 + top, .98, -.12); toward('L Forearm', ws, -o * .12 - top, .98, -.12);
-      add('Spine', 0, 0, -.05 * ws); add('Spine1', 0, 0, -.09 * ws); add('Spine2', 0, 0, -.12 * ws); add('Neck', 0, 0, -.08 * ws); add('Head', 0, 0, -.14 * ws);
+    if (sU > 0 || sF > 0 || sU2 > 0 || sC > 0) {                              // tired stretch: shoulders shrug, both arms reach up and out, elbows straighten last, the chest opens and the head tips back; then everything lets go
+      const tr = Math.sin(t * 8.5) * .006 * Math.min(1, sU), sw = Math.sin(t * .7);
+      T('R Clavicle', sC * .7, V(o * .2, .55, .1)); T('L Clavicle', sC * .7, V(-o * .2, .55, .1));
+      T('R UpperArm', sU, V(o * .42, .88, -.02)); T('L UpperArm', sU2, V(-o * .42, .88, -.02));
+      T('R Forearm', sF, mix(V(o * .55, .55, .30), V(o * .10 + tr, .99, -.1), sm((cs - .6) / 1.6))); T('L Forearm', sF2, mix(V(-o * .55, .55, .30), V(-o * .10 - tr, .99, -.1), sm((cs - .75) / 1.6)));
+      add('Spine', sw * .012 * sB, 0, -.05 * sB + .05 * sR); add('Spine1', sw * .02 * sB, 0, -.09 * sB + .07 * sR); add('Spine2', sw * .025 * sB, 0, -.12 * sB + .08 * sR); add('Neck', 0, 0, -.08 * sB + .05 * sR); add('Head', sw * .03 * sB, 0, -.15 * sB + .08 * sR);
     }
-    if (M) fingers(M, t, br);
+    D.fing = { p: Math.min(1, pH), s: Math.min(1, Math.max(sF, sF2)) };
+    if (M) fingers(M, t, br, D.fing);
     if (D.jean) { D.jean.vg = CFG.jean.y + br * .0035; D.jean.yaw = CFG.jean.yaw + (CFG.jean.turn || 0) + sh * .018; }
   }
   function removeJean() { if (D.jean) { root.__actors.remove(D.jean.id); D.jean = null; } }
@@ -267,6 +287,7 @@
     if (!fxRaf) { lastFx = 0; fxRaf = requestAnimationFrame(fxLoop); } if (!padRaf) padRaf = requestAnimationFrame(pollPad);
     UI.fade.classList.remove('on'); await sleep(60); root_.classList.add('show'); fit();
     if (D.cover) { const c = D.cover; D.cover = null; void c.offsetWidth; c.classList.remove('in'); c.classList.add('out'); setTimeout(() => c.remove(), 2000); }
+    if (D.stage === 'title') { startAudio(false); setTimeout(() => AU.boom && AU.boom(.5), 1400); setTimeout(() => AU.bell && AU.bell(98), 4000); }
     if (D.stage === 'menu') { AU.wind(0.07); AU.music('title'); await sleep(900); D.items[D.sel] && D.items[D.sel].focus?.({ preventScroll: true }); }
   };
   M.showMenu = info => { if (info) D.info = Object.assign(D.info, info); return M.enter({ stage: 'menu' }); };

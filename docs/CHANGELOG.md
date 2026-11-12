@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.4
+- Arms: jointed, staggered motion (shoulder > elbow > wrist > fingers) with overshoot and settle; point at the walls and tired stretch rebuilt.
+- Cape: wider slow gusts and lulls so it drops lower and lifts again, kept clear of the ODM gear.
+- Audio: tap/hover/select sounds, title boom and bell, music and wind restored with retry unlock for iOS; Sound On/Off button in the menu bar.
+
 ## 0.9.3
 - Cape keeps a minimum clearance from the ODM gear at all times (steady outward bias, gentler gust range) while still rising, falling and rippling.
 - Hair no longer moves with the wind; it stays on the head (head motion from the idle is unchanged).

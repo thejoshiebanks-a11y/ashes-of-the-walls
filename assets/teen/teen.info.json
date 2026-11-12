@@ -1,0 +1,198 @@
+{
+ "key": "teen",
+ "bodyHeight": 1.6493210792541504,
+ "bodyYmin": 0.00010090574505738914,
+ "joints": 24,
+ "prims": 30,
+ "tex": 7,
+ "verts": 141911,
+ "height": 1.6493210792541504,
+ "ymin": 0.00010090574505738914,
+ "unit": 1.0,
+ "bin_kb": 2743,
+ "groups": {
+  "face": [
+   "Face",
+   "Iris",
+   "Scalp"
+  ],
+  "hair": [
+   "Hair_Messy",
+   "Hair_SimpleParted",
+   "Hair_Buzzed",
+   "Hair_BuzzedFemale",
+   "Hair_Long",
+   "Hair_Buns"
+  ],
+  "gear": [
+   "Gear_ODM",
+   "Gear_SwordL",
+   "Gear_SwordR"
+  ],
+  "outfits": {
+   "Modern": [
+    "Outfit_Modern"
+   ],
+   "Peasant": [
+    "Outfit_Peasant_Arms",
+    "Outfit_Peasant_Body",
+    "Outfit_Peasant_Feet",
+    "Outfit_Peasant_Legs"
+   ],
+   "Ranger": [
+    "Outfit_Ranger_AccPauldron",
+    "Outfit_Ranger_Arms",
+    "Outfit_Ranger_ArmsBracer",
+    "Outfit_Ranger_Body",
+    "Outfit_Ranger_BodyBelt1",
+    "Outfit_Ranger_BodyBelt1",
+    "Outfit_Ranger_FeetBoots",
+    "Outfit_Ranger_HeadHood",
+    "Outfit_Ranger_Legs"
+   ],
+   "Scout": [
+    "Outfit_Scout_Body",
+    "Outfit_Scout_Boots",
+    "Outfit_Scout_Hands",
+    "Outfit_Scout_Cloak"
+   ]
+  }
+ },
+ "prim_stats": {
+  "Face": [
+   2470,
+   3033
+  ],
+  "Iris": [
+   48,
+   49
+  ],
+  "Hair_Messy": [
+   30636,
+   33558
+  ],
+  "Outfit_Modern": [
+   44061,
+   62398
+  ],
+  "Outfit_Peasant_Arms": [
+   3179,
+   5338
+  ],
+  "Outfit_Peasant_Body": [
+   2402,
+   3856
+  ],
+  "Outfit_Peasant_Feet": [
+   1754,
+   2588
+  ],
+  "Outfit_Peasant_Legs": [
+   656,
+   1112
+  ],
+  "Outfit_Ranger_AccPauldron": [
+   1062,
+   1376
+  ],
+  "Outfit_Ranger_Arms": [
+   3042,
+   4928
+  ],
+  "Outfit_Ranger_ArmsBracer": [
+   3938,
+   3636
+  ],
+  "Outfit_Ranger_Body": [
+   2802,
+   2998
+  ],
+  "Outfit_Ranger_BodyBelt1": [
+   914,
+   804
+  ],
+  "Outfit_Ranger_FeetBoots": [
+   9292,
+   9172
+  ],
+  "Outfit_Ranger_HeadHood": [
+   1240,
+   2136
+  ],
+  "Outfit_Ranger_Legs": [
+   638,
+   1128
+  ],
+  "Hair_SimpleParted": [
+   757,
+   1301
+  ],
+  "Hair_Buzzed": [
+   466,
+   830
+  ],
+  "Hair_BuzzedFemale": [
+   466,
+   830
+  ],
+  "Hair_Long": [
+   3080,
+   2906
+  ],
+  "Hair_Buns": [
+   3501,
+   3284
+  ],
+  "Scalp": [
+   841,
+   1336
+  ],
+  "Gear_ODM": [
+   9910,
+   8110
+  ],
+  "Gear_SwordL": [
+   1056,
+   923
+  ],
+  "Gear_SwordR": [
+   1056,
+   923
+  ],
+  "Outfit_Scout_Body": [
+   7866,
+   8397
+  ],
+  "Outfit_Scout_Boots": [
+   1160,
+   1512
+  ],
+  "Outfit_Scout_Hands": [
+   1562,
+   2192
+  ],
+  "Outfit_Scout_Cloak": [
+   1142,
+   1614
+  ]
+ },
+ "textures": {
+  "teen": 0,
+  "Peasant": 1,
+  "Ranger": 2,
+  "hair:T_Hair_1_BaseColor.png": 3,
+  "hair:T_Hair_2_BaseColor.png": 4,
+  "levi_t1": 5,
+  "levi_t0": 6
+ },
+ "pelvis": [
+  -0.003559396613432901,
+  0.9161270613546436,
+  -0.0014900911720983649
+ ],
+ "head": [
+  -5.384657601136921e-08,
+  1.3824147642929805,
+  0.002482730053363362
+ ]
+}

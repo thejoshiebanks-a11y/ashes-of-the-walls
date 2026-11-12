@@ -1,0 +1,21 @@
+/* Character Lab: hide every game HUD element except the canvas, post layers and the lab overlay. */
+body.lab>*:not(canvas):not(#grade):not(#rays):not(#lab):not(#load):not(script){display:none!important}
+#lab{position:fixed;inset:0;pointer-events:none;font:500 12px/1 'Barlow Condensed',system-ui,sans-serif;color:#f3e9d2;z-index:20}
+#lab button{pointer-events:auto;font:inherit;letter-spacing:.06em;text-transform:uppercase;color:#f3e9d2;background:rgba(14,12,10,.62);border:1px solid rgba(243,233,210,.28);border-radius:8px;min-width:44px;min-height:34px;padding:0 10px;-webkit-tap-highlight-color:transparent}
+#lab button[aria-pressed=true]{background:rgba(190,140,60,.85);color:#16110a;border-color:transparent}
+#lab button:active{transform:scale(.96)}
+#lab [hidden]{display:none!important}
+#labTop{position:absolute;left:max(10px,env(safe-area-inset-left));top:8px;display:flex;gap:10px;align-items:center;text-shadow:0 1px 3px #000}
+#labStat{opacity:.7}
+#labMain{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:10px;display:flex;gap:6px}
+#labRot{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:6px}
+#labCam{position:absolute;right:max(10px,env(safe-area-inset-right));top:8px;display:flex;gap:6px}
+#labMore{position:absolute;right:max(10px,env(safe-area-inset-right));bottom:10px;display:flex;gap:6px}
+@media (max-height:300px){#lab button{min-height:30px;padding:0 8px;font-size:11px}}
+
+#labPanel{position:absolute;right:max(10px,env(safe-area-inset-right));top:44px;bottom:52px;width:min(300px,50vw);overflow-y:auto;pointer-events:auto;background:rgba(14,12,10,.74);border:1px solid rgba(243,233,210,.25);border-radius:10px;padding:6px;-webkit-overflow-scrolling:touch}
+#labPanel .row{display:flex;align-items:center;gap:4px;margin:2px 0}
+#labPanel .row span{flex:0 0 74px;font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:.05em}
+#labPanel .row b{flex:1;text-align:center;font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#labPanel button{min-width:30px;min-height:26px;padding:0 6px;font-size:11px}
+#labPanel button.wide{flex:1}

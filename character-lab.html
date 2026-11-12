@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Ashes of the Walls · Character Lab</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/lab.css">
+</head>
+<body class="lab">
+<canvas id="c" tabindex="0" aria-label="3D view of Shiganshina District"></canvas>
+<div id="grade"></div><div id="rays"></div><div id="cross" class="hud"></div>
+<div id="title" class="hud glass"><h1>Shiganshina District</h1><p>Wall Maria &middot; 50 m walls &middot; 1 unit = 1 m</p></div>
+<div id="tr" class="hud"><div id="stats" class="glass">&ndash; fps</div><button id="bInfo" class="glass ib" aria-label="Notes and controls" aria-expanded="false">i</button></div>
+<div id="panel" class="glass" role="dialog" aria-label="Notes and controls">
+ <h3>Controls</h3>
+ <ul id="ctl"></ul>
+ <h4>Scale</h4>
+ <table id="scaleT"></table>
+ <h4>What came from your files</h4>
+ <p>Walls, pilasters and flared bases follow the proportions measured from your gate model. The gate is your model, placed unchanged. Houses are your medieval models (eight base types, varied by size, mirroring and tint). Eren&rsquo;s home, the market stalls, cart, sacks, well, wall cannons and mossy boulders come from your second pack. The plaza houses, trees, barrels and cart come from your stage file.</p>
+ <h4>Built new</h4>
+ <p>Curved wall ring, deep stone canal with working barges and flowing water, outer canals, bridges, keep, bell towers, streets, an outer town, farmland and forests, and about 3,000 placed houses (nearby ones are full models, distant ones simplified). Hidden sides and the water gates are estimates, not measured.</p>
+ <h4>Credit</h4>
+ <p>Gate: &ldquo;[3ds Max] Attack on Titan Torhaus&rdquo; by Nico Maier (kafudev), CC-BY-4.0.</p>
+</div>
+<div id="stick" class="hud"><i></i></div>
+<div id="bot" class="hud">
+ <div id="row1">
+  <div class="seg glass" role="group" aria-label="Camera mode"><button id="mOrbit" aria-pressed="true">Orbit</button><button id="mWalk" aria-pressed="false">Walk</button></div>
+  <div class="tgs glass"><button class="tg" id="tFig" aria-pressed="true">Scale figures</button><button class="tg" id="tSh" aria-pressed="true">Shadows</button><button class="tg" id="tLt" aria-pressed="true">Golden hour</button><button class="tg" id="tOv" aria-pressed="false">Overgrown</button></div>
+ </div>
+ <div id="rail" class="glass" role="group" aria-label="Viewpoints"></div>
+</div>
+<div id="lab" hidden>
+ <div id="labTop"><span id="labName">Teen foundation V1</span><span id="labStat">–</span></div>
+ <div id="labMain" role="group" aria-label="Animation">
+  <button data-a="idle" aria-pressed="true">Idle</button><button data-a="walk" aria-pressed="false">Walk</button><button data-a="run" aria-pressed="false">Run</button>
+ </div>
+ <div id="labRot" role="group" aria-label="Rotate">
+  <button data-r="-1" aria-label="Turn left">&#8630;</button><button data-r="1" aria-label="Turn right">&#8631;</button>
+ </div>
+ <div id="labCam" role="group" aria-label="Camera">
+  <button data-c="full">Full</button><button data-c="face">Face</button><button data-c="side">Side</button><button data-c="back">Back</button>
+ </div>
+  <div id="labMore" role="group" aria-label="Options">
+  <button id="bHair" hidden>Hair</button><button id="bLook" aria-pressed="false">Customise</button><button id="bRef" aria-pressed="false">Levi</button>
+ </div>
+</div>
+<div id="load"><div><h2>Ashes of the Walls</h2><p>Opening the gates</p><div id="bar"><i></i></div><div id="msg">Starting…</div></div></div>
+<script src="js/lab/lab-boot.js"></script>
+</body>
+</html>

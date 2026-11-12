@@ -1,4 +1,11 @@
 # Changelog
+## 0.9.1
+- Loading screen now opens with the key-art logo (assets/ui/key_art.webp), then the Joshie Sama studio logo, then the title.
+- Fixed the menu scene flashing between the studio logo and the title: the camera stays on the title shot and a black cover holds until the title is placed.
+- Title lettering is the bloody-silver ASHES OF THE WALLS cut from the game logo (assets/ui/title_letters.webp), separate from the crest; reveal wipe, glint, Japanese subtitle, credit line, tap prompt in sequence.
+- Smoother title to menu transition: lettering lifts and dissolves while the camera arcs behind Jean over ~4 s, then menu items, logo, news card and bar reveal in a staggered sequence.
+- Jean: wind-driven cape and hair (vertex wind in game.js), living idle (breathing, weight shift, head drifting along the skyline), ember/ash drift over the scene; menu layout no longer collides on small phones.
+
 ## 0.9.0: New launch flow, 3D title screen, main menu with Jean
 - **Flow**: launch -> loading bar -> Joshie Sama logo (blue identity, name only, about 3.5 s, tap skips) -> 3D title (Shiganshina at sunset, drifting camera, TAP TO CONTINUE) -> main menu. The Colossal cinematic no longer plays at launch, on Continue, or when returning to the title.
 - **NEW GAME** -> confirmation -> character creator -> Colossal opening cinematic (`OP.cinematic`, to be polished next) -> prologue. **CONTINUE** lists saves, loads the chosen one and goes straight into the game. Saves are never touched by the menu.

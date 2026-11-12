@@ -211,13 +211,13 @@ function groundFix(M,mm,gy,standing,sc){sc=sc||1;if(!M.low)return;let mn=1e9;for
 const ZMASK=new Float32Array(128);
 function drawModel(M,model,mode,S,mask,skipRe){if(!M)return;gl.useProgram(gp.p);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,M.bt);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,4,M.J,gl.RGBA,gl.FLOAT,S||M.S);gl.uniform1i(gp.u.umode,mode||0);gl.uniform4fv(gp.u.mk,mask||ZMASK);
  gl.uniform1i(gp.u.bones,1);gl.uniform1i(gp.u.tex,0);gl.uniformMatrix4fv(gp.u.vp,false,E.vp);gl.uniformMatrix4fv(gp.u.model,false,model);gl.uniform3fv(gp.u.cam,E.camPos||[0,0,0]);gl.uniform1f(gp.u.ts,/^(titan|colossal2?|armored)$/.test(M.key||'')?1:(M.key==='levi'?.25:.5));gl.uniform3fv(gp.u.sun,E.sunDir||[.4,.8,.3]);{const L=E.light||{};gl.uniform3fv(gp.u.sunC,L.sunC||[2,2,2]);gl.uniform3fv(gp.u.ambS,L.ambS||[.4,.5,.7]);gl.uniform3fv(gp.u.ambG,L.ambG||[.4,.3,.2])}gl.disable(gl.CULL_FACE);gl.enable(gl.DEPTH_TEST);
- for(const p of M.prims){if(skipRe&&skipRe.test(p.mat))continue;gl.activeTexture(gl.TEXTURE0);const t=p.tex!==null&&p.tex!==undefined?M.tex[p.tex]:null;gl.bindTexture(gl.TEXTURE_2D,t||M.tex[0]);gl.uniform1f(gp.u.hasT,t?1:0);gl.uniform3f(gp.u.col,.07,.06,.06);{const tt=M.tintFn?M.tintFn(p.mat):null;gl.uniform3f(gp.u.tint,tt?tt[0]:1,tt?tt[1]:1,tt?tt[2]:1);gl.uniform1f(gp.u.tmode,tt&&tt[3]?1:0)}gl.bindVertexArray(p.vao);gl.drawElements(gl.TRIANGLES,p.ni,p.ty,0)}gl.bindVertexArray(null)}
+ const WN=M.wnd;if(WN)gl.uniform1f(gp.u.wt,WN.t);let wOn=0;for(let pi_=0;pi_<M.prims.length;pi_++){const p=M.prims[pi_];if(skipRe&&skipRe.test(p.mat))continue;if(WN){const w_=WN.p[pi_];if(w_){gl.uniform4f(gp.u.wnd,w_[0],w_[1],w_[2],w_[3]);gl.uniform2f(gp.u.wk,w_[4],w_[5]);wOn=1}else if(wOn){gl.uniform4f(gp.u.wnd,0,0,0,-9);wOn=0}}gl.activeTexture(gl.TEXTURE0);const t=p.tex!==null&&p.tex!==undefined?M.tex[p.tex]:null;gl.bindTexture(gl.TEXTURE_2D,t||M.tex[0]);gl.uniform1f(gp.u.hasT,t?1:0);gl.uniform3f(gp.u.col,.07,.06,.06);{const tt=M.tintFn?M.tintFn(p.mat):null;gl.uniform3f(gp.u.tint,tt?tt[0]:1,tt?tt[1]:1,tt?tt[2]:1);gl.uniform1f(gp.u.tmode,tt&&tt[3]?1:0)}gl.bindVertexArray(p.vao);gl.drawElements(gl.TRIANGLES,p.ni,p.ty,0)}if(wOn)gl.uniform4f(gp.u.wnd,0,0,0,-9);gl.bindVertexArray(null)}
 function modelMat(R,U,F,o,sc){const s=sc||1;return new Float32Array([R[0]*s,R[1]*s,R[2]*s,0,U[0]*s,U[1]*s,U[2]*s,0,F[0]*s,F[1]*s,F[2]*s,0,o[0],o[1],o[2],1])}
 function initSkin(){const sh=(t,c)=>{const x=gl.createShader(t);gl.shaderSource(x,c);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(x));return x};
  const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,`#version 300 es
-in vec3 p;in vec3 n;in vec2 uv;in uvec4 jj;in vec4 ww;uniform mat4 vp,model;uniform sampler2D bones;uniform vec4 mk[32];out vec3 vn;out vec2 vu;out float vmk;out vec3 vw;
+in vec3 p;in vec3 n;in vec2 uv;in uvec4 jj;in vec4 ww;uniform mat4 vp,model;uniform sampler2D bones;uniform vec4 mk[32];uniform vec4 wnd;uniform vec2 wk;uniform float wt;out vec3 vn;out vec2 vu;out float vmk;out vec3 vw;
 mat4 B(uint j){int r=int(j);return mat4(texelFetch(bones,ivec2(0,r),0),texelFetch(bones,ivec2(1,r),0),texelFetch(bones,ivec2(2,r),0),texelFetch(bones,ivec2(3,r),0));}
-void main(){mat4 s=B(jj.x)*ww.x+B(jj.y)*ww.y+B(jj.z)*ww.z+B(jj.w)*ww.w;vec4 w=model*(s*vec4(p,1.));vw=w.xyz;vn=mat3(model)*(mat3(s)*n);vu=uv;float m=0.;for(int k=0;k<4;k++){int j=int(jj[k]);m+=ww[k]*mk[j>>2][j&3];}vmk=m;gl_Position=vp*w;}`));
+void main(){mat4 s=B(jj.x)*ww.x+B(jj.y)*ww.y+B(jj.z)*ww.z+B(jj.w)*ww.w;vec3 pp=p;if(wnd.w>-5.){float k=clamp((wnd.w-p.y)/wk.x,0.,1.);k=k*k*(3.-2.*k);float fl=sin(wt*2.3+p.x*9.+p.y*5.)*.5+sin(wt*3.7+p.z*8.-p.y*4.)*.35+sin(wt*.9+p.x*3.)*.3;pp+=wnd.xyz*k*(1.+fl*wk.y);pp.y-=length(wnd.xz)*k*k*.12;}vec4 w=model*(s*vec4(pp,1.));vw=w.xyz;vn=mat3(model)*(mat3(s)*n);vu=uv;float m=0.;for(int k=0;k<4;k++){int j=int(jj[k]);m+=ww[k]*mk[j>>2][j&3];}vmk=m;gl_Position=vp*w;}`));
  gl.attachShader(p,sh(gl.FRAGMENT_SHADER,`#version 300 es
 precision mediump float;in vec3 vn;in vec2 vu;in float vmk;in vec3 vw;uniform int umode;uniform sampler2D tex;uniform vec3 sun,col,sunC,ambS,ambG,cam;uniform float hasT;uniform vec3 tint;uniform float tmode;uniform float ts;out vec4 o;
 void main(){if(umode==1&&vmk>.5)discard;if(umode==2&&vmk<.5)discard;vec4 c=hasT>.5?texture(tex,vu):vec4(col,1.);if(c.a<.4)discard;if(tmode>.5){float l_=dot(c.rgb,vec3(.299,.587,.114));c.rgb=tint*(l_*1.6+.05);}else c.rgb*=tint;
@@ -233,7 +233,7 @@ void main(){if(umode==1&&vmk>.5)discard;if(umode==2&&vmk<.5)discard;vec4 c=hasT>
  vec3 Hh=normalize(S+V);float sp=pow(clamp(dot(N,Hh),0.,1.),28.);lit+=sunC*sp*.10*ts*(.4+.6*lc);
  o=vec4(lit,1.);}`));
  gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))console.error(gl.getProgramInfoLog(p));
- gp={p,a:{},u:{}};for(const k of['p','n','uv','jj','ww'])gp.a[k]=gl.getAttribLocation(p,k);for(const k of['vp','model','bones','tex','sun','col','hasT','sunC','ambS','ambG','umode','mk','tint','tmode','cam','ts'])gp.u[k]=gl.getUniformLocation(p,k);gl.useProgram(p);gl.uniform3f(gp.u.tint,1,1,1);gl.uniform1f(gp.u.tmode,0);
+ gp={p,a:{},u:{}};for(const k of['p','n','uv','jj','ww'])gp.a[k]=gl.getAttribLocation(p,k);for(const k of['vp','model','bones','tex','sun','col','hasT','sunC','ambS','ambG','umode','mk','tint','tmode','cam','ts','wnd','wk','wt'])gp.u[k]=gl.getUniformLocation(p,k);gl.useProgram(p);gl.uniform4f(gp.u.wnd,0,0,0,-9);gl.uniform2f(gp.u.wk,.3,.5);gl.uniform1f(gp.u.wt,0);gl.uniform3f(gp.u.tint,1,1,1);gl.uniform1f(gp.u.tmode,0);
  loadAnims().then(()=>loadModel('levi')).then(()=>loadModel('titan')).then(setupTitan).catch(e=>console.error('model load',e))}
 
 let dodgeSide=1,yankT=0,armedT=0,armK=0,limbs=[],LVHIDE=null,trail=[],lastLeviMM=null;
@@ -565,7 +565,7 @@ function drawActors(dt){
    M.pose(toDirs(pz,1));if(sv)M.loc.set(sv,hi*16);
    const sc=a.scale,wd=a.wide||1,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),o=[a.x,a.gy+(a.fly||0),a.z];
    const mm=relModel(R.map(x=>x*sc*wd),U.map(x=>x*sc),F.map(x=>x*sc*wd),o,pz,M.py);if(a.vg!==undefined){if(M.low){let mn=1e9;for(const i of M.low){const w=M.W[i],y=mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13];if(y<mn)mn=y}mm[13]+=a.vg+(M.py||1)*.075*sc-mn}}else if(!a.fly)groundFix(M,mm,a.gy,true,sc);/* a.vg: a virtual ground height, unclamped (the opening sinks or heaves the Colossal) *//* a.fly: metres above ground, used by the opening for flying Scouts */
-   M.tintFn=a.tintFn||(a.tintFn=actTint(a));drawModel(M,mm,0,null,null,a.skipRe||(a.kind==='aot'?ACT_GEAR:null));
+   M.tintFn=a.tintFn||(a.tintFn=actTint(a));M.wnd=null;if(a.wind){const W=a.wind,tm=performance.now()*.001,g=1+.45*Math.sin(tm*.8)+.25*Math.sin(tm*2.1+1),wx=W.dir[0]*W.str*g,wz=W.dir[1]*W.str*g,c=Math.cos(a.yaw),sn=Math.sin(a.yaw),mx=(wx*c-wz*sn)/sc,mz=(wx*sn+wz*c)/sc,P={};for(const k in W.parts){const q=W.parts[k];P[q.prim]=[mx*q.k,0,mz*q.k,q.top,q.span,q.flutter]}M.wnd={t:tm,p:P}}drawModel(M,mm,0,null,null,a.skipRe||(a.kind==='aot'?ACT_GEAR:null));M.wnd=null;
   }else{
    M.pose({});const sc=a.scale,U=[0,1,0],F=[Math.sin(a.yaw),0,Math.cos(a.yaw)],R=nrm(cross(U,F)),mm=modelMat(R,U,F,[a.x,a.y||0,a.z],sc);
    M.tintFn=null;drawModel(M,mm,0,null,null,a.skipRe||null)}}}
@@ -575,6 +575,7 @@ window.__initHandLoc=initHandLoc;window.__actors={
  remove(id){const i=ACTORS.findIndex(a=>a.id===id);if(i>=0)ACTORS.splice(i,1)},
  clear(keepPlayer){for(let i=ACTORS.length-1;i>=0;i--)if(!(keepPlayer&&ACTORS[i].isPlayer))ACTORS.splice(i,1)},
  has:k=>!!MD[k],keys:()=>Object.keys(MD),
+ bi:n=>AN&&AN.pi?AN.pi[n]:undefined,
  bodyHeight:k=>MD[k]&&MD[k].bodyHeight,
  loadModel:async(key)=>{const M=await loadModel(key);return M},
  PLS,HH,LEVI_H:1.62};

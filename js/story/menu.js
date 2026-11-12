@@ -14,8 +14,9 @@
     hour: 18.0,
     title: { pos: [-70, 30, -262], target: [6, 33, 0], fov: 0.82, drift: 7 },
     jean: { x: -141, z: -287, y: 8.4, yaw: 0.35, turn: 0, meters: 1.74 },
-    menu: { pos: [-139.8, 9.4, -291.5], target: [-143.2, 9.9, -271.9], fov: 0.66 },
+    menu: { pos: [-139.8, 9.6, -291.5], target: [-144.4, 10.0, -271.9], fov: 0.62 },
   };
+  const BLEND = 4200;
   const D = { stage: 'off', t0: 0, blend: null, jean: null, live: false, sel: 0, items: [], modal: null, info: { latest: null, version: '' }, ready: false };
   const titlePose = t => {
     const c = CFG.title, d = [c.target[0] - c.pos[0], c.target[1] - c.pos[1], c.target[2] - c.pos[2]], L = Math.hypot(d[0], d[1], d[2]), u = d.map(v => v / L), k = Math.sin(t * .045) * c.drift, side = Math.sin(t * .031) * c.drift * .35;
@@ -25,11 +26,12 @@
     const c = CFG.menu; return { pos: [c.pos[0] + Math.sin(t * .21) * .05, c.pos[1] + Math.sin(t * .17) * .025, c.pos[2] + Math.cos(t * .19) * .04], target: [c.target[0] + Math.sin(t * .13) * .5, c.target[1] + Math.sin(t * .11) * .12, c.target[2]], fov: c.fov };
   };
   M.cam = function (now) {
-    const t = (now - D.t0) / 1000, a = titlePose(t);
-    if (D.stage === 'title') return a;
+    const t = (now - (D.t0 || now)) / 1000, a = titlePose(t);
+    if (D.stage !== 'menu' && D.stage !== 'menu-sub' && !D.blend) return a;            // off / title / loading: always the title shot (never a glimpse of the menu scene)
     const b = menuPose(t); if (!D.blend) return b;
-    const k = ease(clamp((now - D.blend) / 3000, 0, 1)); if (k >= 1) return b;
-    return { pos: a.pos.map((v, i) => lerp(v, b.pos[i], k)), target: a.target.map((v, i) => lerp(v, b.target[i], k)), fov: lerp(a.fov, b.fov, k) };
+    const k = ease(clamp((now - D.blend) / BLEND, 0, 1)); if (k >= 1) return b;
+    const arc = Math.sin(k * Math.PI) * 4.5;                                              // the move lifts a little over the roofs, then settles behind Jean
+    return { pos: a.pos.map((v, i) => lerp(v, b.pos[i], k) + (i === 1 ? arc : 0)), target: a.target.map((v, i) => lerp(v, b.target[i], k)), fov: lerp(a.fov, b.fov, k) };
   };
 
   /* ---- DOM ---- */
@@ -49,7 +51,7 @@
       '<div class="mn-shade"></div><canvas class="mn-fx" aria-hidden="true"></canvas>' +
       '<div class="mn-mark" aria-hidden="true">' + wings() + '</div>' +
       '<h1 class="mn-logo"><img src="assets/ui/game_logo.webp" alt="Ashes of the Walls" draggable="false"></h1>' +
-      '<div class="mn-title" aria-label="Ashes of the Walls"><div class="mn-tw"><span class="a">ASHES</span><span class="o">OF THE</span><span class="w">WALLS</span></div><div class="mn-jp">壁の灰燼</div><i class="mn-rule"></i></div>' +
+      '<div class="mn-title" aria-label="Ashes of the Walls"><div class="mn-tlw"><img class="mn-tl" src="assets/ui/title_letters.webp" alt="Ashes of the Walls" draggable="false"></div><div class="mn-jp">壁の灰燼</div><i class="mn-rule"></i></div>' +
       '<button class="mn-tap" type="button"><span>Tap to continue</span></button>' +
       '<p class="mn-legal"></p>' +
       '<nav class="mn-list" role="menu" aria-label="Main menu"></nav>' +
@@ -63,7 +65,11 @@
     R.insertBefore(root_, UI.fade || null);
     tapEl.addEventListener('click', onTap); root_.addEventListener('pointerdown', e => { if (D.stage === 'title' && !e.target.closest('.mn-modal')) onTap(); });
     doc.addEventListener('keydown', onKey, true);
-    root.addEventListener('resize', sizeCanvas); sizeCanvas();
+    root.addEventListener('resize', () => { sizeCanvas(); fit(); }); sizeCanvas();
+  }
+  function fit() {                                           // small landscape phones: never let the tagline collide with the list
+    if (!root_ || !listEl || !tagEl) return; root_.classList.remove('tight'); const l = listEl.getBoundingClientRect(), t = tagEl.getBoundingClientRect(), b = root_.querySelector('.mn-bar').getBoundingClientRect();
+    if (l.bottom > t.top - 6 || l.bottom > b.top - 4) root_.classList.add('tight');
   }
   const sizeCanvas = () => { if (!canvas) return; const d = Math.min(root.devicePixelRatio || 1, 1.5); canvas.width = Math.round(root.innerWidth * d); canvas.height = Math.round(root.innerHeight * d); canvas._d = d; };
 
@@ -141,7 +147,8 @@
   const setStage = s => { D.stage = s; root_.dataset.s = s === 'menu-sub' ? 'menu' : s; };
   async function onTap() {
     if (D.stage !== 'title') return; D.stage = 'busy'; AU.unlock(); AU.select(); AU.wind(0.07); AU.music('title');
-    D.blend = performance.now(); root_.classList.add('go'); tapEl.blur?.(); await sleep(900); setStage('menu'); root_.classList.add('menu-in'); await sleep(1200);
+    D.blend = performance.now(); root_.classList.add('go'); tapEl.blur?.();
+    await sleep(1900); setStage('menu'); fit(); root_.classList.add('menu-in'); await sleep(2200);
     D.items[D.sel] && D.items[D.sel].focus?.({ preventScroll: true });
   }
   M.back = function () {                                     // from options / credits / saves: straight back to the menu
@@ -153,7 +160,20 @@
     const J = CFG.jean; await root.__actors.loadModel('jean').catch(() => null); if (!root.__actors.has('jean')) return null;
     const a = root.__actors.add({ key: 'jean', kind: 'aot', x: J.x, z: J.z, yaw: J.yaw + (J.turn || 0), vg: J.y, skipRe: /weapon|sword|quiver|bow|heixian|jianto|gongjian|xinhao|juren|wuqi/i,
       scale: S.actors.scaleFor((root.__actors.bodyHeight && root.__actors.bodyHeight('jean')) || 1.74, J.meters), idle: 'J:idle', npcId: 'menu_jean' });
-    D.jean = a; return a;
+    a.wind = { dir: [-.8, -.6], str: 1, parts: { cape: { prim: 3, k: .26, top: 1.58, span: .64, flutter: .55 }, hair: { prim: 0, k: .05, top: 1.77, span: .2, flutter: .7 } } };
+    a.poseFn = idlePose; D.jean = a; return a;
+  }
+  /* living idle: breathing, a slow weight shift, the head drifting along the skyline, the arms hanging loose (added on top of the baked idle clip) */
+  function idlePose(pz, a) {
+    const bi = root.__actors.bi; if (!bi) return; const t = performance.now() * .001, d = pz.d;
+    const prev = idlePose.prev || (idlePose.prev = {}), add = (n, x, y, z) => { const k = bi('Bip001 ' + n); if (k === undefined) return; const i = k * 3, p = prev[k] || (prev[k] = [0, 0, 0]);       // the pose buffer can persist between frames: take back last frame's offset first so nothing accumulates
+      d[i] += x - p[0]; d[i + 1] += y - p[1]; d[i + 2] += z - p[2]; p[0] = x; p[1] = y; p[2] = z; };
+    const br = Math.sin(t * 1.55), sh = Math.sin(t * .23), look = Math.sin(t * .27) * .6 + Math.sin(t * .11 + 1) * .4;
+    add('Spine', sh * .012, 0, br * .006); add('Spine1', sh * .01, 0, br * .008); add('Spine2', -sh * .006, br * .004, br * .012);
+    add('Neck', look * .02, 0, 0); add('Head', look * .07, Math.sin(t * .19) * .012, Math.sin(t * .31) * .02 - br * .004);
+    add('L Clavicle', 0, br * .012, 0); add('R Clavicle', 0, br * .012, 0);
+    add('L UpperArm', Math.sin(t * .9) * .012, 0, Math.sin(t * 1.1 + 1) * .01); add('R UpperArm', Math.sin(t * .8 + 2) * .012, 0, Math.sin(t * 1.0) * .01);
+    if (D.jean) { D.jean.vg = CFG.jean.y + br * .0035; D.jean.yaw = CFG.jean.yaw + (CFG.jean.turn || 0) + sh * .018; }
   }
   function removeJean() { if (D.jean) { root.__actors.remove(D.jean.id); D.jean = null; } }
 
@@ -161,10 +181,19 @@
   let birds = [], nextBird = 3, fxT = 0, fxRaf = 0, lastFx = 0;
   function spawnFlock() { const n = 3 + (Math.random() * 4 | 0), y = .08 + Math.random() * .3, dir = Math.random() < .5 ? 1 : -1, sc = .6 + Math.random() * .8; for (let i = 0; i < n; i++) birds.push({ x: dir > 0 ? -.05 - i * .018 : 1.05 + i * .018, y: y + (Math.random() - .5) * .05 + i * .006, v: dir * (.03 + Math.random() * .015), s: sc * (.8 + Math.random() * .4), ph: Math.random() * 6 }); }
   function drawBird(g, x, y, s, ph) { const w = Math.sin(ph) * .9, L = 9 * s; g.beginPath(); g.moveTo(x - L, y - w * L * .8); g.quadraticCurveTo(x - L * .4, y - L * (.2 + w * .2), x, y); g.quadraticCurveTo(x + L * .4, y - L * (.2 + w * .2), x + L, y - w * L * .8); g.quadraticCurveTo(x + L * .4, y + L * .05, x, y + L * .15); g.quadraticCurveTo(x - L * .4, y + L * .05, x - L, y - w * L * .8); g.fill(); }
+  let embers = []; const EMB = () => ({ x: Math.random(), y: Math.random(), z: .3 + Math.random() * .9, ph: Math.random() * 6.28, hot: Math.random() < .55 });
   function fxLoop(now) {
     fxRaf = D.live ? requestAnimationFrame(fxLoop) : 0; const dt = Math.min(.05, (now - (lastFx || now)) / 1000); lastFx = now; fxT += dt; if (!cg) return;
     const W = canvas.width, H = canvas.height, d = canvas._d || 1; cg.clearRect(0, 0, W, H);
     if ((nextBird -= dt) <= 0) { spawnFlock(); nextBird = 7 + Math.random() * 10; }
+    if (!embers.length) for (let i = 0; i < 46; i++) embers.push(EMB());
+    const gust = 1 + .5 * Math.sin(fxT * .8) + .25 * Math.sin(fxT * 2.1 + 1);
+    for (const e of embers) {                                                          // drifting ash and embers: the wind carries them toward the screen's right, rising slowly
+      e.x += (-.018 * e.z * gust) * -1 * dt + Math.sin(fxT * .7 + e.ph) * .0016 * e.z; e.y += (-.012 * e.z) * dt + Math.sin(fxT * 1.3 + e.ph) * .0012; e.ph += dt;
+      if (e.x > 1.04 || e.y < -.05) { e.x = -.04; e.y = .3 + Math.random() * .75; }
+      const r = (.7 + e.z * 1.5) * d, a = e.hot ? .55 : .35, g = cg.createRadialGradient(e.x * W, e.y * H, 0, e.x * W, e.y * H, r * 2.2);
+      g.addColorStop(0, e.hot ? 'rgba(255,170,90,' + a + ')' : 'rgba(230,220,205,' + a * .8 + ')'); g.addColorStop(1, 'rgba(255,140,60,0)'); cg.fillStyle = g; cg.fillRect(e.x * W - r * 2.2, e.y * H - r * 2.2, r * 4.4, r * 4.4);
+    }
     cg.fillStyle = 'rgba(12,10,10,.72)';
     birds = birds.filter(b => b.x > -.1 && b.x < 1.1); for (const b of birds) { b.x += b.v * dt; b.y += Math.sin(fxT * .6 + b.ph) * .0006; b.ph += dt * 9; drawBird(cg, b.x * W, b.y * H, b.s * d, b.ph); }
   }
@@ -172,18 +201,19 @@
   /* ---- public: run the whole launch ---- */
   async function loadAll(H) {
     const bar = loadEl.querySelector('i'); let p = 0, done = false; const tick = setInterval(() => { p = Math.min(.94, p + (1 - p) * .04); bar.style.transform = 'scaleX(' + p + ')'; }, 90);
-    await Promise.all([OP.fontsReady ? Promise.race([OP.fontsReady(), sleep(2500)]) : 0, H.ensureMenu(), sleep(900)]); clearInterval(tick); bar.style.transform = 'scaleX(1)'; await sleep(250);
+    await Promise.all([OP.fontsReady ? Promise.race([OP.fontsReady(), sleep(2500)]) : 0, H.ensureMenu(), sleep(2600)]); clearInterval(tick); bar.style.transform = 'scaleX(1)'; await sleep(250);
   }
   M.run = async function (H) {
     build(); D.live = false; UI.hideAll(); UI.fade.classList.add('on');
-    loadEl = el('div', 'mn-load', '<div class="mn-lhex">' + (OP.hexSVG ? OP.hexSVG('g') : '') + '</div><div class="mn-lbar"><i></i></div>'); UI.R.insertBefore(loadEl, UI.fade); loadEl.style.opacity = '1';
+    loadEl = el('div', 'mn-load', '<div class="mn-ka"><img src="assets/ui/key_art.webp" alt="" draggable="false"></div><div class="mn-lbar"><i></i></div>'); UI.R.insertBefore(loadEl, UI.fade); loadEl.style.opacity = '1';
     UI.fade.classList.remove('on'); await loadAll(H);
     loadEl.classList.add('out'); await sleep(500); loadEl.remove();
     // studio logo (blue identity, name only), 2-5 s
     const st = doc.querySelector('.op-studio'); st.querySelectorAll('.op-pres,.op-legal,.op-gate').forEach(n => n.remove()); st.hidden = false; st.className = 'op-studio logo q'; void st.offsetWidth;
     let skip = false; const sk = () => { skip = true; AU.unlock(); }; st.addEventListener('pointerdown', sk); doc.addEventListener('keydown', sk, { once: true });
     st.classList.add('go'); for (let i = 0; i < 40 && !(skip && i > 8); i++) await sleep(100);                           // ~4 s, tap skips after 0.8 s
-    st.classList.add('out'); const pre = H.prepMenu(); await sleep(700); st.hidden = true; st.remove(); await pre;
+    const cover = el('div', 'mn-cover'); UI.R.insertBefore(cover, UI.fade); D.cover = cover; void cover.offsetWidth; cover.classList.add('in');       // solid black from here until the title is fully placed: no glimpse of the scene
+    st.classList.add('out'); const pre = H.prepMenu(); await sleep(800); st.hidden = true; st.remove(); await pre;
     await M.enter({ stage: 'title' });
   };
 
@@ -194,7 +224,8 @@
     if (!D.jean) { try { await placeJean(); } catch (e) { console.warn('[menu] Jean unavailable', e); } }
     root.ODM.hour = CFG.hour; if (D.jean) { D.jean.x = CFG.jean.x; D.jean.z = CFG.jean.z; D.jean.vg = CFG.jean.y; } setStage(o.stage || 'title'); if (D.stage === 'menu') { D.blend = D.t0 - 5000; root_.classList.add('go', 'menu-in'); }
     if (!fxRaf) { lastFx = 0; fxRaf = requestAnimationFrame(fxLoop); } if (!padRaf) padRaf = requestAnimationFrame(pollPad);
-    UI.fade.classList.remove('on'); await sleep(40); root_.classList.add('show');
+    UI.fade.classList.remove('on'); await sleep(60); root_.classList.add('show'); fit();
+    if (D.cover) { const c = D.cover; D.cover = null; void c.offsetWidth; c.classList.remove('in'); c.classList.add('out'); setTimeout(() => c.remove(), 2000); }
     if (D.stage === 'menu') { AU.wind(0.07); AU.music('title'); await sleep(900); D.items[D.sel] && D.items[D.sel].focus?.({ preventScroll: true }); }
   };
   M.showMenu = info => { if (info) D.info = Object.assign(D.info, info); return M.enter({ stage: 'menu' }); };

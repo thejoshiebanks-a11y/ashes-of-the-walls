@@ -161,7 +161,7 @@
     const J = CFG.jean; await root.__actors.loadModel('jean').catch(() => null); if (!root.__actors.has('jean')) return null;
     const a = root.__actors.add({ key: 'jean', kind: 'aot', x: J.x, z: J.z, yaw: J.yaw + (J.turn || 0), vg: J.y, skipRe: /weapon|sword|quiver|bow|heixian|jianto|gongjian|xinhao|juren|wuqi/i,
       scale: S.actors.scaleFor((root.__actors.bodyHeight && root.__actors.bodyHeight('jean')) || 1.74, J.meters), idle: 'J:idle', npcId: 'menu_jean' });
-    a.wind = { dir: [-.8, -.6], str: 1, parts: { cape: { prim: 3, k: .26, top: 1.58, span: .64, flutter: .55 }, hair: { prim: 0, k: .05, top: 1.77, span: .2, flutter: .7 } } };
+    a.wind = { dir: [-.8, -.6], str: 1, parts: { cape: { prim: 3, k: .26, top: 1.58, span: .64, flutter: .55 } } };      // the hair stays on the head: only the cape moves
     a.poseFn = idlePose; D.jean = a; return a;
   }
   /* hands: a relaxed half-curl that breathes, each finger a little out of step (local rest matrices are re-derived every frame, so nothing accumulates) */
@@ -179,15 +179,40 @@
   }
   /* living idle: breathing, a slow weight shift, the head drifting along the skyline, the arms hanging loose (added on top of the baked idle clip) */
   function idlePose(pz, a, M) {
-    const bi = root.__actors.bi; if (!bi) return; const t = performance.now() * .001, d = pz.d;
-    const prev = idlePose.prev || (idlePose.prev = {}), add = (n, x, y, z) => { const k = bi('Bip001 ' + n); if (k === undefined) return; const i = k * 3, p = prev[k] || (prev[k] = [0, 0, 0]);       // the pose buffer can persist between frames: take back last frame's offset first so nothing accumulates
-      d[i] += x - p[0]; d[i + 1] += y - p[1]; d[i + 2] += z - p[2]; p[0] = x; p[1] = y; p[2] = z; };
+    const bi = root.__actors.bi; if (!bi) return; const now = performance.now(), t = now * .001, d = pz.d, st = idlePose.st || (idlePose.st = {}), fr = idlePose.fr = (idlePose.fr || 0) + 1;
+    /* the clip only rewrites the pose buffer when its frame changes, so every edit is derived from the clean base: if the buffer still holds what we wrote last frame, reuse the base we saved */
+    const mod = (n, f) => {
+      const k = bi('Bip001 ' + n); if (k === undefined) return; const i = k * 3, s = st[k];
+      const same = s && s.fr === fr, clean = same ? s.b : (s && d[i] === s.o[0] && d[i + 1] === s.o[1] && d[i + 2] === s.o[2]) ? s.b : [d[i], d[i + 1], d[i + 2]];
+      const o = f(same ? [d[i], d[i + 1], d[i + 2]] : clean), l = Math.hypot(o[0], o[1], o[2]) || 1;                  // several edits to one bone in a frame stack; the clean base is kept for the next frame
+      d[i] = o[0] / l; d[i + 1] = o[1] / l; d[i + 2] = o[2] / l; st[k] = { b: clean, o: [d[i], d[i + 1], d[i + 2]], fr };
+    };
+    const add = (n, x, y, z) => mod(n, b => [b[0] + x, b[1] + y, b[2] + z]);
+    const toward = (n, w, x, y, z) => mod(n, b => { const l = Math.hypot(x, y, z); return [lerp(b[0], x / l, w), lerp(b[1], y / l, w), lerp(b[2], z / l, w)]; });
     const br = Math.sin(t * 1.55), sh = Math.sin(t * .23), look = Math.sin(t * .27) * .6 + Math.sin(t * .11 + 1) * .4;
+    /* a gesture every ~34 s, alternating: pointing out at the Wall, then a tired stretch. The first one comes a few seconds after the menu appears. */
+    if (D.stage === 'menu' && !D.gt0) D.gt0 = now; const ph = D.gt0 ? (now - D.gt0) / 1000 - 5 : -1, sm = x => x * x * (3 - 2 * x);
+    const env = (x, a_, h, o) => x < 0 ? 0 : x < a_ ? sm(x / a_) : x < a_ + h ? 1 : x < a_ + h + o ? 1 - sm((x - a_ - h) / o) : 0;
+    const cyc = ph < 0 ? -1 : ph % 34, wp = cyc < 0 ? 0 : env(cyc, 1.5, 3.2, 1.8), ws = cyc < 0 ? 0 : env(cyc - 17, 2.0, 2.6, 2.8);
+    if (idlePose.out === undefined) { const k = bi('Bip001 R UpperArm'); idlePose.out = k !== undefined && d[k * 3] < 0 ? -1 : 1; }
+    const o = idlePose.out, free = 1 - Math.max(wp, ws);                       // idle arm sway fades out while a gesture owns the arm
     add('Spine', sh * .012, 0, br * .006); add('Spine1', sh * .01, 0, br * .008); add('Spine2', -sh * .006, br * .004, br * .012);
     add('Neck', look * .02, 0, 0); add('Head', look * .07, Math.sin(t * .19) * .012, Math.sin(t * .31) * .02 - br * .004);
     add('L Clavicle', 0, br * .012, 0); add('R Clavicle', 0, br * .012, 0);
-    add('L UpperArm', Math.sin(t * .9) * .03 + br * .008, br * .006, Math.sin(t * 1.1 + 1) * .026); add('R UpperArm', Math.sin(t * .8 + 2) * .03 - br * .008, br * .006, Math.sin(t * 1.0) * .026);
-    add('L Forearm', Math.sin(t * 1.3 + .6) * .035, Math.sin(t * .7) * .015, Math.sin(t * 1.05 + 2) * .05); add('R Forearm', Math.sin(t * 1.2 + 2.4) * .035, Math.sin(t * .75 + 1) * .015, Math.sin(t * .95 + .5) * .05);
+    add('L UpperArm', (Math.sin(t * .9) * .03 + br * .008) * free, br * .006 * free, Math.sin(t * 1.1 + 1) * .026 * free); add('R UpperArm', (Math.sin(t * .8 + 2) * .03 - br * .008) * free, br * .006 * free, Math.sin(t * 1.0) * .026 * free);
+    add('L Forearm', Math.sin(t * 1.3 + .6) * .035 * free, Math.sin(t * .7) * .015 * free, Math.sin(t * 1.05 + 2) * .05 * free); add('R Forearm', Math.sin(t * 1.2 + 2.4) * .035 * free, Math.sin(t * .75 + 1) * .015 * free, Math.sin(t * .95 + .5) * .05 * free);
+    if (wp > 0) {                                                            // point at the Wall with the arm the camera can see (his left, away from the cape): shoulder lifts, the arm swings up and out in front, a small tremor of attention, the head follows the finger
+      const tr = Math.sin(t * 7) * .004 * wp, ol = -o;
+      toward('L Clavicle', wp * .6, ol * .15, .45, .35); toward('L UpperArm', wp, ol * .34, .26 + tr, .9); toward('L Forearm', wp * Math.min(1, wp * 1.15), ol * .26, .30 - tr, .92);
+      add('Spine2', ol * .03 * wp, 0, .02 * wp); add('Head', ol * .05 * wp, .03 * wp, .05 * wp);
+    }
+    if (ws > 0) {                                                            // tired stretch: both arms reach up and back, chest opens, head tips back, a small shiver at the top, then it all lets go
+      const top = Math.sin(t * 8) * .005 * ws;
+      toward('R Clavicle', ws * .6, o * .2, .5, .1); toward('L Clavicle', ws * .6, -o * .2, .5, .1);
+      toward('R UpperArm', ws, o * .30, .94, -.02); toward('L UpperArm', ws, -o * .30, .94, -.02);
+      toward('R Forearm', ws, o * .12 + top, .98, -.12); toward('L Forearm', ws, -o * .12 - top, .98, -.12);
+      add('Spine', 0, 0, -.05 * ws); add('Spine1', 0, 0, -.09 * ws); add('Spine2', 0, 0, -.12 * ws); add('Neck', 0, 0, -.08 * ws); add('Head', 0, 0, -.14 * ws);
+    }
     if (M) fingers(M, t, br);
     if (D.jean) { D.jean.vg = CFG.jean.y + br * .0035; D.jean.yaw = CFG.jean.yaw + (CFG.jean.turn || 0) + sh * .018; }
   }

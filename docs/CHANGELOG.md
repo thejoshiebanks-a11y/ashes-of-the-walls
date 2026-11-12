@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.3
+- Cape keeps a minimum clearance from the ODM gear at all times (steady outward bias, gentler gust range) while still rising, falling and rippling.
+- Hair no longer moves with the wind; it stays on the head (head motion from the idle is unchanged).
+- Idle gestures every ~34 s: Jean points toward the Wall with his left arm, later a tired two-arm stretch (chest opens, head tips back, small shiver, then relaxes); both are eased in and out. Pose edits are now derived from the clean clip pose, so nothing accumulates.
+
 ## 0.9.2
 - Menu framing: closer, head-to-hips shot of Jean, so his legs and the roof edge no longer show.
 - Cape and hair: silkier wind (waves travelling down the cloth, a steady blow-out plus gusts and side drift instead of an up/down bob).

@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.6
+- New Game now goes menu -> character creator (teen creator v1 merged: teen.js, creator.js, assets/teen) -> opening cinematic -> prologue. If the teen model fails to load, the menu returns with a message instead of silently reloading.
+- Pointing rebuilt to be slow and weighted: shoulder leads, upper arm lifts while the forearm trails folded, the elbow opens into a relaxed bent point, a slow sweep along the Wall, then the elbow folds as the arm lowers. All S-curve easing, no overshoot; the wrist roll follows the arm lift gently (no twist).
+- Smoke test updated: New Game hands over to the creator entry.
+
 ## 0.9.5
 - Audio: the key-art screen now waits for a first touch ("Touch to begin") so iPhone sound is unlocked from the very first screen; studio sting, title boom/bell, score, wind and menu sounds follow. Sound button shows when audio is still locked.
 - index.html loads boot.js with a version tag so a stale cached boot.js can no longer mix old and new files.

@@ -26,7 +26,7 @@ class El{constructor(t){this.tagName=String(t).toUpperCase();this.children=[];th
 class TextNode{constructor(t){this.nodeType=3;this._t=t;this.parent=null}get textContent(){return this._t}remove(){if(this.parent){this.parent.children=this.parent.children.filter(x=>x!==this)}}}
 const CTX=new Proxy({},{get:(t,k)=>k in t?t[k]:/Gradient$/.test(k)?(()=>({addColorStop(){}})):k==='createImageData'?((w,h)=>({data:new Uint8ClampedArray(Math.max(4,(w|0)*(h|0)*4||4))})):(...a)=>({}),set:(t,k,v)=>{t[k]=v;return true}});
 const body=new El('body'),html=new El('html');html.children=[body];body.parent=html;
-global.document={documentElement:html,body,hidden:false,createElement:t=>new El(t),createTextNode:t=>new TextNode(t),getElementById:id=>body.querySelector('#'+id),querySelector:s=>body.querySelector(s),querySelectorAll:s=>body.querySelectorAll(s),addEventListener(){},removeEventListener(){}};
+global.document={documentElement:html,body,hidden:false,createElement:t=>new El(t),createElementNS:(n,t)=>new El(t),createTextNode:t=>new TextNode(t),getElementById:id=>body.querySelector('#'+id),querySelector:s=>body.querySelector(s),querySelectorAll:s=>body.querySelectorAll(s),addEventListener(){},removeEventListener(){}};
 global.window=global; global.innerWidth=800; global.innerHeight=400;
 const winL={}; global.addEventListener=(t,f)=>{(winL[t]=winL[t]||[]).push(f)}; const key=(code)=>{(winL.keydown||[]).forEach(f=>f({code,target:{tagName:'BODY'},preventDefault(){}}))};
 global.removeEventListener=(t,f)=>{winL[t]=(winL[t]||[]).filter(x=>x!==f)}; global.requestAnimationFrame=f=>_st(()=>f(performance.now()),2); global.cancelAnimationFrame=()=>{};
@@ -54,7 +54,7 @@ global.__world={H:()=>HP,gh:()=>0,cast:()=>null,inCanal:()=>false};
 const MODELS=new Set(),LIST=[]; let AID=1;
 global.__actors={HH:.486,PLS:.54,LEVI_H:1.62,list:LIST,has:k=>MODELS.has(k),loadModel:async k=>{MODELS.add(k);return {}},add(d){const a=Object.assign({id:AID++},d);LIST.push(a);return a},remove(id){const i=LIST.findIndex(a=>a.id===id);if(i>=0)LIST.splice(i,1)},clear(keep){for(let i=LIST.length-1;i>=0;i--)if(!(keep&&LIST[i].isPlayer))LIST.splice(i,1)}};
 /* ---------- load the real modules ---------- */
-for(const f of ['core','audio','destiny','dialogue','world','save','actors','map','ui','opening','menu','main']) require(`${R}/js/story/${f}.js`);
+for(const f of ['core','audio','destiny','dialogue','world','save','teen','actors','map','ui','creator','opening','menu','main']) require(`${R}/js/story/${f}.js`);
 const S=window.STORY, UI=S.ui, ACT=S.actors, D=S.destiny; let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL:',m)}};
 const sleep=ms=>new Promise(r=>_st(r,ms)); const until=async(fn,m,ms=20000)=>{const t=Date.now();while(Date.now()-t<ms){if(fn())return true;await sleep(15)}ok(false,'timeout: '+m);return false};
 const vis=sel=>{const e=document.querySelector(sel);return e&&!e.hidden};
@@ -63,6 +63,7 @@ const talk=async(conv,picks)=>{tapAll.pick=picks||[];S.dialogue.start(conv);awai
 const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=[q.x+1,0,q.z+1]};
 (async()=>{
  UI.settings.textSpeed='instant';
+window.__noGate=true; // the touch-to-begin gate needs a real touch; tests skip it
  // ---- launch: loading -> studio logo -> 3D title (tap to continue) -> main menu; no cinematic ----
  await until(()=>S.fsm.state==='title'&&S.menu.stage()==='title','title screen reached without a gate or cinematic',60000);
  ok(!S.audio.ready(),'no audio before the first tap'); ok(!LIST.some(a=>a.key==='colossal2'||a.key==='colossal'),'no Colossal at launch');
@@ -78,29 +79,15 @@ const stand=id=>{const q=S.world.pos(S.data.world.points.find(p=>p.id===id));HP=
  act('extras').click(); await sleep(30); document.querySelector('.mn-row').click(); await sleep(20); ok(/Prime Slayer3D/.test(document.querySelector('.sv-roll').textContent)&&/Nico Maier/.test(document.querySelector('.sv-roll').textContent),'credits scene (Extras)'); document.querySelector('#sv-credits .sv-back').onclick(); await sleep(20);
  // rig the destiny so this file is an Ackerman (it must stay hidden)
  let seed=1; while(D.roll(seed).bloodline!=='ackerman')seed++; localStorage.setItem('ashes_destiny',String(seed)); const dest=D.roll(seed);
- // ---- Begin journey: cold open, then the registry ----
- act('new').click(); await sleep(30); document.querySelector('.mn-btn.pri').click(); 
-  await until(()=>S.fsm.state==='creator'&&vis('#sv-creator'),'registry opens'); ok(!LIST.some(a=>a.key==='colossal'),'colossal removed after the cold open');
- ok(LIST.some(a=>a.key.startsWith('fuse_')&&!a.isPlayer&&a.scale>0.5),'the Anchor stands in the preview'); const pv=LIST.find(a=>a.key.startsWith('fuse_')&&a.look&&a.skipRe);
- ok(/Shiganshina District Registry/.test(document.querySelector('.sv-stage-head').textContent),'registry framing');
- const next=()=>document.querySelector('.sv-cr-next'); ok(next().disabled,'cannot continue without a name');
- const nm=document.querySelector('#sv-in-name'); nm.value='Sera'; nm.dispatch('input',{target:nm}); ok(!next().disabled,'name enables Continue');
- const playerActor=()=>LIST.find(a=>a.look&&!a.npcId); const h0=playerActor().scale;
- document.querySelectorAll('.sv-chip').find(c=>c.textContent==='Boy').click(); await sleep(10); ok(playerActor().key==='fuse_man','body choice swaps the preview model');
- next().click(); await sleep(10); const rg=document.querySelector('.sv-range'); const sc0=playerActor().scale; rg.dispatch('input',{target:{value:'100'}}); ok(playerActor().scale>sc0,'height slider updates the preview live');
- document.querySelectorAll('.sv-range')[1].dispatch('input',{target:{value:'100'}}); ok(playerActor().wide>1,'build slider widens the preview');
- next().click(); await sleep(10); const sw0=playerActor().look.skin.join(); document.querySelectorAll('.sv-sw')[4].click(); await sleep(10); ok(playerActor().look.skin.join()!==sw0,'skin tone changes live');
- document.querySelectorAll('.sv-chip').find(c=>c.textContent==='Brow')&&document.querySelectorAll('.sv-chip').find(c=>c.textContent==='Brow').click();
- next().click(); await sleep(10); ok(/Shirt/.test(document.querySelector('.sv-cr-body').textContent),'clothing tab'); document.querySelectorAll('.sv-chip').find(c=>c.textContent==='Weathered').click();
- next().click(); await sleep(10); const ft=document.querySelector('.sv-cr-body').textContent; ok(/The registry has decided the rest/.test(ft)&&/Family/.test(ft)&&/Your Anchor/.test(ft),'the file tab shows what the system decided');
- ok(ft.includes(dest.anchor.name),'Anchor name is rolled by the system: '+dest.anchor.name); ok(!/Ackerman/.test(ft),'a hidden Ackerman bloodline is not revealed in the registry');
- ok(!document.querySelector('#sv-in-anchor'),'there is no way to choose your Anchor'); ok(!/Ackerman-blooded|Common Eldian/.test(ft),'no bloodline picker');
- document.querySelectorAll('.sv-card-opt').find(c=>/Veteran/.test(c.textContent)).click(); ok(next().textContent==='Stamp the file','final button'); next().click();
+ // ---- New Game -> confirm goes straight to the character creator entry (it never re-opens the title/menu); the creator itself is tested in teen_creator.test.js ----
+ let ngCalls=0; const realNG=S.flow.newGame; S.flow.newGame=()=>{ngCalls++;}; act('new').click(); await sleep(30); document.querySelector('.mn-btn.pri').click(); await sleep(60);
+ ok(ngCalls===1,'Begin calls the character creator entry once'); ok(S.menu.stage()==='off','the menu closes (it is not rebuilt)'); S.flow.newGame=realNG;
+ S.debug.startNewGame({name:'Sera',gender:'m',body:'fuse_man',voice:'steady',difficulty:'veteran',wear:2,bloodline:dest.bloodline,anchor:dest.anchor,look:{skin:1,hair:2,top:0,bottom:0,shoes:0,height:.5,build:.5,headW:.5,headH:.5,eye:0,scar:1}});
  // ---- Day 1 ----
  await until(()=>S.fsm.state==='dialogue'||S.fsm.state==='cutscene'&&S.state.player,'the story begins');
  await until(()=>S.fsm.state==='dialogue','opening narration'); const P=S.state.player;
- ok(P.name==='Sera'&&P.body==='fuse_man'&&P.difficulty==='veteran'&&P.bloodline==='ackerman'&&P.anchor.name===dest.anchor.name&&P.anchor.rel===dest.anchor.rel&&P.look.scar===1&&P.wear===2,'player built from the registry plus destiny');
- ok(localStorage.getItem('ashes_destiny')===null,'destiny is consumed when the file is stamped'); ok(S.state.day===1,'day 1');
+ ok(P.name==='Sera'&&P.body==='fuse_man'&&P.difficulty==='veteran'&&P.bloodline==='ackerman'&&P.anchor.name===dest.anchor.name&&P.anchor.rel===dest.anchor.rel&&P.look.scar===1&&P.wear===2,'player built from the creator draft plus destiny');
+ ok(S.state.day===1,'day 1');
  ok(LIST.some(a=>a.isPlayer)&&LIST.some(a=>a.npcId==='anchor')&&['oswin','marta','hannes','eren','armin','mikasa'].every(id=>LIST.some(a=>a.npcId===id)),'player, Anchor and the whole cast are on the street');
  ok(window.__noOdm===true&&window.__noTitan===true&&window.__hideAvatar===true,'ODM locked, no Titan, Levi avatar hidden'); ok(body.className.includes('sv-story'),'story body class');
  await tapAll(); await until(()=>S.fsm.state==='play','play begins'); ok(window.__freeze===false,'unfrozen in play'); ok(!UI.track.hidden&&/Talk to /.test(UI.track.textContent),'tracker: '+UI.track.textContent);

@@ -194,8 +194,8 @@
   const rotL = (L, o, axis, a) => { const c = Math.cos(a), s_ = Math.sin(a), A = axis === 2 ? [0, 1] : axis === 1 ? [0, 2] : [1, 2], p0 = A[0] * 4, p1 = A[1] * 4; for (let q = 0; q < 3; q++) { const x = L[o + p0 + q], y = L[o + p1 + q]; L[o + p0 + q] = x * c + y * s_; L[o + p1 + q] = -x * s_ + y * c; } };
   function wrist(M, G) {
     if (!M._wr) { const i = M.id('Bip001 L Hand'); M._wr = { i, rest: i >= 0 ? M.loc.slice(i * 16, i * 16 + 16) : null }; }
-    const W = M._wr; if (W.i < 0) return; const C = CFG.wrist || { roll: -2.0, ra: 0, flex: -.2, fa: 2 }, L = M.loc, o = W.i * 16; for (let k = 0; k < 16; k++) L[o + k] = W.rest[k];
-    if (G) { rotL(L, o, C.ra, C.roll * G.r); rotL(L, o, C.fa, C.flex * G.x * G.r + .06 * Math.sin(G.t * 1.7) * G.r); }
+    const W = M._wr; if (W.i < 0) return; const C = CFG.wrist || { roll: -1.5, ra: 0, flex: -.12, fa: 2 }, L = M.loc, o = W.i * 16; for (let k = 0; k < 16; k++) L[o + k] = W.rest[k];
+    if (G) { rotL(L, o, C.ra, C.roll * G.r); rotL(L, o, C.fa, C.flex * G.x * G.r + .025 * Math.sin(G.t * .9) * G.r); }
   }
   /* living idle: breathing, a slow weight shift, the head drifting along the skyline, the arms hanging loose (added on top of the baked idle clip) */
   function idlePose(pz, a, M) {
@@ -210,18 +210,18 @@
     const add = (n, x, y, z) => mod(n, b => [b[0] + x, b[1] + y, b[2] + z]);
     const toward = (n, w, x, y, z) => mod(n, b => { const l = Math.hypot(x, y, z); return [lerp(b[0], x / l, w), lerp(b[1], y / l, w), lerp(b[2], z / l, w)]; });
     const br = Math.sin(t * 1.55), sh = Math.sin(t * .23), look = Math.sin(t * .27) * .6 + Math.sin(t * .11 + 1) * .4;
-    /* every ~24 s he points out at the Wall with his left arm (the one the camera can see). Each joint has its own timing: the shoulder lifts first, the upper arm swings up
-       with the forearm still hanging folded, the elbow stays deeply bent while the arm rises, then unfolds with a small whip into a relaxed, slightly bent point; on release the elbow folds again
-       and the forearm trails the upper arm down. The wrist turns so the back of the hand faces the camera. */
-    if (D.stage === 'menu' && !D.gt0) D.gt0 = now; const ph = D.gt0 ? (now - D.gt0) / 1000 - 4 : -1, sm = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
-    const back = x => { const u = x - 1; return 1 + 2.2 * u * u * u + 1.2 * u * u; };
-    const seg = (c, a_, h, o_, dl) => { const x = c - dl; return x < 0 ? 0 : x < a_ ? back(x / a_) : x < a_ + h ? 1 : x < a_ + h + o_ ? 1 - sm((x - a_ - h) / o_) : 0; };
-    const cp = ph < 0 ? -1 : ph % 24;
+    /* every ~26 s he calmly points out at the Wall with his left arm (the one the camera sees). Slow and weighted: the shoulder leads, the upper arm lifts, the forearm trails folded and then opens
+       into a relaxed, slightly bent point; he sweeps along the Wall a little, then the elbow folds as the arm comes down and the forearm settles last. Every envelope is a smooth S-curve: no snaps, no overshoot. */
+    if (D.stage === 'menu' && !D.gt0) D.gt0 = now; const ph = D.gt0 ? (now - D.gt0) / 1000 - 4 : -1, s01 = x => x < 0 ? 0 : x > 1 ? 1 : x * x * x * (x * (x * 6 - 15) + 10);
+    const win = (c, a_, b_, e_, f_) => s01((c - a_) / (b_ - a_)) * (1 - s01((c - e_) / (f_ - e_)));
+    const cp = ph < 0 ? -1 : ph % 26;
     if (idlePose.out === undefined) { const k = bi('Bip001 R UpperArm'); idlePose.out = k !== undefined && d[k * 3] < 0 ? -1 : 1; }
-    const o = idlePose.out, ol = -o, V = (x, y, z) => [x, y, z];
-    const pC = cp < 0 ? 0 : seg(cp, 1.1, 5.4, 1.9, -.1), pU = cp < 0 ? 0 : seg(cp, 1.7, 4.6, 2.3, 0), pF = cp < 0 ? 0 : seg(cp, 1.3, 5.2, 2.8, .2), pH = cp < 0 ? 0 : seg(cp, 1.3, 4.6, 2.0, .5);
-    const pX = cp < 0 ? 0 : back(Math.min(1, Math.max(0, (cp - 1.9) / 1.5))) * (cp < 1.9 ? 0 : 1) * (1 - sm((cp - 6.3) / 1.6));      // 0 = elbow folded, 1 = arm extended
-    const freeL = 1 - Math.min(pU, 1), freeR = 1;                                                                                     // idle sway fades out of the arm while the gesture owns it
+    const o = idlePose.out, ol = -o, V = (x, y, z) => [x, y, z], PT = CFG.pt || {};
+    const pH = cp < 0 ? 0 : win(cp, .2, 2.2, 10.2, 12.4), pC = cp < 0 ? 0 : win(cp, .7, 3.4, 9.4, 12.0), pU = cp < 0 ? 0 : win(cp, 1.0, 4.2, 8.6, 11.8), pF = cp < 0 ? 0 : win(cp, .9, 3.0, 9.8, 12.6);
+    /* elbow: 1 = folded, 0 = open. folded while the arm lifts, opens into the point, breathes slowly during the hold, folds again as the arm lowers */
+    const Fc = Math.max(0, Math.min(1, cp < 0 ? 1 : (1 - s01((cp - 2.6) / 2.4)) * .74 + .26 + .04 * Math.sin(t * .8) * s01((cp - 4.6) / 1) + s01((cp - 8.0) / 2.2) * .6));
+    const hold = cp < 0 ? 0 : s01((cp - 4.2) / 1.2) * (1 - s01((cp - 8.4) / 1.4)), scan = Math.sin((cp - 4.4) * .62) * hold;
+    const freeL = 1 - Math.min(pU, 1), freeR = 1;
     add('Spine', sh * .012, 0, br * .006); add('Spine1', sh * .01, 0, br * .008); add('Spine2', -sh * .006, br * .004, br * .012);
     add('Neck', look * .02, 0, 0); add('Head', look * .07, Math.sin(t * .19) * .012, Math.sin(t * .31) * .02 - br * .004);
     add('L Clavicle', 0, br * .012, 0); add('R Clavicle', 0, br * .012, 0);
@@ -229,13 +229,13 @@
     add('L Forearm', Math.sin(t * 1.3 + .6) * .035 * freeL, Math.sin(t * .7) * .015 * freeL, Math.sin(t * 1.05 + 2) * .05 * freeL); add('R Forearm', Math.sin(t * 1.2 + 2.4) * .035, Math.sin(t * .75 + 1) * .015, Math.sin(t * .95 + .5) * .05);
     const mix = (a_, b_, k) => V(lerp(a_[0], b_[0], k), lerp(a_[1], b_[1], k), lerp(a_[2], b_[2], k)), T = (n, w, v) => w !== 0 && toward(n, w, v[0], v[1], v[2]);
     if (pU > 0 || pF > 0 || pC > 0) {
-      const hold = Math.sin(t * 1.3) * .012 + Math.sin(t * 2.9) * .005, wob = Math.sin(t * 6.3) * .004 * pU;
-      T('L Clavicle', pC * .7, V(ol * .16, .46, .34));
-      T('L UpperArm', pU, V(ol * .42, .20 + hold + wob, .88));
-      T('L Forearm', pF, mix(V(ol * .10, .92, -.22), V(ol * .32, .40 + hold * 1.4, .86), pX));
-      add('Spine1', ol * .02 * pU, 0, .015 * pU); add('Spine2', ol * .035 * pU, 0, .02 * pU); add('Neck', ol * .03 * pH, 0, 0); add('Head', ol * .06 * pH, .03 * pH, .05 * pH);
+      const sw = Math.sin(t * 1.1) * .008 * pU, scan2 = Math.sin((cp - 4.9) * .62) * hold;               // the forearm trails the upper arm by a beat during the sweep
+      T('L Clavicle', pC * .7, V(ol * .16, .42, .34));
+      T('L UpperArm', pU, V(ol * (.40 + .09 * scan) , .22 + sw, .88));
+      T('L Forearm', pF, mix(V(ol * (.34 + .1 * scan2), .27 + sw * 2, .9), V(-ol * .10, .93, .16), Fc));
+      add('Spine1', ol * .02 * pU, 0, .012 * pU); add('Spine2', ol * .03 * pU, 0, .015 * pU); add('Neck', ol * .03 * pH, 0, 0); add('Head', ol * .055 * pH, .025 * pH, .045 * pH);
     }
-    D.fing = { p: Math.min(1, pH), s: 0, x: Math.min(1, pX * pF), r: Math.min(1, pF), t }; D.gz = idlePose.gz = (idlePose.gz || 0) + (Math.min(1, pU) - (idlePose.gz || 0)) * .04;
+    D.fing = { p: Math.min(1, win(cp < 0 ? -1 : cp, 2.6, 4.4, 9.2, 10.8)), s: 0, x: 1 - Fc, r: pU, t }; D.gz = idlePose.gz = (idlePose.gz || 0) + (Math.min(1, pU) - (idlePose.gz || 0)) * .03;
     if (M) { fingers(M, t, br, D.fing); wrist(M, D.fing); }
     if (D.jean) { D.jean.vg = CFG.jean.y + br * .0035; D.jean.yaw = CFG.jean.yaw + (CFG.jean.turn || 0) + sh * .018; }
   }

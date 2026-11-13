@@ -262,7 +262,7 @@
     mode = null; S.fsm.set('creator'); applyFsm(); UI.hideAll();
     await UI.fadeTo(true, 10);
     let teenOk = true; try { await S.teen.load(); } catch (e) { teenOk = false; console.error('[creator] the teen model failed to load', e); }
-    if (!teenOk) { await UI.fadeTo(false, 300); showTitle(); return; }
+    if (!teenOk) { await UI.fadeTo(false, 300); await showTitle(true); try { UI.toast('The character models did not load. Upload the whole assets/teen folder, then hard refresh.', 6000); } catch (e) { } return; }
     const dest = DST.pending(), draft = defaultDraft();
     root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true; ACT.clearAll(); root.ODM.hour = 17.65;
     const sp = G.snap(-176.5, -186.5); G.teleport(sp.x + 14, sp.z + 14, 0, 0.1);

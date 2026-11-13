@@ -81,3 +81,10 @@
 .mn-snd{appearance:none;background:none;border:1px solid rgba(214,208,196,.28);color:rgba(214,208,196,.72);font:600 10px/1 inherit;font-family:inherit;letter-spacing:.22em;text-transform:uppercase;padding:6px 10px;border-radius:2px;margin:0 auto;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mn-snd:hover,.mn-snd:active{color:#fff;border-color:rgba(255,255,255,.6)}
 .mn-snd.off{opacity:.55;text-decoration:line-through}
+
+/* touch-to-begin gate on the key art */
+.mn-gate{position:absolute;left:0;right:0;bottom:11%;display:flex;justify-content:center;opacity:0;transition:opacity .7s ease;z-index:3;pointer-events:none}
+.mn-gate.in{opacity:1}
+.mn-gate span{font-family:inherit;font-size:clamp(11px,2.4vh,16px);letter-spacing:.42em;text-transform:uppercase;color:#e8e2d4;text-shadow:0 0 12px rgba(0,0,0,.9);padding:10px 22px;border-top:1px solid rgba(232,226,212,.35);border-bottom:1px solid rgba(232,226,212,.35);animation:mnGate 2.2s ease-in-out infinite}
+.mn-gate.hit span{animation:none;color:#fff;border-color:#c0392b}
+@keyframes mnGate{0%,100%{opacity:.45}50%{opacity:1}}

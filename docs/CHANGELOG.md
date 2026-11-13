@@ -1,4 +1,11 @@
 # Changelog
+## 0.9.5
+- Audio: the key-art screen now waits for a first touch ("Touch to begin") so iPhone sound is unlocked from the very first screen; studio sting, title boom/bell, score, wind and menu sounds follow. Sound button shows when audio is still locked.
+- index.html loads boot.js with a version tag so a stale cached boot.js can no longer mix old and new files.
+- Pointing: stretch animation removed; the point is rebuilt with a deep elbow fold, an unfolding whip, a bent-elbow hold, wrist turn (back of hand to camera) and a folding release.
+- Cape: long slow lulls (about 40% of the time it hangs low) then swells back up, still silky and clear of the ODM gear.
+- Camera: slow crane-and-orbit with parallax, handheld breath, and a gentle push toward the Wall while he points.
+
 ## 0.9.4
 - Arms: jointed, staggered motion (shoulder > elbow > wrist > fingers) with overshoot and settle; point at the walls and tired stretch rebuilt.
 - Cape: wider slow gusts and lulls so it drops lower and lifts again, kept clear of the ODM gear.

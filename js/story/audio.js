@@ -13,7 +13,7 @@
   A.init = function () {                         // must be called from a user gesture
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return true; }
     const AC = root.AudioContext || root.webkitAudioContext; if (!AC) return false;
-    ctx = new AC();
+    ctx = new AC(); try { ctx.onstatechange = () => { if (ctx.state === 'running') { if (A.onRunning) try { A.onRunning(); } catch (e) { } } } } catch (e) { }
     master = ctx.createGain(); master.gain.value = store.muted ? 0 : store.vol * LOUD; if (ctx.createDynamicsCompressor) { comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.knee.value = 20; comp.ratio.value = 4.5; comp.attack.value = 0.004; comp.release.value = 0.22; master.connect(comp); comp.connect(ctx.destination); } else master.connect(ctx.destination);
     sfxBus = ctx.createGain(); sfxBus.gain.value = store.sfx; sfxBus.connect(master);
     musBus = ctx.createGain(); musBus.gain.value = store.music; musBus.connect(master);
@@ -51,6 +51,7 @@
   };
   if (root.document && root.document.addEventListener) ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'].forEach(ev => root.document.addEventListener(ev, () => { if (!ctx || ctx.state !== 'running') A.unlock(); }, { capture: true, passive: true }));
   A.ready = () => !!ctx && ctx.state === 'running';
+  if (root.document && root.document.addEventListener) root.document.addEventListener('visibilitychange', () => { if (!root.document.hidden && ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { } } });
   A.setVolume = (k, v) => { store[k] = v; if (!ctx) return save(); if (k === 'vol') master.gain.value = store.muted ? 0 : v * LOUD; if (k === 'music') musBus.gain.value = v; if (k === 'sfx') sfxBus.gain.value = v; save(); };
   A.setMuted = m => { store.muted = !!m; if (ctx) master.gain.value = m ? 0 : store.vol * LOUD; save(); };
 

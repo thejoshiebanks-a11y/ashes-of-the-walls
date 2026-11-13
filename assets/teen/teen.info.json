@@ -3,26 +3,33 @@
  "bodyHeight": 1.6493210792541504,
  "bodyYmin": 0.00010090574505738914,
  "joints": 24,
- "prims": 30,
- "tex": 7,
- "verts": 141911,
+ "prims": 37,
+ "tex": 8,
+ "verts": 150890,
  "height": 1.6493210792541504,
  "ymin": 0.00010090574505738914,
  "unit": 1.0,
- "bin_kb": 2743,
+ "bin_kb": 2976,
  "groups": {
   "face": [
    "Face",
+   "Face_1",
+   "Face_2",
+   "Face_3",
+   "Face_4",
    "Iris",
-   "Scalp"
+   "EyeShine",
+   "Scalp",
+   "Skull"
   ],
   "hair": [
    "Hair_Messy",
    "Hair_SimpleParted",
    "Hair_Buzzed",
-   "Hair_BuzzedFemale",
-   "Hair_Long",
-   "Hair_Buns"
+   "Hair_Bowl",
+   "Hair_Side",
+   "Hair_Crew",
+   "Hair_Pomp"
   ],
   "gear": [
    "Gear_ODM",
@@ -60,12 +67,8 @@
  },
  "prim_stats": {
   "Face": [
-   2470,
-   3033
-  ],
-  "Iris": [
-   48,
-   49
+   2496,
+   3082
   ],
   "Hair_Messy": [
    30636,
@@ -74,6 +77,14 @@
   "Outfit_Modern": [
    44061,
    62398
+  ],
+  "Iris": [
+   42,
+   40
+  ],
+  "EyeShine": [
+   42,
+   40
   ],
   "Outfit_Peasant_Arms": [
    3179,
@@ -131,21 +142,45 @@
    466,
    830
   ],
-  "Hair_BuzzedFemale": [
-   466,
-   830
+  "Face_1": [
+   2496,
+   3082
   ],
-  "Hair_Long": [
-   3080,
-   2906
+  "Face_2": [
+   2496,
+   3082
   ],
-  "Hair_Buns": [
-   3501,
-   3284
+  "Face_3": [
+   2496,
+   3082
+  ],
+  "Face_4": [
+   2496,
+   3082
+  ],
+  "Skull": [
+   2448,
+   4752
   ],
   "Scalp": [
-   841,
-   1336
+   1008,
+   1872
+  ],
+  "Hair_Bowl": [
+   978,
+   1804
+  ],
+  "Hair_Side": [
+   939,
+   1727
+  ],
+  "Hair_Crew": [
+   696,
+   1243
+  ],
+  "Hair_Pomp": [
+   752,
+   1353
   ],
   "Gear_ODM": [
    9910,
@@ -178,12 +213,13 @@
  },
  "textures": {
   "teen": 0,
-  "Peasant": 1,
-  "Ranger": 2,
-  "hair:T_Hair_1_BaseColor.png": 3,
-  "hair:T_Hair_2_BaseColor.png": 4,
-  "levi_t1": 5,
-  "levi_t0": 6
+  "eye": 1,
+  "Peasant": 2,
+  "Ranger": 3,
+  "hair:T_Hair_1_BaseColor.png": 4,
+  "face_anime": 5,
+  "levi_t1": 6,
+  "levi_t0": 7
  },
  "pelvis": [
   -0.003559396613432901,

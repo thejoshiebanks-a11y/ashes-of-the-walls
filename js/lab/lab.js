@@ -89,8 +89,8 @@
 
   /* ---- customisation: which parts are visible (actor.skipRe), how they are coloured (actor.tintFn) and how the body is shaped (actor.morph) ----
      Every option is a real switch on real geometry, a real colour on the engine's tint path, or a real bone-length/thickness morph. A character is the combination. */
-  const OUTFITS = ['Peasant', 'Ranger', 'Scout', 'Modern'], HAIRS = ['Messy', 'SimpleParted', 'Buzzed', 'BuzzedFemale', 'Long', 'Buns'];
-  const HAIR_NAMES = ['Messy', 'Parted', 'Buzzed', 'Cropped', 'Long', 'Buns'];
+  const OUTFITS = ['Peasant', 'Ranger', 'Scout', 'Modern'], HAIRS = ['Messy', 'SimpleParted', 'Buzzed', 'Bowl', 'Side', 'Crew', 'Pomp'];
+  const HAIR_NAMES = ['Messy', 'Parted', 'Buzzed', 'Bowl cut', 'Side part', 'Crew cut', 'Pompadour'];
   const C = (n, r, g, b) => [n, [r / 255, g / 255, b / 255]];
   const HAIRCOL = [C('Black', 22, 20, 22), C('Dark brown', 70, 44, 28), C('Brown', 112, 72, 42), C('Chestnut', 140, 78, 40), C('Auburn', 150, 60, 32), C('Ginger', 190, 90, 40), C('Blond', 220, 180, 100), C('Platinum', 235, 228, 205), C('Silver', 190, 195, 205), C('Navy', 36, 52, 110), C('Teal', 30, 130, 130), C('Rose', 205, 90, 130)];
   const EYECOL = [C('Black', 20, 16, 16), C('Dark brown', 80, 48, 28), C('Hazel', 130, 100, 40), C('Green', 60, 140, 80), C('Blue', 70, 110, 190), C('Grey', 130, 138, 150), C('Amber', 200, 140, 40), C('Violet', 130, 80, 180)];
@@ -111,7 +111,8 @@
     const a = L.actor, k = L.look; if (!a) return;
     const outfit = OUTFITS[k.outfit], hair = 'Hair_' + HAIRS[k.hair], hood = outfit === 'Ranger' && k.extra, cloak = outfit === 'Scout' && k.extra;
     a.skipRe = { test: m => {
-      if (m === 'Face' || m === 'Iris' || m === 'Scalp') return false;
+      if (m === 'Face' || m === 'Iris' || m === 'EyeShine' || m === 'Scalp' || m === 'Skull') return false;
+      if (/^Face_\d$/.test(m)) return true;
       if (m.startsWith('Hair_')) return m !== hair || !!hood;                          // hair is hidden under a hood
       if (m === 'Outfit_Ranger_HeadHood') return !hood;
       if (m === 'Outfit_Scout_Cloak') return !cloak;

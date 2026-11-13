@@ -115,7 +115,7 @@
   async function ensureModels(keys) { try { await ACT.ensure(keys); } catch (e) { console.warn('[story] models unavailable, using markers only', e); } }
   async function spawnCast() {
     const pl = S.state.player; ACT.clearAll();
-    const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); await ensureModels([...need]);
+    const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); if (pl && pl.body === 'teen') need.add('teen'); await ensureModels([...need]);
     tryA(() => {
       const me = G.pos(); ACT.spawnPlayer(pl, me.x, me.z, root.__st.wyaw, true);
       const at = id => { const q = S.world.pos(pointById(id)); return q; }, face = (q, ref) => yawTo(q.x, q.z, ref.x, ref.z);
@@ -254,24 +254,24 @@
   }
 
   /* ================= the registry ================= */
-  const defaultDraft = () => ({ name: '', gender: 'f', body: 'fuse_woman', voice: 'steady', difficulty: 'soldier', wear: 1,
-    look: { skin: 1, hair: 2, top: 0, bottom: 0, shoes: 0, height: 0.5, build: 0.5, headW: 0.5, headH: 0.5, eye: 0, scar: 0 } });
+  const defaultDraft = () => ({ name: '', gender: 'm', body: 'teen', voice: 'steady', difficulty: 'soldier', wear: 0, look: Object.assign({}, S.teen.DEF) });
   const buildPlayer = (d, dest) => ({ name: d.name.trim(), gender: d.gender, body: d.body, voice: d.voice, difficulty: d.difficulty, wear: d.wear, look: Object.assign({}, d.look),
     bloodline: dest.bloodline, family: dest.family, destinySeed: dest.seed, anchor: Object.assign({}, dest.anchor) });
   async function openCreator() {
     AU.select(); await coldOpen();
     mode = null; S.fsm.set('creator'); applyFsm(); UI.hideAll();
-    await UI.fadeTo(true, 10); await ensureModels(['fuse_man', 'fuse_woman']);
-    const dest = DST.pending(), draft = defaultDraft(); draft.body = dest.anchor.gender === 'f' ? 'fuse_man' : 'fuse_woman';
-    root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true; ACT.clearAll(); root.ODM.hour = 7.6;
+    await UI.fadeTo(true, 10);
+    let teenOk = true; try { await S.teen.load(); } catch (e) { teenOk = false; console.error('[creator] the teen model failed to load', e); }
+    if (!teenOk) { await UI.fadeTo(false, 300); showTitle(); return; }
+    const dest = DST.pending(), draft = defaultDraft();
+    root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true; ACT.clearAll(); root.ODM.hour = 17.65;
     const sp = G.snap(-176.5, -186.5); G.teleport(sp.x + 14, sp.z + 14, 0, 0.1);
-    const yaw0 = Math.PI, F = [Math.sin(yaw0), 0, Math.cos(yaw0)], Rr = [F[2], 0, -F[0]], gy = G.gh(sp.x, sp.z);
-    cineOn([sp.x + F[0] * 3.1, gy + 1.15, sp.z + F[2] * 3.1], [sp.x + Rr[0] * 1.2, gy + 0.95, sp.z + Rr[2] * 1.2], 1.08);
+    const yaw0 = Math.PI, gy = G.gh(sp.x, sp.z), stage = { x: sp.x, z: sp.z, gy, yaw: yaw0 };
     const mk = () => { tryA(() => { const pl = buildPlayer(draft, dest); if (!ACT.player) ACT.spawnPlayer(pl, sp.x, sp.z, yaw0, false); else ACT.updatePlayer(pl); }); };
-    mk();
-    tryA(() => { const pl = buildPlayer(draft, dest); ACT.spawnAnchor(pl, sp.x + Rr[0] * 0.95 - F[0] * 0.3, sp.z + Rr[2] * 0.95 - F[2] * 0.3, yaw0 + 0.25); });
-    await settle(500); UI.hideAll(); AU.wind(0.04); AU.music('calm');
-    UI.creator({ cfg: S.data.config, draft, destiny: dest }, d => { cineOff(); ACT.clearAll(); finishCreation(buildPlayer(d, dest), dest); }, () => { cineOff(); ACT.clearAll(); showTitle(); }, mk, dx => { if (ACT.player) ACT.player.yaw += dx; });
+    mk(); root.__cine.on = true;
+    await settle(500); UI.hideAll(); AU.wind(0.04); AU.music('calm'); UI.embers(false);
+    await S.creator.open({ cfg: S.data.config, draft, destiny: dest, stage, onChange: mk },
+      d => { cineOff(); ACT.clearAll(); finishCreation(buildPlayer(d, dest), dest); }, () => { cineOff(); ACT.clearAll(); showTitle(); });
     await UI.fadeTo(false, 700);
   }
   async function finishCreation(player, dest) {              // creator -> opening cinematic (to be polished next) -> the prologue
@@ -392,7 +392,7 @@
     for (let i = 0; i < 400 && !G.ready(); i++) await sleep(150);
     if (!G.ready()) throw new Error('The game did not finish loading.');
     S.fsm.set('intro'); applyFsm();
-    ensureModels(['fuse_man', 'fuse_woman', 'colossal']);          // warm the model cache in the background
+    ensureModels(['fuse_man', 'fuse_woman', 'colossal', 'teen']);   // warm the model cache in the background
     await placeTitleShot(); document.documentElement.classList.remove('aow-boot'); await opening();          // the gate stays black until the first tap; the opening handles every fade after that
   }
   S.flow = { newGame: openCreator, openSaves: () => openSaves('load', true), latestKey: () => SV.latest(), readSave: k => SV.read(k), exportSaves, importSaves };

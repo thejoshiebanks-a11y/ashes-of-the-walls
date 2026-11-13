@@ -28,8 +28,9 @@ Gabi stays a separate canon character. A young female base needs its own dedicat
 - Visual tests ran headless (SwiftShader) in a desktop Chromium, not on your iPhone.
 - Walk/run was inspected on screenshots, not on a device.
 - The teen's own clips were not converted; the engine's clips drive him.
-- Eye colour is a tint on a ~49-triangle iris patch (no eyeballs/lids that move).
-- Non-Messy hairstyles come from adult-fit Quaternius hair; they sit well in the previews but are less tailored than Messy.
+- Eyes: clean round irises (pupil, limbal ring) plus a white catch-light sit in front of the teen's painted eyes; colour is a runtime tint. They do not blink or look around.
+- Non-Messy hairstyles come from adult Quaternius hair, scaled per style to his head (`--style-scale` in build_modular.py). Checked in front closeups only; side/back views are small in my previews.
+- NOT wired into New Game: the lab is a separate page (character-lab.html). The in-game creator is unchanged until I can see your current js/story files.
 - The player controller speeds and capsule are not rescaled; there is no Drive mode.
 - Camera near plane 0.3 limits extreme close-ups.
 - Optional permanent fix: in game.js `actorClip`, add `sp/=a.speedK||1;` (the lab applies this at runtime).

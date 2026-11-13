@@ -62,6 +62,44 @@ def refine_face(P, F, face, head):
     sel = face[A] & face[B]; g = coo_matrix((np.ones(sel.sum()), (A[sel], B[sel])), shape=(len(F), len(F))); nc, lab = connected_components(g, directed=False)
     cnt = np.bincount(lab[face]); main = cnt.argmax(); return face & (lab == main)
 
+
+def head_shell(prims, head_joint, uv, y_lo=1.27, y_hi=1.47, y_top=1.604, inset=.008, nphi=72, ny=34):
+    """closed skull + nape surface of revolution, fitted INSIDE the face shell (so the face always wins where it exists) and following the default
+    ellipsoid / neck taper where the face shell has holes (back and sides of the head, back of the neck). y_hi: top of the strip, y_lo: bottom."""
+    from scipy.ndimage import distance_transform_edt, gaussian_filter
+    z0 = -0.012; ys = np.linspace(y_lo, y_top, ny); ph = np.linspace(-np.pi, np.pi, nphi, endpoint=False)
+    face = np.vstack([p['pos'].astype(np.float64) for p in prims if p['mat'] == 'Face' or p['mat'].startswith('Face_')])
+    body = [p for p in prims if p['mat'] == 'Outfit_Modern'][0]['pos'].astype(np.float64); neck = body[(body[:, 1] > 1.20) & (body[:, 1] < 1.31)]
+    nr = np.hypot(neck[:, 0], neck[:, 2] - z0); nrx = np.percentile(np.abs(neck[:, 0]), 90) * .93
+    def default(y, f):                                                                     # (rx, rz) at height y
+        e = np.sqrt(np.clip(1 - ((y - 1.487) / (y_top - 1.487)) ** 2, 0, 1)); rx = .094 * e; rz = .101 * e
+        t = np.clip((1.45 - y) / .15, 0, 1); t = t * t * (3 - 2 * t)                       # taper to the neck below the ears
+        rx = np.where(y > 1.487, rx, np.where(y >= 1.45, .094, .094 * (1 - t) + nrx * t)); rz = np.where(y > 1.487, rz, np.where(y >= 1.45, .101, .101 * (1 - t) + nrx * 1.05 * t)); return rx, rz
+    R = np.full((ny, nphi), np.inf)
+    for pts, ins in ((face, inset), (neck, .002)):
+        dx, dz = pts[:, 0], pts[:, 2] - z0; yi = np.clip(np.round((pts[:, 1] - y_lo) / (y_top - y_lo) * (ny - 1)).astype(int), 0, ny - 1)
+        pj = np.round((np.arctan2(dz, dx) + np.pi) / (2 * np.pi) * nphi).astype(int) % nphi; r = np.hypot(dx, dz) - ins
+        np.minimum.at(R, (yi, pj), r)
+    has = np.isfinite(R) & (R > .02); idx = distance_transform_edt(~has, return_distances=True, return_indices=True); dist, ind = idx[0], idx[1]
+    fill = R[ind[0], ind[1]]; fill = np.where(np.isfinite(fill), fill, .09)
+    rx, rz = default(ys[:, None], 0); rx = np.maximum(rx, 2e-4); rz = np.maximum(rz, 2e-4); rd = (rx * rz) / np.sqrt((rz * np.cos(ph)[None]) ** 2 + (rx * np.sin(ph)[None]) ** 2)     # ellipse radius along each azimuth
+    w = np.exp(-(dist / 5.) ** 2); Rf = np.where(has, R, w * fill + (1 - w) * rd); Rf = np.minimum(Rf, np.where(has, 9, np.maximum(rd * 1.0, fill)))
+    Rf = gaussian_filter(Rf, (1.0, 1.5), mode=('nearest', 'wrap')); Rf = np.where(has, np.minimum(Rf, R + .0005), Rf)
+    top = ny - 1; e_top = np.sqrt(np.clip(1 - ((ys - 1.487) / (y_top - 1.487)) ** 2, 0, 1)); Rf = np.minimum(Rf, np.maximum(rd, .003) * 1.02 + 0 * Rf)
+    pos = []; 
+    for i, y in enumerate(ys):
+        for k, f in enumerate(ph): pos.append([Rf[i, k] * np.cos(f), y, z0 + Rf[i, k] * np.sin(f)])
+    pos = np.array(pos); ix = []
+    for i in range(ny - 1):
+        for k in range(nphi):
+            k2 = (k + 1) % nphi; a, b, c, d = i * nphi + k, i * nphi + k2, (i + 1) * nphi + k, (i + 1) * nphi + k2; ix += [(a, c, b), (b, c, d)]
+    ix = np.array(ix); n = len(pos); jj = np.zeros((n, 4), np.int64); ww = np.zeros((n, 4)); jj[:, 0] = head_joint; ww[:, 0] = 1
+    def mk(sel_y0, mat, grow, tex):
+        keep = pos[ix][:, :, 1].min(1) >= sel_y0 - 1e-6; i2 = ix[keep]; u = np.unique(i2); rm = -np.ones(n, np.int64); rm[u] = np.arange(len(u)); p2 = pos[u].copy()
+        c = np.array([0, p2[:, 1].mean(), z0]); out = p2 - np.array([0, 0, z0]); out[:, 1] = 0; out = out / (np.linalg.norm(out, axis=1, keepdims=True) + 1e-9); p2 = p2 + out * grow
+        return dict(mat=mat, tex=tex, pos=p2.astype(np.float32), nrm=smooth_normals(p2, rm[i2]), uv=np.tile(np.asarray(uv, np.float32), (len(u), 1)), jj=jj[u], ww=ww[u], ix=rm[i2].reshape(-1))
+    return mk
+
 def skull_cap(head_joint, uv, c=(-0.004, 1.487, -0.012), r=(0.109, 0.108, 0.119), nu=40, nv=22):
     th = np.linspace(0, np.pi * .5 + .45, nv); ph = np.linspace(0, 2 * np.pi, nu, endpoint=False)           # from the crown down to below the equator
     pos = [np.array([c[0], c[1] + r[1], c[2]])]; ring = []
@@ -91,11 +129,40 @@ def read_pack(path):
     d = open(path, 'rb').read(); hl = struct.unpack('<I', d[:4])[0]; h = json.loads(d[4:4 + hl]); b = 4 + hl
     return {k: d[b + o:b + o + l] for k, (o, l) in h.items()}
 
+
+def make_eye_tex():
+    """128x64: left 64x64 = grey iris (pupil, fibres, limbal ring; tinted at runtime), right half = plain white (catch-light)"""
+    n = 64; y, x = np.mgrid[:n, :n]; x = (x + .5) / n * 2 - 1; y = (y + .5) / n * 2 - 1; r = np.hypot(x, y); ang = np.arctan2(y, x)
+    g = 150 + 60 * np.clip((r - .35) / .5, 0, 1) + 14 * np.sin(ang * 17) * np.clip((r - .3) / .3, 0, 1)
+    g = np.where(r < .36, 22, g); g = np.where(r > .80, g * np.clip(1 - (r - .8) / .2, .25, 1), g)
+    img = np.zeros((n, 128), np.uint8); img[:, :n] = np.clip(g, 0, 255); img[:, n:] = 255
+    return Image.fromarray(img).convert('RGB')
+
+def eye_prims(P, F, iris, head_j, ti, R=.0112, SQ=.76, SEG=20):
+    """clean round irises (+ catch-lights) in front of the painted eyes; centres come from the teen's own painted iris patches"""
+    pts = P[F[iris]].reshape(-1, 3); out_i = []; out_s = []
+    for side in (-1, 1):
+        q = pts[np.sign(pts[:, 0]) == side]; c = q.mean(0)
+        def ring(rad, dz, uv0, uvs, dy=0., dx=0.):
+            th = np.linspace(0, 2 * np.pi, SEG, endpoint=False); xs, ys = np.cos(th) * rad, np.sin(th) * rad
+            ys = np.where(ys > 0, ys * SQ, ys)                                   # the upper lid covers the top of the iris
+            pos = np.vstack([[c[0] + dx, c[1] + dy, 0.]] + [[c[0] + dx + a, c[1] + dy + b, 0.] for a, b in zip(xs, ys)])
+            for k in range(len(pos)): d = np.hypot(q[:, 0] - pos[k, 0], q[:, 1] - pos[k, 1]); pos[k, 2] = q[d < .014, 2].max() + dz if (d < .014).any() else c[2] + dz
+            uv = np.vstack([[uv0]] + [[uv0[0] + np.cos(t) * uvs[0], uv0[1] - np.sin(t) * uvs[1]] for t in th])
+            ix = np.array([[0, 1 + k, 1 + (k + 1) % SEG] for k in range(SEG)]); return pos, uv, ix
+        for lst, rad, dz, uv0, uvs, dy, dx in ((out_i, R, .0012, (.25, .5), (.25, .5), 0., 0.), (out_s, .0026, .0020, (.75, .5), (0., 0.), .0050, -.0036)):
+            pos, uv, ix = ring(rad, dz, uv0, uvs, dy, dx); lst.append((pos, uv, ix))
+    def pack(lst, mat):
+        pos = np.vstack([p for p, _, _ in lst]); uv = np.vstack([u for _, u, _ in lst]); ix = np.vstack([i + k * len(lst[0][0]) for k, (_, _, i) in enumerate(lst)])
+        n = len(pos); jj = np.zeros((n, 4), np.int64); jj[:, 0] = head_j; ww = np.zeros((n, 4)); ww[:, 0] = 1
+        nrm = np.tile([0., 0., 1.], (n, 1)); return dict(mat=mat, tex=ti, pos=pos.astype(np.float32), nrm=nrm.astype(np.float32), uv=uv.astype(np.float32), jj=jj, ww=ww, ix=ix.reshape(-1))
+    return [pack(out_i, 'Iris'), pack(out_s, 'EyeShine')]
+
 def main():
     ap = argparse.ArgumentParser()
     for a in ('glb', 'fbx', 'tex', 'core', 'out'): ap.add_argument('--' + a, required=True)
     ap.add_argument('--faces', type=int, default=100000); ap.add_argument('--levi-pack', default='assets/models.pack'); ap.add_argument('--levi-json', default='data/models.json')
-    ap.add_argument('--hair-M', default='1.35,1.02,1.2'); ap.add_argument('--hair-off', default='0,0,0.004')
+    ap.add_argument('--hair-M', default='1.35,1.02,1.2'); ap.add_argument('--style-scale', default='SimpleParted=.9,.92,.92;Buns=.78,.9,.9;Long=.84,.95,.9'); ap.add_argument('--hair-off', default='0,0,0.004')
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     # ---------------- teen
     g = GLTF(a.glb); j = g.j; pr = j['meshes'][0]['primitives'][0]; at = pr['attributes']
@@ -124,14 +191,17 @@ def main():
     head &= ~collar
     mzone = (np.abs(cen[:, 0]) < .05) & (cen[:, 1] > 1.37) & (cen[:, 1] < 1.43) & (cen[:, 2] > .07)
     brown = head & ~hair & ~ezone & ~mzone & (cen[:, 1] < 1.46) & ~((C[:, 0] > 196) & (C[:, 1] > 130))       # brown hair-strand texels left on the jaw / sideburn / neck edge
-    ref = refine_face(P, F, head & ~hair & ~brown, head); iris = iris & ref; face = ref & ~iris; hair = head & ~ref & ~brown; modern = ~(head | collar)
+    ref = refine_face(P, F, head & ~hair & ~brown, head); iris = iris & ref; face = ref; hair = head & ~ref & ~brown; modern = ~(head | collar)
     dropped = brown & ~ref
     print('triangles: face %d iris %d hair %d body %d' % (face.sum(), iris.sum(), hair.sum(), modern.sum()))
-    prims = [subset(P, N, UV, J, W, F, face, 'Face', 0), subset(P, N, UV, J, W, F, iris, 'Iris', 0), subset(P, N, UV, J, W, F, hair, 'Hair_Messy', 0), subset(P, N, UV, J, W, F, modern, 'Outfit_Modern', 0)]
+    eye_ti = add_tex('eye', make_eye_tex(), 128)
+    prims = [subset(P, N, UV, J, W, F, face, 'Face', 0), subset(P, N, UV, J, W, F, hair, 'Hair_Messy', 0), subset(P, N, UV, J, W, F, modern, 'Outfit_Modern', 0)]
+    prims += eye_prims(P, F, iris, tidx['Bip001 Head'], eye_ti)
     # a smooth skull cap closes the open back of the head and hides the jagged hair-cut edges; it takes the hair colour
     # ---------------- Quaternius reference skeleton (T-pose) + fitters
     Qg = GLTF(os.path.join(a.core, 'Base/Male/Superhero_Male_FullBody.gltf')); qs = Qg.j['skins'][0]; qibm = Qg.accessor(qs['inverseBindMatrices']).astype(np.float64).reshape(-1, 4, 4).transpose(0, 2, 1)
     Q = {Qg.j['nodes'][n]['name']: np.linalg.inv(m)[:3, 3] for n, m in zip(qs['joints'], qibm)}
+    SS = {kv.split('=')[0]: np.array([float(x) for x in kv.split('=')[1].split(',')]) for kv in a.style_scale.split(';') if '=' in kv}; HC = np.array([0, 1.50, -.01])
     hm = np.diag([float(x) for x in a.hair_M.split(',')]); ho = [float(x) for x in a.hair_off.split(',')]
     FIT = fit_outfit.Fit(Q, T, head_M=hm, head_off=ho)
     # outfits
@@ -145,19 +215,78 @@ def main():
             prims.append(prim_from_corners(P2, uvc, part['vidx'], part['tris'], jj, ww, 'Outfit_%s_%s' % (outfit, nm.replace('_', '')), ti))
     # hair
     hair_img = None; hair_ti = 0
-    for hname in ('SimpleParted', 'Buzzed', 'BuzzedFemale', 'Long', 'Buns'):
+    for hname in ('SimpleParted', 'Buzzed'):
         hg = GLTF(os.path.join(a.core, 'Hair/Hair_%s.gltf' % hname)); hj = hg.j; hp = hj['meshes'][0]['primitives'][0]; ha = hp['attributes']
         hP = hg.accessor(ha['POSITION']).astype(np.float64); hUV = hg.accessor(ha['TEXCOORD_0']).astype(np.float32); hJ = hg.accessor(ha['JOINTS_0']).astype(int); hW = hg.accessor(ha['WEIGHTS_0']).astype(float); hF = hg.accessor(hp['indices']).reshape(-1, 3)
         qn = [hj['nodes'][n]['name'] for n in hj['skins'][0]['joints']]
         infl = [[(qn[hJ[i, k]], hW[i, k]) for k in range(4) if hW[i, k] > 0] for i in range(len(hP))]
         P2, infl2 = FIT.apply(hP, infl); jj, ww = infl_to_arrays(infl2, tidx)
+        if hname in SS: P2 = (P2 - HC) * SS[hname] + HC                            # per-style fit: Quaternius hair is built for adult heads
         bti = hj['materials'][hp['material']]['pbrMetallicRoughness']['baseColorTexture']['index']; uri = hj['images'][hj['textures'][bti]['source']]['uri']
         ti = add_tex('hair:' + os.path.basename(uri), Image.open(os.path.normpath(os.path.join(a.core, 'Hair', uri))), 1024)
         if hair_img is None: hair_img = textures[ti]; hair_ti = ti
         prims.append(dict(mat='Hair_' + hname, tex=ti, pos=P2.astype(np.float32), nrm=smooth_normals(P2, hF.astype(np.int64)), uv=hUV, jj=jj, ww=ww, ix=hF.reshape(-1).astype(np.int64)))
-    # the scalp cap shares the hair texture (a median-brightness texel) so it takes the hair colour exactly like the hair styles
+    # ---- five base faces: smooth jaw / cheek / nose changes of his own face shell (zero at the neck cut and away from the eyes so the seam and irises stay put)
+    fc = [p for p in prims if p['mat'] == 'Face'][0]
+    def fvar(k, jaw_w, chin_dy, chin_dz, cheek, nose_dz, nose_w):
+        q = dict(fc); q['mat'] = 'Face_%d' % k; p = fc['pos'].astype(np.float64).copy(); y = p[:, 1]
+        low = np.clip((1.435 - y) / .09, 0, 1) ** 1.3 * np.clip((y - 1.312) / .03, 0, 1)             # lower-face weight
+        p[:, 0] *= 1 + jaw_w * low + cheek * np.exp(-((y - 1.42) / .04) ** 2) * (np.abs(p[:, 2]) < .2)
+        chin = np.exp(-((y - 1.345) / .03) ** 2) * np.exp(-(p[:, 0] / .035) ** 2) * np.clip((y - 1.312) / .02, 0, 1)
+        p[:, 1] += chin_dy * chin; p[:, 2] += chin_dz * chin
+        nz = np.exp(-((y - 1.435) / .02) ** 2) * np.exp(-(p[:, 0] / .012) ** 2) * (p[:, 2] > .05)
+        p[:, 2] += nose_dz * nz; p[:, 0] *= 1 + nose_w * nz
+        q['pos'] = p.astype(np.float32); prims.append(q)
+    fvar(1, .07, .004, -.002, .02, .003, .15)       # soft / round
+    fvar(2, -.10, -.010, .007, -.01, .002, -.1)     # sharp, pointed chin
+    fvar(3, .02, .000, .000, .045, -.002, .2)       # broad
+    fvar(4, -.03, -.016, .002, -.02, .006, -.05)    # long
+    # ---- anime-leaning face skin: smooth the photographic skin but keep the painted brows / lids / lips (edge-preserving), soft cel-like shading steps
+    from scipy.ndimage import gaussian_filter, sobel
+    b = np.asarray(textures[0], float); sm = np.stack([gaussian_filter(b[..., c], 2.2) for c in range(3)], -1)
+    lum = b.mean(-1); gm = np.hypot(sobel(gaussian_filter(lum, 1.0), 0), sobel(gaussian_filter(lum, 1.0), 1)); keep = np.clip(gm / 38., 0, 1)[..., None]
+    sk = sm * (1 - keep) + b * keep; L = sk.mean(-1, keepdims=True); q8 = np.round(L / 26.) * 26.; sk = sk + (q8 - L) * .35            # gentle posterise
+    sk = np.clip(L + (sk - L) * .96, 0, 255)                                                                                    # slightly cleaner colour
+    # forehead above the brows carries painted hair-edge detail in the photo texture: repaint it as plain skin so a bald head (and any short hairline) never shows hair marks
+    from PIL import ImageDraw
+    fcp = [q for q in prims if q['mat'] == 'Face'][0]; H_, W_ = sk.shape[:2]; mk_ = Image.new('L', (W_, H_), 0); dr = ImageDraw.Draw(mk_); fy = fcp['pos'][:, 1]
+    for t_ in fcp['ix'].reshape(-1, 3):
+        if fy[t_].mean() > 1.497: dr.polygon([(float(fcp['uv'][i][0] % 1 * W_), float(fcp['uv'][i][1] % 1 * H_)) for i in t_], fill=255)
+    am_ = Image.new('L', (W_, H_), 0); da_ = ImageDraw.Draw(am_)
+    for t_ in fcp['ix'].reshape(-1, 3):
+        if fy[t_].max() < 1.49 and fy[t_].min() > 1.33: da_.polygon([(float(fcp['uv'][i][0] % 1 * W_), float(fcp['uv'][i][1] % 1 * H_)) for i in t_], fill=255)
+    hard = (np.asarray(mk_, float) > 127)[..., None]; known = ((np.asarray(am_, float) > 127)[..., None] & ~hard).astype(float)                         # normalised convolution: fill from the surrounding skin so the repaint has no edge
+    fillc = (sk * known).reshape(-1, 3).sum(0) / max(known.sum(), 1.)                                           # mean colour of the real face skin
+    soft = gaussian_filter(hard[..., 0].astype(float), 2.5)[..., None]; sk = sk * (1 - soft) + fillc * soft
+    skc = sk[np.clip((fcp['uv'][:, 1] % 1 * H_).astype(int), 0, H_ - 1), np.clip((fcp['uv'][:, 0] % 1 * W_).astype(int), 0, W_ - 1)].mean(0)
+    face_ti = add_tex('face_anime', Image.fromarray(sk.astype(np.uint8)), 2048)
+    for p in prims:
+        if p['mat'] == 'Face' or p['mat'].startswith('Face_'): p['tex'] = face_ti
+    # closed skull + nape: 'Skull' (skin, always on, so no angle ever shows a hole) and 'Scalp' (hair colour, only the crown/back above the hairline, hidden when bald)
     ha = np.asarray(hair_img.convert('L'), float); med = np.median(ha); yy, xx = np.nonzero(np.abs(ha - med) < 4); k = len(yy) // 2
-    cap = skull_cap(tidx['Bip001 Head'], ((xx[k] + .5) / ha.shape[1], (yy[k] + .5) / ha.shape[0])); cap['tex'] = hair_ti; prims.append(cap)
+    fu = [fp for fp in prims if fp['mat'] == 'Face'][0]['uv']; fm = np.asarray(textures[face_ti].convert('RGB'), float)
+    fpp = [fp for fp in prims if fp['mat'] == 'Face'][0]['pos']; chk = np.nonzero((fpp[:, 1] > 1.38) & (fpp[:, 1] < 1.45) & (np.abs(fpp[:, 0]) < .045) & (fpp[:, 2] > .06))[0]
+    cols = tex_sample(fm, fu); medc = cols.mean(0); okc = np.nonzero(fpp[:, 1] > 1.37)[0]; bi = okc[np.argmin(np.abs(cols[okc] - medc).sum(1))]; skin_uv = fu[bi]
+    mk = head_shell(prims, tidx['Bip001 Head'], skin_uv)
+    prims.append(mk(0, 'Skull', 0., face_ti))
+    sc = head_shell(prims, tidx['Bip001 Head'], ((xx[k] + .5) / ha.shape[1], (yy[k] + .5) / ha.shape[0]))(1.468, 'Scalp', .0025, hair_ti); prims.append(sc)
+
+    # ---- clean male hair styles built as thin caps over his own skull shell (same fit, so they can never float or leave a gap): hairline, thickness and lift per style
+    sk_p = [q for q in prims if q['mat'] == 'Skull'][0]; hu = sc['uv'][0]
+    def hair_cap(mat, fringe, side, back, thick, vol, lift_front=0., part=0., ear=.025):
+        P = sk_p['pos'].astype(np.float64).copy(); dx, dz = P[:, 0], P[:, 2] + .012; ph = np.arctan2(dz, dx); al = np.abs(((ph - np.pi / 2) + np.pi) % (2 * np.pi) - np.pi)    # al: angle from the front 0..pi
+        sm = lambda t: t * t * (3 - 2 * t); t = sm(np.clip(al / np.pi, 0, 1))
+        hl = fringe + (back - fringe) * t + ear * np.exp(-((al - 1.55) / .5) ** 2) + part * np.sin(ph - np.pi / 2) * np.exp(-(al / 1.0) ** 2)      # hairline height per azimuth (ear dip, parting)
+        rad = np.stack([dx, dz], 1); rad = rad / (np.linalg.norm(rad, axis=1, keepdims=True) + 1e-9)
+        top = np.clip((P[:, 1] - 1.50) / .1, 0, 1); th = thick + vol * top + .004 * np.clip((P[:, 1] - hl) / .02, 0, 1)
+        P[:, 0] += rad[:, 0] * th; P[:, 2] += rad[:, 1] * th; P[:, 1] += lift_front * np.exp(-(al / .8) ** 2) * top + vol * .6 * top
+        low = P[:, 1] < hl; P[low, 1] = hl[low]                                         # clamp the lower edge onto the hairline (degenerate triangles are dropped below)
+        ix = sk_p['ix'].reshape(-1, 3); ok = ~(low[ix].all(1)); ix2 = ix[ok]; keep = np.unique(ix2); rm = -np.ones(len(P), np.int64); rm[keep] = np.arange(len(keep)); P2 = P[keep]
+        prims.append(dict(mat=mat, tex=sc['tex'], pos=P2.astype(np.float32), nrm=smooth_normals(P2, rm[ix2]), uv=np.tile(np.asarray(hu, np.float32), (len(keep), 1)), jj=sk_p['jj'][keep], ww=sk_p['ww'][keep], ix=rm[ix2].reshape(-1)))
+    hair_cap('Hair_Bowl', 1.515, 1.497, 1.44, .011, .004, .0, 0., .02)
+    hair_cap('Hair_Side', 1.505, 1.50, 1.46, .012, .006, .012, .045, .02)
+    hair_cap('Hair_Crew', 1.545, 1.53, 1.50, .006, .002, .0, 0., .0)
+    hair_cap('Hair_Pomp', 1.555, 1.51, 1.47, .010, .010, .04, 0., .02)
     # ---------------- Levi's ODM gear, re-fitted
     mj = json.load(open(a.levi_json))['models']['levi']; lm = mj['meta']; pk = read_pack(a.levi_pack); lb = zlib.decompress(pk['levi.bin']); LJ = lm['joints']
     lib = np.frombuffer(lb, '<f4', LJ * 16, lm['ibmOff']).reshape(LJ, 4, 4); lnames = [n.rsplit('_', 1)[0] if n.rsplit('_', 1)[-1].isdigit() else n for n in lm['names']]
@@ -181,6 +310,7 @@ def main():
         P2, infl2 = LF.apply(gP, infl, mapper=lambda q: name2t.get(q, 'Bip001 Pelvis')); jj, ww = infl_to_arrays(infl2, tidx)
         ti = add_tex('levi_t%d' % p['tex'], Image.open(io.BytesIO(pk['levi.t%d' % p['tex']])), size)
         prims.append(dict(mat=gname, tex=ti, pos=P2.astype(np.float32), nrm=smooth_normals(P2, gF), uv=gUV, jj=jj, ww=ww, ix=gF.reshape(-1)))
+    if os.environ.get('AOTW_DUMP'): np.savez(os.environ['AOTW_DUMP'], **{'%s|pos' % p['mat']: p['pos'] for p in prims}, **{'%s|ix' % p['mat']: p['ix'] for p in prims})
     # ---------------- write
     meta, info, binz, texb = write_model(a.out, 'teen', names, parents, wp, prims, textures)
     info['bodyHeight'] = float(P[:, 1].max() - P[:, 1].min()); info['height'] = info['bodyHeight']; info['ymin'] = float(P[:, 1].min()); info['bodyYmin'] = info['ymin']
@@ -188,7 +318,7 @@ def main():
     for i, b in enumerate(texb): open(os.path.join(a.out, 'teen.t%d.webp' % i), 'wb').write(b)
     for f in glob.glob(os.path.join(a.out, 'teen.t*.webp')):
         if int(os.path.basename(f)[6:-5]) >= len(texb): os.remove(f)
-    groups = {'face': ['Face', 'Iris', 'Scalp'], 'hair': [m['mat'] for m in meta['prims'] if m['mat'].startswith('Hair_')], 'gear': [m['mat'] for m in meta['prims'] if m['mat'].startswith('Gear_')],
+    groups = {'face': ['Face', 'Face_1', 'Face_2', 'Face_3', 'Face_4', 'Iris', 'EyeShine', 'Scalp', 'Skull'], 'hair': [m['mat'] for m in meta['prims'] if m['mat'].startswith('Hair_')], 'gear': [m['mat'] for m in meta['prims'] if m['mat'].startswith('Gear_')],
               'outfits': {o: [m['mat'] for m in meta['prims'] if m['mat'].startswith('Outfit_' + o)] for o in ('Modern', 'Peasant', 'Ranger', 'Scout')}}
     info['groups'] = groups; info['prim_stats'] = {m['mat']: [m['n'], m['ni'] // 3] for m in meta['prims']}; info['textures'] = texid
     info['pelvis'] = T['Bip001 Pelvis'].tolist(); info['head'] = T['Bip001 Head'].tolist()

@@ -29,6 +29,8 @@
     for (const k in hdr) pack[k] = new Uint8Array(buf, base + hdr[k][0], hdr[k][1]);
   }
   A.ensure = async function (keys, onProgress) {
+    if (keys.includes('teen')) { await S.teen.load(); keys = keys.filter(k => k !== 'teen'); }
+    if (!keys.length) return;
     if (!loading) loading = init().catch(e => { loading = null; throw e; }); await loading;
     let n = 0; root.__MODELS = root.__MODELS || {};
     for (const key of keys) {
@@ -38,7 +40,7 @@
       await root.__actors.loadModel(key); if (onProgress) onProgress(++n / keys.length);
     }
   };
-  const bodyH = key => info && info[key] ? info[key].info.bodyHeight : 1.7;
+  const bodyH = key => key === 'teen' ? S.teen.bodyHeight() : info && info[key] ? info[key].info.bodyHeight : 1.7;
 
   /* ---- spawning ---- */
   A.clearNpcs = () => { for (const id in A.npcs) root.__actors.remove(A.npcs[id].id); A.npcs = {}; if (A.anchor) { root.__actors.remove(A.anchor.id); A.anchor = null; } };
@@ -62,13 +64,19 @@
   };
   A.spawnPlayer = function (pl, x, z, yaw, isPlayer) {
     const key = pl.body || 'fuse_woman'; if (!root.__actors.has(key)) return null;
+    if (key === 'teen') {                                  // the young character foundation (js/story/teen.js)
+      if (A.player) root.__actors.remove(A.player.id);
+      const a = root.__actors.add({ key, kind: 'rig', x: x || 0, z: z || 0, yaw: yaw || 0, scale: 1, isPlayer: !!isPlayer }); S.teen.apply(a, pl.look, pl.wear); A.player = a; return a;
+    }
     const P = A.playerParams(pl);
     if (A.player) root.__actors.remove(A.player.id);
     const a = root.__actors.add({ key, kind: 'fuse', x: x || 0, z: z || 0, yaw: yaw || 0, scale: A.scaleFor(bodyH(key), P.meters), look: P.look, headScale: P.head, wide: P.width, skipRe: BEARD, isPlayer: !!isPlayer });
     a.tintFn = null; A.player = a; return a;
   };
   A.updatePlayer = function (pl) {                      // live creator preview
-    if (!A.player) return; const P = A.playerParams(pl), key = pl.body || 'fuse_woman';
+    if (!A.player) return; const key = pl.body || 'fuse_woman';
+    if (key === 'teen' && A.player.key === 'teen') { S.teen.apply(A.player, pl.look, pl.wear); return A.player; }
+    const P = A.playerParams(pl);
     if (A.player.key !== key) { const { x, z, yaw, isPlayer } = A.player; return A.spawnPlayer(pl, x, z, yaw, isPlayer); }
     Object.assign(A.player, { scale: A.scaleFor(bodyH(key), P.meters), look: P.look, headScale: P.head, wide: P.width }); A.player.tintFn = null;
   };

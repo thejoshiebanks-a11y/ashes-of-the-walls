@@ -162,7 +162,7 @@ def main():
     ap = argparse.ArgumentParser()
     for a in ('glb', 'fbx', 'tex', 'core', 'out'): ap.add_argument('--' + a, required=True)
     ap.add_argument('--faces', type=int, default=100000); ap.add_argument('--levi-pack', default='assets/models.pack'); ap.add_argument('--levi-json', default='data/models.json')
-    ap.add_argument('--hair-M', default='1.35,1.02,1.2'); ap.add_argument('--style-scale', default='SimpleParted=.9,.92,.92;Buns=.78,.9,.9;Long=.84,.95,.9'); ap.add_argument('--hair-off', default='0,0,0.004')
+    ap.add_argument('--boy-hair', default=None, help='anime boy GLB: its modelled hair is re-fitted onto the teen head as Hair_BH0 (fringe) and Hair_BH1 (+ back hair)'); ap.add_argument('--hair-M', default='1.35,1.02,1.2'); ap.add_argument('--style-scale', default='SimpleParted=.9,.92,.92;Buns=.78,.9,.9;Long=.84,.95,.9'); ap.add_argument('--hair-off', default='0,0,0.004'); ap.add_argument('--hair-sheet', default=''); ap.add_argument('--hair-picks', default='0,1,2,3,4,5,6,7')
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     # ---------------- teen
     g = GLTF(a.glb); j = g.j; pr = j['meshes'][0]['primitives'][0]; at = pr['attributes']
@@ -215,7 +215,7 @@ def main():
             prims.append(prim_from_corners(P2, uvc, part['vidx'], part['tris'], jj, ww, 'Outfit_%s_%s' % (outfit, nm.replace('_', '')), ti))
     # hair
     hair_img = None; hair_ti = 0
-    for hname in ('SimpleParted', 'Buzzed'):
+    for hname in ('Buzzed',):
         hg = GLTF(os.path.join(a.core, 'Hair/Hair_%s.gltf' % hname)); hj = hg.j; hp = hj['meshes'][0]['primitives'][0]; ha = hp['attributes']
         hP = hg.accessor(ha['POSITION']).astype(np.float64); hUV = hg.accessor(ha['TEXCOORD_0']).astype(np.float32); hJ = hg.accessor(ha['JOINTS_0']).astype(int); hW = hg.accessor(ha['WEIGHTS_0']).astype(float); hF = hg.accessor(hp['indices']).reshape(-1, 3)
         qn = [hj['nodes'][n]['name'] for n in hj['skins'][0]['joints']]
@@ -283,10 +283,43 @@ def main():
         low = P[:, 1] < hl; P[low, 1] = hl[low]                                         # clamp the lower edge onto the hairline (degenerate triangles are dropped below)
         ix = sk_p['ix'].reshape(-1, 3); ok = ~(low[ix].all(1)); ix2 = ix[ok]; keep = np.unique(ix2); rm = -np.ones(len(P), np.int64); rm[keep] = np.arange(len(keep)); P2 = P[keep]
         prims.append(dict(mat=mat, tex=sc['tex'], pos=P2.astype(np.float32), nrm=smooth_normals(P2, rm[ix2]), uv=np.tile(np.asarray(hu, np.float32), (len(keep), 1)), jj=sk_p['jj'][keep], ww=sk_p['ww'][keep], ix=rm[ix2].reshape(-1)))
-    hair_cap('Hair_Bowl', 1.515, 1.497, 1.44, .011, .004, .0, 0., .02)
-    hair_cap('Hair_Side', 1.505, 1.50, 1.46, .012, .006, .012, .045, .02)
-    hair_cap('Hair_Crew', 1.545, 1.53, 1.50, .006, .002, .0, 0., .0)
-    hair_cap('Hair_Pomp', 1.555, 1.51, 1.47, .010, .010, .04, 0., .02)
+    # ---- anime hair shells (hair_sheet.py): each is fitted OUTSIDE his head (face shell + skull) so it can never cut through, opening on the face side
+    if a.hair_sheet and a.hair_picks:
+        from hair_sheet import shells
+        from scipy.spatial import cKDTree
+        hp = [p_ for p_ in prims if p_['mat'] == 'Skull' or p_['mat'] == 'Face' or p_['mat'].startswith('Face_')]; HP = np.vstack([p_['pos'] for p_ in hp]).astype(np.float64)
+        C0 = np.array([0, 1.50, -.012]); HV = HP - C0; HR = np.linalg.norm(HV, axis=1); HD = HV / HR[:, None]
+        def outer_r(D):                                                       # outermost head radius along each direction
+            tr = cKDTree(HD); k = 12; dist, ii = tr.query(D, k=k); return HR[ii].max(1)
+        ramp = Image.fromarray(np.tile((np.linspace(.35, 1., 128) ** .85 * 255).astype(np.uint8)[None, :, None], (4, 1, 3)))
+        ramp_ti = add_tex('hair_ramp', ramp, 128)
+        picks = [int(x) for x in a.hair_picks.split(',')]; sh = shells(a.hair_sheet)
+        for pi_, si in enumerate(picks):
+            S_ = sh[si]; Pn = S_['P'].astype(np.float64); Nn = smooth_normals(Pn, S_['F']); Vn = Pn / (np.linalg.norm(Pn, axis=1, keepdims=True) + 1e-9)
+            inner = (Nn * Vn).sum(1) < -.25                                   # inner (skull-facing) surface of the shell
+            Dn = Pn / np.linalg.norm(Pn, axis=1, keepdims=True); rr = np.linalg.norm(Pn, axis=1); ro = outer_r(Dn)
+            ratio = rr[inner] / ro[inner]; s0 = 1.03 / max(np.percentile(ratio, 4), .3); s0 = float(np.clip(s0, .9, 1.35))
+            Pf = Pn * s0 + C0 + np.array([0, .006, -.002]); Nf = smooth_normals(Pf, S_['F'])
+            lum = S_['lum']; lum = (lum - lum.mean()) / (lum.std() + 1e-6); yy = (Pn[:, 1] - Pn[:, 1].min()) / (np.ptp(Pn[:, 1]) + 1e-9)
+            sv = np.clip(.5 + .13 * lum + .30 * (yy - .5) + .12 * np.clip(Nf[:, 1], 0, 1), .02, .98)   # anime shade: lighter crown, darker lower strands, strand variation from the source texture
+            jj = np.zeros((len(Pf), 4), np.int64); jj[:, 0] = tidx['Bip001 Head']; ww = np.zeros((len(Pf), 4)); ww[:, 0] = 1
+            prims.append(dict(mat='Hair_AH%d' % pi_, tex=ramp_ti, pos=Pf.astype(np.float32), nrm=Nf, uv=np.stack([sv, np.full(len(sv), .5)], 1).astype(np.float32), jj=jj, ww=ww, ix=S_['F'].reshape(-1)))
+            print('anime hair', si, '->', 'Hair_AH%d' % pi_, 'scale %.3f' % s0, len(Pf), 'verts', len(S_['F']), 'tris')
+    if a.boy_hair:                                                              # the VRoid hair of the anime boy, scaled onto the teen head (modelled fringe + back hair, no hollow shells)
+        bg = GLTF(a.boy_hair); bj = bg.j; hidx = tidx['Bip001 Head']; sc = .915; src0 = np.array([0, 1.604, .015]); dst0 = np.array([0, 1.356, .016])
+        for me in bj['meshes']:
+            for pr in me['primitives']:
+                mn = bj['materials'][pr['material']]['name']; front = 'Hair_00_HAIR' in mn; back = 'HairBack' in mn
+                if not (front or back): continue
+                at = pr['attributes']; bh_P = bg.accessor(at['POSITION']).astype(np.float64); bh_F = bg.accessor(pr['indices']).astype(np.int64).reshape(-1, 3); bh_UV = bg.accessor(at['TEXCOORD_0']).astype(np.float32)
+                bh_P2 = ((bh_P - src0) * sc + dst0); bh_P2[:, 0] *= 1.03; bh_P2[:, 2] *= 1.03
+                bh_Nn = np.zeros_like(bh_P2); bh_fn = np.cross(bh_P2[bh_F[:, 1]] - bh_P2[bh_F[:, 0]], bh_P2[bh_F[:, 2]] - bh_P2[bh_F[:, 0]])
+                for bh_kk in range(3): np.add.at(bh_Nn, bh_F[:, bh_kk], bh_fn)
+                bh_Nn = (bh_Nn / (np.linalg.norm(bh_Nn, axis=1, keepdims=True) + 1e-12)).astype(np.float32)
+                bh_im, = [Image.open(io.BytesIO(bg.view_bytes(bj['images'][bj['textures'][bj['materials'][pr['material']]['pbrMetallicRoughness']['baseColorTexture']['index']]['source']]['bufferView'])[0]))]
+                bh_ti = add_tex('boyhair_' + ('b' if back else 'f'), bh_im, 512); bh_jj = np.zeros((len(bh_P2), 4), np.int64); bh_ww = np.zeros((len(bh_P2), 4)); bh_ww[:, 0] = 1; bh_jj[:, 0] = hidx
+                for nm in (['Hair_BH0', 'Hair_BH1'] if front else ['Hair_BH1Back']):
+                    prims.append(dict(mat=nm, tex=bh_ti, pos=bh_P2.astype(np.float32), nrm=bh_Nn, uv=bh_UV, jj=bh_jj, ww=bh_ww, ix=bh_F.reshape(-1))); print('boy hair', nm, len(bh_P2), 'verts')
     # ---------------- Levi's ODM gear, re-fitted
     mj = json.load(open(a.levi_json))['models']['levi']; lm = mj['meta']; pk = read_pack(a.levi_pack); lb = zlib.decompress(pk['levi.bin']); LJ = lm['joints']
     lib = np.frombuffer(lb, '<f4', LJ * 16, lm['ibmOff']).reshape(LJ, 4, 4); lnames = [n.rsplit('_', 1)[0] if n.rsplit('_', 1)[-1].isdigit() else n for n in lm['names']]

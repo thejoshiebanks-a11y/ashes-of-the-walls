@@ -40,14 +40,14 @@
       await root.__actors.loadModel(key); if (onProgress) onProgress(++n / keys.length);
     }
   };
-  const bodyH = key => key === 'teen' ? S.teen.bodyHeight() : info && info[key] ? info[key].info.bodyHeight : 1.7;
+  const bodyH = key => (key === 'teen' || key === 'boy') ? S.teen.bodyHeight(key) : info && info[key] ? info[key].info.bodyHeight : 1.7;
 
   /* ---- spawning ---- */
   A.clearNpcs = () => { for (const id in A.npcs) root.__actors.remove(A.npcs[id].id); A.npcs = {}; if (A.anchor) { root.__actors.remove(A.anchor.id); A.anchor = null; } };
   A.clearAll = () => { root.__actors.clear(false); A.npcs = {}; A.player = null; A.anchor = null; A.colossal = null; };
   A.spawnNpc = function (id, x, z, yaw) {
     const d = S.data.npcs[id]; if (!d || !root.__actors.has(d.model)) return null;
-    const a = root.__actors.add({ key: d.model, kind: d.kind, x, z, yaw: yaw || 0, scale: A.scaleFor(bodyH(d.model), d.height), look: d.look, headScale: d.head || 1, wide: d.width || 1, idle: d.idle, npcId: id,
+    const a = root.__actors.add({ key: d.model, kind: d.kind, x, z, yaw: yaw || 0, scale: A.scaleFor(bodyH(d.model), d.height), look: d.look, headScale: d.head || 1, wide: d.width || 1, idle: d.idle, npcId: id, walk: d.walk || Math.min(1.1, 1.35 * 0.42 * d.height),
       skipRe: d.kind === 'fuse' ? null : undefined });
     A.npcs[id] = a; return a;
   };
@@ -64,18 +64,19 @@
   };
   A.spawnPlayer = function (pl, x, z, yaw, isPlayer) {
     const key = pl.body || 'fuse_woman'; if (!root.__actors.has(key)) return null;
-    if (key === 'teen') {                                  // the young character foundation (js/story/teen.js)
+    if (key === 'teen') {                                  // the young character foundation (js/story/teen.js); look.base picks the model
+      const mk = S.teen.keyFor(pl.look), k2 = root.__actors.has(mk) ? mk : 'teen';
       if (A.player) root.__actors.remove(A.player.id);
-      const a = root.__actors.add({ key, kind: 'rig', x: x || 0, z: z || 0, yaw: yaw || 0, scale: 1, isPlayer: !!isPlayer }); S.teen.apply(a, pl.look, pl.wear); A.player = a; return a;
+      const a = root.__actors.add({ key: k2, kind: 'rig', x: x || 0, z: z || 0, yaw: yaw || 0, scale: 1, isPlayer: !!isPlayer }); S.teen.apply(a, pl.look, pl.wear); A.player = a; return a;
     }
-    const P = A.playerParams(pl);
+    const P = A.playerParams(pl); if (S.teen && S.teen.loco) S.teen.loco.setCamera(false);
     if (A.player) root.__actors.remove(A.player.id);
     const a = root.__actors.add({ key, kind: 'fuse', x: x || 0, z: z || 0, yaw: yaw || 0, scale: A.scaleFor(bodyH(key), P.meters), look: P.look, headScale: P.head, wide: P.width, skipRe: BEARD, isPlayer: !!isPlayer });
     a.tintFn = null; A.player = a; return a;
   };
   A.updatePlayer = function (pl) {                      // live creator preview
     if (!A.player) return; const key = pl.body || 'fuse_woman';
-    if (key === 'teen' && A.player.key === 'teen') { S.teen.apply(A.player, pl.look, pl.wear); return A.player; }
+    if (key === 'teen') { const mk = S.teen.keyFor(pl.look); if (A.player.key === mk || (mk === 'boy' && !root.__actors.has('boy'))) { S.teen.apply(A.player, pl.look, pl.wear); return A.player; } const { x, z, yaw, isPlayer } = A.player; return A.spawnPlayer(pl, x, z, yaw, isPlayer); }
     const P = A.playerParams(pl);
     if (A.player.key !== key) { const { x, z, yaw, isPlayer } = A.player; return A.spawnPlayer(pl, x, z, yaw, isPlayer); }
     Object.assign(A.player, { scale: A.scaleFor(bodyH(key), P.meters), look: P.look, headScale: P.head, wide: P.width }); A.player.tintFn = null;

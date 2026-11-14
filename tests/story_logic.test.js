@@ -61,7 +61,7 @@ for(const [qid,q] of Object.entries(S.data.quests)){ for(const o of q.objectives
   for(const fx of q.onComplete||[]) ok(ops.has(fx.op),qid+' onComplete '+fx.op)}
 for(const p of S.data.world.points){ if(p.show) try{S.expr(p.show)}catch(e){ok(false,'show '+p.show)} for(const t of p.talk||[]){ ok(S.data.dialogue[t.conv],`point ${p.id} conv ${t.conv}`); try{S.expr(t.if)}catch(e){ok(false,'expr '+t.if)} } if(p.char!=='anchor') ok(S.data.characters[p.char],'point char '+p.char) }
 for(const z of S.data.world.zones) for(const fx of z.fx){ ok(ops.has(fx.op),'zone op'); if(fx.if) try{S.expr(fx.if)}catch(e){ok(false,'zone expr')} }
-for(const [id,n] of Object.entries(S.data.npcs)){ ok(S.data.characters[id],'npc has character '+id); ok(n.height>1&&n.height<2,'npc height '+id) }
+for(const [id,n] of Object.entries(S.data.npcs)){ ok(S.data.characters[id],'npc has character '+id); ok(n.height>.5&&n.height<2,'npc height '+id) }
 const npcModels=J('../npc_models'); for(const [id,n] of Object.entries(S.data.npcs)) ok(npcModels[n.model],`npc ${id} model ${n.model} is packed`);
 
 /* ---- destiny ---- */

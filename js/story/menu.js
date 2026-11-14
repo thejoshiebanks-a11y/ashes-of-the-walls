@@ -51,7 +51,7 @@
     if (root_) return; const R = UI.R;
     root_ = el('div', 'mn'); root_.hidden = true; root_.dataset.s = 'off';
     root_.innerHTML =
-      '<div class="mn-shade"></div><canvas class="mn-fx" aria-hidden="true"></canvas>' +
+      '<div class="mn-shade"></div><div class="mn-lite"></div><canvas class="mn-fx" aria-hidden="true"></canvas>' +
       '<div class="mn-mark" aria-hidden="true">' + wings() + '</div>' +
       '<h1 class="mn-logo"><img src="assets/ui/game_logo.webp" alt="Ashes of the Walls" draggable="false"></h1>' +
       '<div class="mn-title" aria-label="Ashes of the Walls"><div class="mn-tlw"><img class="mn-tl" src="assets/ui/title_letters.webp" alt="Ashes of the Walls" draggable="false"></div><div class="mn-jp">壁の灰燼</div><i class="mn-rule"></i></div>' +
@@ -264,12 +264,12 @@
 
   /* ---- public: run the whole launch ---- */
   async function loadAll(H) {
-    const bar = loadEl.querySelector('i'); let p = 0, done = false; const tick = setInterval(() => { p = Math.min(.94, p + (1 - p) * .04); bar.style.transform = 'scaleX(' + p + ')'; }, 90);
-    await Promise.all([OP.fontsReady ? Promise.race([OP.fontsReady(), sleep(2500)]) : 0, H.ensureMenu(), sleep(2600)]); clearInterval(tick); bar.style.transform = 'scaleX(1)'; await sleep(250);
+    const bar = loadEl.querySelector('.rg-p'); const setP = v => { bar.style.strokeDashoffset = String(100 - v * 100); }; let p = 0; setP(0); const tick = setInterval(() => { p = Math.min(.94, p + (1 - p) * .04); setP(p); }, 90);
+    await Promise.all([OP.fontsReady ? Promise.race([OP.fontsReady(), sleep(2500)]) : 0, H.ensureMenu(), sleep(2600)]); clearInterval(tick); setP(1); loadEl.classList.add('ready'); await sleep(350);
   }
   M.run = async function (H) {
     build(); D.live = false; UI.hideAll(); UI.fade.classList.add('on');
-    loadEl = el('div', 'mn-load', '<div class="mn-ka"><img src="assets/ui/key_art.webp" alt="" draggable="false"></div><div class="mn-lbar"><i></i></div>'); UI.R.insertBefore(loadEl, UI.fade); loadEl.style.opacity = '1';
+    loadEl = el('div', 'mn-load', '<div class="mn-ka"><img src="assets/ui/key_art.webp" alt="" draggable="false"><svg class="mn-ring" viewBox="0 0 100 100" aria-hidden="true"><rect class="rg-b" x="-.9" y="-.9" width="101.8" height="101.8" rx="12.5" pathLength="100"/><rect class="rg-p" x="-.9" y="-.9" width="101.8" height="101.8" rx="12.5" pathLength="100"/></svg></div>'); UI.R.insertBefore(loadEl, UI.fade); loadEl.style.opacity = '1';
     UI.fade.classList.remove('on'); await loadAll(H);
     /* phones keep sound locked until a real touch: so the key art waits for one (this also lets the studio sting and the title score play from the first second) */
     if (!(root.navigator && root.navigator.webdriver) && !root.__noGate) await new Promise(res => {

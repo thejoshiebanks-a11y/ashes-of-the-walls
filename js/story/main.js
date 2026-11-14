@@ -274,9 +274,9 @@
       d => { cineOff(); ACT.clearAll(); finishCreation(buildPlayer(d, dest), dest); }, () => { cineOff(); ACT.clearAll(); showTitle(); });
     await UI.fadeTo(false, 700);
   }
-  async function finishCreation(player, dest) {              // creator -> opening cinematic (to be polished next) -> the prologue
+  async function finishCreation(player, dest) {              // creator -> straight into the prologue (no opening cinematic)
     DST.consume(); AU.blade();
-    try { await playCinematic(); } catch (e) { console.error('[opening] cinematic failed, continuing to the prologue', e); }
+    mode = null; S.fsm.set('intro'); applyFsm(); await UI.fadeTo(true, 500); UI.hideAll(); ACT.clearAll(); root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true;   // straight into the game: the opening cinematic is gone
     await startNewGame(player);
   }
   async function playCinematic() {

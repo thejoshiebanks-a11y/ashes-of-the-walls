@@ -7,8 +7,10 @@ ok(html.includes('css/menu.css') && fs.existsSync(__dirname + '/../css/menu.css'
 ok(fs.existsSync(__dirname + '/../assets/ui/game_logo.webp') && menu.includes('assets/ui/game_logo.webp'), 'game logo asset exists and is used');
 ok(!/H\.ensure\(\)/.test(menu) && !/OP\.intro\(/.test(menu), 'launch never starts the Colossal intro');
 ok(/OP\.runOpening = M\.run/.test(menu), 'runOpening replaced by the new launch flow');
-ok(/OP\.cinematic = async function/.test(op) && /S\.opening\.cinematic\(openingHost\)/.test(main), 'cinematic is available and only called from the new-game path');
-ok(/finishCreation[\s\S]{0,300}playCinematic/.test(main), 'creator -> cinematic -> prologue');
+ok(/OP\.cinematic = async function/.test(op), 'cinematic code still exists (unused)');
+ok(!/finishCreation[\s\S]{0,400}await playCinematic/.test(main), 'creator -> straight into the prologue (no cinematic)');
+ok(/user-scalable=no/.test(html) && /gesturestart/.test(html), 'pinch / page zoom is blocked');
+ok(/rg-p/.test(menu) && /mn-ring/.test(fs.readFileSync(__dirname + '/../css/menu.css', 'utf8')), 'loading is a ring around the key art');
 const mainNoCine = main.replace(/async function playCinematic[\s\S]*?\n  }\n/, ''); ok(!/opening\.cinematic/.test(mainNoCine), 'no other caller of the cinematic');
 ok(/'new'.*'continue'.*'character'.*'options'.*'extras'/s.test(menu), 'menu has NEW GAME / CONTINUE / CHARACTER / SETTINGS / EXTRAS');
 ok(/has && \['continue'/.test(menu) && /has && \['character'/.test(menu), 'Continue and Character only exist when a save exists');

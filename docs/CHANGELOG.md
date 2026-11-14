@@ -1,4 +1,10 @@
 # Changelog
+## 0.9.7
+- Loading: a blue ring fills around the key-art square (no bar under it, so it never overlaps "Touch to begin").
+- The opening animation after the character creator is removed: creator -> straight into the game.
+- Page zoom locked: pinch, double-tap and browser zoom can no longer scale the game screen (viewport lock + gesture blocking).
+- Visuals: cinematic sun bloom, slow god-rays and anamorphic streak over the menu/title scene, engraved icon shadows and a selection sheen on the menu.
+
 ## 0.9.6
 - New Game now goes menu -> character creator (teen creator v1 merged: teen.js, creator.js, assets/teen) -> opening cinematic -> prologue. If the teen model fails to load, the menu returns with a message instead of silently reloading.
 - Pointing rebuilt to be slow and weighted: shoulder leads, upper arm lifts while the forearm trails folded, the elbow opens into a relaxed bent point, a slow sweep along the Wall, then the elbow folds as the arm lowers. All S-curve easing, no overshoot; the wrist roll follows the arm lift gently (no twist).

@@ -10,10 +10,13 @@
 
   /* ---------- the catalogue ---------- */
   T.OUTFITS = [                                          // medieval civilian first; Scout Regiment is earned in the story
-    { id: 'Peasant', name: 'Village clothes', locked: false },
-    { id: 'Ranger', name: 'Traveller', locked: false },
-    { id: 'Scout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks when you join the Scout Regiment' }];
-  T.HAIR = [{ id: 'Messy', name: 'Messy' }, { id: 'Buzzed', name: 'Buzzed' }, { id: 'BH0', name: 'Anime fringe' }, { id: 'BH1', name: 'Anime layered' }, { id: 'Bald', name: 'Shaved' }];
+    { id: 'Peasant', name: 'Casual', locked: false },
+    { id: 'Ranger', name: 'Armour', locked: true, flag: 'ranger_unlocked', note: 'Unlocks during missions' },
+    { id: 'Scout', name: 'ODM Uniform', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions' }];
+  T.GEARLOCK = { flag: 'odm_unlocked', note: 'Unlocks after you finish training' };
+  T.gearUnlocked = () => !!(S.flag && S.flag(T.GEARLOCK.flag));
+  T.HAIR = [{ id: 'Messy', name: 'Messy', bases: [0] }, { id: 'Buzzed', name: 'Buzzed', bases: [0] }, { id: 'BH0', name: 'Anime fringe', bases: [0, 1], bname: 'Short fringe' }, { id: 'BH1', name: 'Anime layered', bases: [0, 1], bname: 'Classic' }, { id: 'Bald', name: 'Shaved', bases: [0, 1] }];
+  T.hairsFor = b => T.HAIR.map((h, i) => ({ h, i })).filter(x => x.h.bases.indexOf(b) >= 0);
   T.FACES = ['Soft', 'Round', 'Sharp', 'Broad', 'Long'].map((n, i) => ({ id: i ? 'Face_' + i : 'Face', name: n }));;
   T.HAIRCOL = [C('Black', 24, 21, 22), C('Dark brown', 58, 42, 32), C('Brown', 92, 66, 48), C('Chestnut', 116, 80, 56), C('Auburn', 128, 64, 46), C('Ginger', 168, 94, 52), C('Blond', 200, 170, 112), C('Ash blond', 180, 166, 138)];
   T.EYES = [C('Black', 22, 18, 18), C('Dark brown', 82, 50, 30), C('Hazel', 132, 102, 42), C('Green', 62, 138, 82), C('Blue', 72, 112, 188), C('Grey', 134, 142, 154), C('Amber', 198, 140, 42)];
@@ -36,7 +39,7 @@
   T.buildName = L => { const b = clamp01(L.build); return b < .3 ? 'Slight' : b < .62 ? 'Average' : b < .85 ? 'Sturdy' : 'Heavy-set'; };
   T.meters = L => T.baseMeters() * T.heightFactor(L);
   T.isUnlocked = o => !o.locked || !!(o.flag && S.flag && S.flag(o.flag));
-  T.norm = L => { const k = Object.assign({}, T.DEF, L || {}); const o = T.OUTFITS[k.outfit]; if (!o) k.outfit = 0; if (!T.FACES[k.face]) k.face = 0; if (!T.HAIR[k.hair]) k.hair = 0; k.base = k.base === 1 ? 1 : 0; return k; };
+  T.norm = L => { const k = Object.assign({}, T.DEF, L || {}); const o = T.OUTFITS[k.outfit]; if (!o) k.outfit = 0; if (!T.FACES[k.face]) k.face = 0; if (!T.HAIR[k.hair]) k.hair = 0; k.base = k.base === 1 ? 1 : 0; if (T.HAIR[k.hair].bases.indexOf(k.base) < 0) k.hair = T.hairsFor(k.base)[0].i; return k; };
 
   /* ---------- loading ---------- */
   let info = null, loading = null;
@@ -63,7 +66,7 @@
   };
 
   /* ---------- look -> actor ---------- */
-  const SLOT = { top: ['Body', 'Arms', 'ArmsBracer', 'Tops'], pants: ['Legs', 'Bottoms'], boots: ['Feet', 'FeetBoots', 'Boots', 'Shoes'], accent: ['AccPauldron', 'BodyBelt1', 'BodyBelt2', 'HeadHood', 'Cloak', 'Hands', 'Collar'] };
+  const SLOT = { top: ['Body', 'Tops'], pants: ['Legs', 'Bottoms'], boots: ['Feet', 'FeetBoots', 'Boots', 'Shoes'], accent: ['AccPauldron', 'BodyBelt1', 'BodyBelt2', 'HeadHood', 'Cloak', 'Hands', 'Collar'] };
   const slotOf = m => { const part = m.replace(/^Outfit_[A-Za-z]+_/, ''); for (const k in SLOT) if (SLOT[k].includes(part)) return k; return null; };
   const shadeMul = s => 0.62 + clamp01(s) * 0.76;          // hair shade slider: 0.62 (darker) .. 1.38 (lighter)
   const mulc = (c, m) => [Math.min(1, c[0] * m), Math.min(1, c[1] * m), Math.min(1, c[2] * m)];
@@ -77,10 +80,8 @@
         if (m === 'Iris' || m === 'EyeHL') return rv < 1;
         if (m === 'Hair_B0Back') return bald || !!hood || rv < 2 || ['BH0', 'Buzzed'].indexOf(T.HAIR[k.hair].id) >= 0;   // his own hair: short, or with the long back hair
         if (m.startsWith('Hair_')) return bald || !!hood || rv < 2;
-        if (m.startsWith('Gear_')) return !k.gear || rv < 3;
-        if (m === 'Outfit_Scout_Cloak') return !cloak;
-        if (m === 'Outfit_Ranger_HeadHood') return !hood;
-        if (m.startsWith('Outfit_')) return rv < 3 ? m.indexOf('Outfit_Modern') !== 0 : !m.startsWith('Outfit_' + outfit + '_');
+        if (m.startsWith('Gear_')) return true;                 // boy: ODM gear is locked until training (and not fitted to this base)
+        if (m.startsWith('Outfit_')) return m.indexOf('Outfit_Modern') !== 0;   // boy wears his native Casual clothes only
         return false; }
       if (m === 'Skull') return false;
       if (m === 'Iris' || m === 'EyeShine') return rv < 1;
@@ -94,7 +95,8 @@
       return true; } };
     const wm = S.actors.wearMul ? S.actors.wearMul(wear || 0) : 1;
     const hc = mulc(T.HAIRCOL[k.hairCol].c, shadeMul(k.shade)), ec = T.EYES[k.eyes].c, sk = T.SKIN[k.skin].c;
-    const dyes = { top: T.DYE[k.top].c, pants: T.DYE[k.pants].c, boots: T.DYE[k.boots].c, accent: T.DYE[k.accent].c };
+    const casual = boy || outfit === 'Peasant';               // colours apply to Casual only; the other outfits keep their own look
+    const dyes = casual ? { top: T.DYE[k.top].c, pants: T.DYE[k.pants].c, boots: T.DYE[k.boots].c, accent: T.DYE[k.accent].c } : {};
     const CLAY = [.78, .76, .73, .92];
     a.tintFn = m => {
       if (rv < 3 && m === 'Outfit_Modern') return CLAY;
@@ -102,13 +104,13 @@
         if (m === 'Skin_Face' || m === 'Skin_Body') return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
         if (m === 'Iris') return [ec[0], ec[1], ec[2], .82];
         if (m.startsWith('Hair_')) return [hc[0], hc[1], hc[2], .93];
-        if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .62] : (wm < 1 ? [wm, wm, wm, 0] : null); }
+        if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .5] : (wm < 1 ? [wm, wm, wm, 0] : null); }
         return null; }
       if (rv < 1 && (m === 'Face' || m.startsWith('Face_') || m === 'Skull')) return CLAY;
       if (m === 'Face' || m.startsWith('Face_') || m === 'Skull') return k.skin ? [sk[0], sk[1], sk[2], 0] : null;
       if (m === 'Iris') return [ec[0], ec[1], ec[2], .82];
       if (m === 'Scalp' || m.startsWith('Hair_')) return [hc[0], hc[1], hc[2], .93];
-      if (m.startsWith('Outfit_')) { const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .62] : (wm < 1 ? [wm, wm, wm, 0] : null); }
+      if (m.startsWith('Outfit_')) { const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .5] : (wm < 1 ? [wm, wm, wm, 0] : null); }
       return null; };
     const meters = T.meters(k);
     a.baseScale = meters / T.bodyHeight(a.key); a.scale = a.baseScale; a.wide = T.wide(k); a.headScale = T.headScale(k) * (boy ? 0.96 : 1);
@@ -135,15 +137,20 @@
     { name: 'Street runner', look: { face: 3, hair: 1, hairCol: 3, eyes: 3, skin: 4, outfit: 0, top: 3, pants: 2, boots: 2, accent: 6, height: .62, build: .35, head: .5, bodyType: 0 } },
     { name: 'Garrison child', look: { face: 4, hair: 3, hairCol: 0, eyes: 0, skin: 2, outfit: 0, top: 4, pants: 2, boots: 2, accent: 0, height: .7, build: .5, head: .5, bodyType: 3 } },
     { name: 'Ginger tinker', look: { face: 1, hair: 0, hairCol: 5, eyes: 3, skin: 1, outfit: 0, top: 7, pants: 2, boots: 2, accent: 2, height: .35, build: .45, head: .55, bodyType: 1 } },
-    { name: 'Wayfarer', look: { face: 2, hair: 2, hairCol: 4, eyes: 6, skin: 5, outfit: 1, top: 0, pants: 0, boots: 0, accent: 0, height: .6, build: .4, head: .5, cloak: 1, bodyType: 3 } },
-    { name: 'Wall-watcher', look: { face: 3, hair: 1, hairCol: 6, eyes: 5, skin: 0, outfit: 0, top: 9, pants: 3, boots: 3, accent: 8, height: .45, build: .5, head: .5, bodyType: 1 } }];
+    { name: 'Wayfarer', look: { face: 2, hair: 2, hairCol: 4, eyes: 6, skin: 5, outfit: 0, top: 0, pants: 0, boots: 0, accent: 0, height: .6, build: .4, head: .5, cloak: 1, bodyType: 3 } },
+    { name: 'Wall-watcher', look: { face: 3, hair: 1, hairCol: 6, eyes: 5, skin: 0, outfit: 0, top: 9, pants: 3, boots: 3, accent: 8, height: .45, build: .5, head: .5, bodyType: 1 } },
+    { name: 'Kai', base: 1, look: { base: 1, hair: 3, hairCol: 0, eyes: 1, skin: 1, top: 0, pants: 0, boots: 0, accent: 0, height: .5, build: .45, head: .5 } },
+    { name: 'Ren', base: 1, look: { base: 1, hair: 2, hairCol: 1, eyes: 4, skin: 1, top: 5, pants: 3, boots: 3, accent: 0, height: .45, build: .4, head: .5 } },
+    { name: 'Tobi', base: 1, look: { base: 1, hair: 2, hairCol: 6, eyes: 3, skin: 2, top: 4, pants: 2, boots: 2, accent: 7, height: .4, build: .6, head: .52 } },
+    { name: 'Sora', base: 1, look: { base: 1, hair: 3, hairCol: 4, eyes: 6, skin: 0, top: 6, pants: 3, boots: 3, accent: 0, height: .55, build: .35, head: .5 } }
+  ];
   T.preset = i => Object.assign({}, T.DEF, T.PRESETS[i].look);
   T.code = L => { const k = T.norm(L); return ['base', 'outfit', 'hair', 'hairCol', 'eyes', 'skin', 'top', 'pants', 'boots', 'accent'].map(x => k[x].toString(36)).join('') + '-' + [k.shade, k.height, k.build, k.head].map(x => Math.round(clamp01(x) * 35).toString(36)).join(''); };
 
   /* ---------- locomotion: stride-matched gait, run clip, camera scale (needs tools/apply_game_patches.js once) ---------- */
-  const LOCO = T.loco = { LEG: 0.42, CAM_K: 0.5, CAM_H: -0.04, PACE: { walk: 0.4, jog: 0.85, sprint: 1.6 } };
+  const LOCO = T.loco = { LEG: 0.42, CAM_K: 0.5, CAM_H: -0.04, PACE: { walk: 0.55, jog: 1.25, sprint: 2.3 } };
   // stance-foot speed of each clip in leg-lengths per second at rate 1 (measured from the clip data with tools/anim/stride.py)
-  LOCO.GAITS = [{ clip: 'L:Standard Walk', s: 1.25, lo: 0.6, hi: 1.6, upTo: 1.9 }, { clip: 'L:Jog Forward', s: 2.0, lo: 0.8, hi: 1.6, upTo: 3.0 }, { clip: 'L:Run Mixamo', s: 5.3, lo: 0.5, hi: 1.35, upTo: 99 }];
+  LOCO.GAITS = [{ clip: 'L:Standard Walk', s: 1.25, lo: 0.6, hi: 1.6, upTo: 1.9 }, { clip: 'L:Jog Forward', s: 2.0, lo: 0.8, hi: 1.6, upTo: 3.0 }, { clip: 'L:Run Mixamo', s: 5.3, lo: 0.5, hi: 1.5, upTo: 99 }];
   LOCO.pick = (sp, leg) => {                           // -> [clip, playback rate] so the planted foot moves with the ground
     const ls = sp / Math.max(0.05, leg);
     for (const g of LOCO.GAITS) if (ls < g.upTo) return [g.clip, Math.max(g.lo, Math.min(g.hi, ls / g.s))];

@@ -191,14 +191,14 @@
     const revT = []; function endReveal() { if (!T.reveal) return; T.reveal = null; revT.forEach(clearTimeout); revT.length = 0; sync(); }
     function startReveal() { T.reveal = { st: 0 }; sync(); [[1500, 1, .9], [2400, 2, 1], [3300, 3, 1.5]].forEach(([ms, st, fx]) => revT.push(setTimeout(() => { if (!T.reveal || destroyed) return; if (st >= 3) T.reveal = null; else T.reveal = { st }; sync(); equipFx(fx); AU.menuTick && AU.menuTick(); }, ms))); }
     function set(k, v, fx) { endReveal(); L[k] = v; sync(); info(); paint(); if (fx !== false) { equipFx(fx === 'big' ? 1.5 : 1); AU.menuTick && AU.menuTick(); } }
-    function setMany(obj, fx) { endReveal(); Object.assign(L, obj); sync(); info(); paint(); if (fx !== false) { equipFx(1.6); AU.menuTick && AU.menuTick(); } }
+    function setMany(obj, fx) { endReveal(); const nb = obj.base !== undefined && obj.base !== L.base; Object.assign(L, obj); sync(); info(); if (nb) renderTab(); paint(); if (fx !== false) { equipFx(1.6); AU.menuTick && AU.menuTick(); } }
 
     /* ================= option widgets ================= */
     const sec = (title, ...kids) => el('section', 'tc-sec', title ? el('h4', '', title) : null, ...kids);
-    const grid = (key, items, cls) => { const g = el('div', 'tc-grid ' + (cls || '')); items.forEach((it, i) => { const b = btn('tc-card' + (it.locked ? ' lock' : ''), () => pick(key, i, it), it.img ? h('img', { src: it.img, alt: it.name, loading: 'lazy', draggable: 'false', onerror: e => e.target.replaceWith(el('span', 'tc-ph', it.name)) }) : it.node || el('span', 'tc-ph', it.name), el('span', 'tc-tick', svg('check')), it.locked ? el('span', 'tc-lock', svg('lock')) : null); b.dataset.k = key; b.dataset.v = i; b.setAttribute('aria-label', it.name); b.title = ''; g.append(b); }); return g; };
+    const grid = (key, items, cls) => { const g = el('div', 'tc-grid ' + (cls || '')); items.forEach((it, i) => { const b = btn('tc-card' + (it.locked ? ' lock' : ''), () => pick(key, it.i !== undefined ? it.i : i, it), it.img ? h('img', { src: it.img, alt: it.name, loading: 'lazy', draggable: 'false', onerror: e => e.target.replaceWith(el('span', 'tc-ph', it.name)) }) : it.node || el('span', 'tc-ph', it.name), el('span', 'tc-tick', svg('check')), it.locked ? el('span', 'tc-lock', svg('lock')) : null); if (it.locked) b.dataset.note = it.note || ''; b.dataset.k = key; b.dataset.v = it.i !== undefined ? it.i : i; b.setAttribute('aria-label', it.name); b.title = ''; g.append(b); }); return g; };
     const pick = (key, i, it) => {
       if (key === 'preset') { setMany(Object.assign({}, T.preset(i), { crest: L.crest, gear: L.gear })); return; }
-      if (it && it.locked) { set(key, i, 'big'); toast2('Preview only. ' + (T.OUTFITS[i] && T.OUTFITS[i].note || 'Locked')); return; }
+      if (it && it.locked) { toast2('Locked. ' + (it.note || 'Unlocks during missions')); return; }
       set(key, i, it && it.fx);
     };
     const sw = (key, cols, cls) => { const g = el('div', 'tc-sw ' + (cls || '')); cols.forEach((c, i) => { const b = btn('tc-s', () => set(key, i), el('i', '', '')); b.firstChild.style.background = css(c); b.dataset.k = key; b.dataset.v = i; b.setAttribute('aria-label', c.name); g.append(b); }); return g; };
@@ -231,24 +231,24 @@
         const nameIn = h('input', { type: 'text', class: 'tc-input', id: 'tc-name', maxlength: 16, value: d.name, placeholder: 'Enter a name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Name' });
         nameIn.addEventListener('input', () => { d.name = nameIn.value; info(); nameIn.classList.remove('bad'); });
         const dice = btn('tc-mini', () => { const pool = (S.destiny && S.destiny.NAMES && S.destiny.NAMES.m) || ['Emil']; d.name = pool[Math.floor(Math.random() * pool.length)]; nameIn.value = d.name; info(); AU.menuTick && AU.menuTick(); }, svg('dice'));
-        const pres = grid('preset', T.PRESETS.map((p, i) => ({ name: p.name, img: thumb('preset', i), fx: 'big' })), 'tc-g5 presets');
-        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('CHARACTER MODEL', grid('base', [{ name: 'Young teen', img: thumb('base', 0) }, { name: 'Anime boy', img: thumb('base', 1) }], 'tc-g5 presets')), sec('BASE PRESETS', pres),
+        const pres = grid('preset', T.PRESETS.map((p, i) => ({ name: p.name, img: thumb('preset', i), fx: 'big', i, base: p.base || 0 })).filter(x => x.base === (L.base | 0)), 'tc-g5 presets');
+        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('CHARACTER MODEL', el('div', 'tc-seg', ...[['Realistic', 0], ['Anime', 1]].map(([n, v]) => { const b = btn('tc-segb' + ((L.base | 0) === v ? ' on' : ''), () => { if ((L.base | 0) === v) return; const hs = T.hairsFor(v); setMany({ base: v, hair: hs.some(x => x.i === L.hair) ? L.hair : hs[0].i, outfit: 0, gear: 0 }); }, el('span', '', n)); b.dataset.k = 'base'; b.dataset.v = v; return b; }))), sec('BASE PRESETS', pres),
           sec('GENDER', el('div', 'tc-gender', btn('tc-g on', () => { }, svg('male'), el('span', '', 'MALE')), (() => { const b = btn('tc-g off', () => toast2('The young female base is not in this build yet.'), svg('female'), el('span', '', 'FEMALE'), el('span', 'tc-lock', svg('lock'))); return b; })())),
           sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
           sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), el('div', 'tc-row tc-swrow', el('label', '', 'SKIN TONE'), sw('skin', T.SKIN))),
-          sec('PREVIEW OPTIONS', el('div', 'tc-togs', toggle('gear', 'Show Gear'), toggle('cloak', 'Show Cloak'), toggle('showCrest', 'Show Emblem')))];
+          sec('PREVIEW OPTIONS', el('div', 'tc-togs', toggle('showCrest', 'Show Emblem')))];
       },
-      face() { return [sec('FACE SHAPE', grid('face', T.FACES.map((f, i) => ({ name: f.name, img: thumb('face', i) })), 'tc-g5')), sec('SKIN TONE', sw('skin', T.SKIN, 'big')), sec('HEAD', slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
-      hair() { return [sec('HAIR STYLE', grid('hair', T.HAIR.map((hh, i) => ({ name: hh.name, img: thumb('hair', i) })), 'tc-g5')), sec('HAIR COLOUR', sw('hairCol', T.HAIRCOL, 'big')), sec('', slider('shade', 'SHADE', v => v < .4 ? 'Darker' : v > .6 ? 'Lighter' : 'Natural'))]; },
+      face() { return [(L.base | 0) === 1 ? sec('FACE', el('p', 'tc-note', 'The anime model has one hand-painted face. Skin tone and head size are below.')) : sec('FACE SHAPE', grid('face', T.FACES.map((f, i) => ({ name: f.name, img: thumb('face', i) })), 'tc-g5')), sec('SKIN TONE', sw('skin', T.SKIN, 'big')), sec('HEAD', slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
+      hair() { return [sec('HAIR STYLE', grid('hair', T.hairsFor(L.base | 0).map(x => ({ name: (L.base | 0) === 1 && x.h.bname || x.h.name, img: thumb('hair', x.i), i: x.i })), 'tc-g5')), sec('HAIR COLOUR', sw('hairCol', T.HAIRCOL, 'big')), sec('', slider('shade', 'SHADE', v => v < .4 ? 'Darker' : v > .6 ? 'Lighter' : 'Natural'))]; },
       eyes() { return [sec('EYE COLOUR', sw('eyes', T.EYES, 'big round')), sec('', el('p', 'tc-note', 'All characters begin with black eyes and hair. Choose a colour any time.'))]; },
       body() { return [sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
         sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
       clothing() {
         const dye = (k, label) => el('div', 'tc-row tc-swrow', el('label', '', label), sw(k, T.DYE));
-        return [sec('OUTFIT', grid('outfit', T.OUTFITS.map((x, i) => ({ name: x.name, img: thumb('outfit', i), locked: x.locked && !T.isUnlocked(x) })), 'tc-g4 outfits tall')),
-          sec('COLOURS', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')),
+        return [sec('OUTFIT', grid('outfit', T.OUTFITS.map((x, i) => ({ name: x.name, img: thumb('outfit', i), locked: x.locked && !T.isUnlocked(x), note: x.note })), 'tc-g4 outfits tall')),
+          sec('COLOURS (CASUAL ONLY)', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')),
           sec('WEAR', chips('wear', cfg.wear || ['Clean', 'Lived-in', 'Weathered'])), sec('', el('div', 'tc-togs', toggle('cloak', 'Show Cloak / Hood')))]; },
-      gear() { return [sec('MANEUVER GEAR', grid('gear', [{ name: 'None', img: thumb('gear', 0) }, { name: 'ODM gear', img: thumb('gear', 1) }], 'tc-g4 tall')), sec('', el('p', 'tc-note', 'Gear is a preview here. In the story it is issued during training.'))]; },
+      gear() { return [sec('MANEUVER GEAR', grid('gear', [{ name: 'None', img: thumb('gear', 0) }, { name: 'ODM gear', img: thumb('gear', 1), locked: !T.gearUnlocked(), note: T.GEARLOCK.note }], 'tc-g4 tall')), sec('', el('p', 'tc-note', 'ODM gear unlocks after you finish training.'))]; },
       emblem() { return [sec('CREST', grid('crest', T.CRESTS.map((c, i) => { const n = el('span', 'tc-crestcard'); n.append(crestSvg(i, 'tc-crest-card')); return { name: T.CRESTNAMES[i], node: n }; }), 'tc-g5')), sec('', el('div', 'tc-togs', toggle('showCrest', 'Show on registry card')))]; },
       voice() { return [sec('VOICE', chips('voice', T.VOICES)), sec('', el('p', 'tc-note', 'How you sound when you speak up in conversation.'))]; },
       options() {
@@ -284,7 +284,7 @@
     async function leave(ok) { if (destroyed) return; destroyed = true; T.reveal = null; revT.forEach(clearTimeout); cancelAnimationFrame(raf); removeEventListener('keydown', keys); removeEventListener('resize', fit); root_.classList.add('out'); await sleep(260); root_.remove(); ok ? onDone(d) : onCancel(); }
     function finish() {
       if (!d.name.trim()) { setTab('base'); const n = doc.getElementById('tc-name'); if (n) { n.classList.add('bad'); n.focus(); } confirm.classList.remove('shake'); void confirm.offsetWidth; confirm.classList.add('shake'); toast2('Enter a name to continue.'); return; }
-      const O = T.OUTFITS[L.outfit]; if (O && O.locked && !T.isUnlocked(O)) { L.outfit = 0; sync(); toast2('The Scout uniform is earned in the story. You start in village clothes.'); }
+      const O = T.OUTFITS[L.outfit]; if ((O && O.locked && !T.isUnlocked(O)) || (L.gear && !T.gearUnlocked())) { L.outfit = O && O.locked && !T.isUnlocked(O) ? 0 : L.outfit; L.gear = T.gearUnlocked() ? L.gear : 0; sync(); }
       AU.select && AU.select(); equipFx(2); confirm.classList.add('done'); setTimeout(() => leave(true), 520);
     }
     function keys(e) {

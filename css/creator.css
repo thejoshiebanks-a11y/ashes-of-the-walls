@@ -149,3 +149,5 @@
 @media (max-height: 300px) { #tc .tc-hint { display: none; } #tc .tc-vb { min-height: 12px; } #tc .tc-cb { min-height: 11px; } #tc .tc-brand b { font-size: calc(var(--u) * 3.6); } #tc .tc-quote { display: none; } }
 @media (max-aspect-ratio: 3/2) { #tc .tc-right { display: none; } #tc .tc-lower { display: none; } #tc .tc-panel { width: 46vw; } }
 @media (prefers-reduced-motion: reduce) { #tc * { animation-duration: .01s !important; transition-duration: .01s !important; } }
+
+#tc .tc-seg{display:flex;gap:6px;padding:3px;border-radius:999px;background:rgba(255,255,255,.08)}#tc .tc-segb{flex:1;padding:8px 10px;border-radius:999px;border:0;background:transparent;color:inherit;font:inherit;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}#tc .tc-segb.on{background:rgba(255,255,255,.9);color:#1b1713}

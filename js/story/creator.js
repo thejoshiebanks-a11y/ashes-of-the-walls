@@ -124,7 +124,7 @@
     function camFrame(now) {
       const dt = Math.min(.05, (now - last) / 1000); last = now; a = actor(); if (root.ODM) root.ODM.hour = GOLD;
       if (a) {
-        const worldH = a.baseScale ? a.baseScale * T.bodyHeight(a.key) : .3, hs = worldH / T.bodyHeight('teen'), k = 1 - Math.exp(-dt * 4.2), t = cam.t;
+        const worldH = a.baseScale ? a.baseScale * T.bodyHeight() : .3, hs = worldH / T.bodyHeight(), k = 1 - Math.exp(-dt * 4.2), t = cam.t;
         introT = Math.min(1, introT + dt / 4.2); const ik = ease(introT);
         cam.dist += (t.dist - cam.dist) * k; cam.h += (t.h - cam.h) * k; cam.el += (t.el - cam.el) * k; cam.fov += (t.fov - cam.fov) * k; cam.az += (t.az - cam.az) * k; cam.zoom += (cam.zoomT - cam.zoom) * k;
         const sh = freeShift(); cam.shift += (sh - cam.shift) * k;
@@ -232,7 +232,7 @@
         nameIn.addEventListener('input', () => { d.name = nameIn.value; info(); nameIn.classList.remove('bad'); });
         const dice = btn('tc-mini', () => { const pool = (S.destiny && S.destiny.NAMES && S.destiny.NAMES.m) || ['Emil']; d.name = pool[Math.floor(Math.random() * pool.length)]; nameIn.value = d.name; info(); AU.menuTick && AU.menuTick(); }, svg('dice'));
         const pres = grid('preset', T.PRESETS.map((p, i) => ({ name: p.name, img: thumb('preset', i), fx: 'big' })), 'tc-g5 presets');
-        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('CHARACTER MODEL', grid('base', [{ name: 'Young teen', img: thumb('base', 0) }, { name: 'Anime boy', img: thumb('base', 1) }], 'tc-g5 presets')), sec('BASE PRESETS', pres),
+        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('BASE PRESETS', pres),
           sec('GENDER', el('div', 'tc-gender', btn('tc-g on', () => { }, svg('male'), el('span', '', 'MALE')), (() => { const b = btn('tc-g off', () => toast2('The young female base is not in this build yet.'), svg('female'), el('span', '', 'FEMALE'), el('span', 'tc-lock', svg('lock'))); return b; })())),
           sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
           sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), el('div', 'tc-row tc-swrow', el('label', '', 'SKIN TONE'), sw('skin', T.SKIN))),

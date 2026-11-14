@@ -3,13 +3,13 @@
  "bodyHeight": 1.6493210792541504,
  "bodyYmin": 0.00010090574505738914,
  "joints": 24,
- "prims": 35,
- "tex": 10,
- "verts": 151708,
+ "prims": 37,
+ "tex": 8,
+ "verts": 150890,
  "height": 1.6493210792541504,
  "ymin": 0.00010090574505738914,
  "unit": 1.0,
- "bin_kb": 3003,
+ "bin_kb": 2976,
  "groups": {
   "face": [
    "Face",
@@ -24,10 +24,12 @@
   ],
   "hair": [
    "Hair_Messy",
+   "Hair_SimpleParted",
    "Hair_Buzzed",
-   "Hair_BH1Back",
-   "Hair_BH0",
-   "Hair_BH1"
+   "Hair_Bowl",
+   "Hair_Side",
+   "Hair_Crew",
+   "Hair_Pomp"
   ],
   "gear": [
    "Gear_ODM",
@@ -132,6 +134,10 @@
    638,
    1128
   ],
+  "Hair_SimpleParted": [
+   757,
+   1301
+  ],
   "Hair_Buzzed": [
    466,
    830
@@ -160,17 +166,21 @@
    1008,
    1872
   ],
-  "Hair_BH1Back": [
-   394,
-   676
+  "Hair_Bowl": [
+   978,
+   1804
   ],
-  "Hair_BH0": [
-   2273,
-   2428
+  "Hair_Side": [
+   939,
+   1727
   ],
-  "Hair_BH1": [
-   2273,
-   2428
+  "Hair_Crew": [
+   696,
+   1243
+  ],
+  "Hair_Pomp": [
+   752,
+   1353
   ],
   "Gear_ODM": [
    9910,
@@ -208,10 +218,8 @@
   "Ranger": 3,
   "hair:T_Hair_1_BaseColor.png": 4,
   "face_anime": 5,
-  "boyhair_b": 6,
-  "boyhair_f": 7,
-  "levi_t1": 8,
-  "levi_t0": 9
+  "levi_t1": 6,
+  "levi_t0": 7
  },
  "pelvis": [
   -0.003559396613432901,

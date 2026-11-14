@@ -69,7 +69,7 @@ function step(dt){if(lastWall)lastWall.t+=dt;
  const mf=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)-sv[1],ms=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+sv[0];const ml=Math.hypot(mf,ms),mn=ml>1?1/ml:1;
  const wish=[(fw[0]*mf+rt[0]*ms)*mn,0,(fw[2]*mf+rt[2]*ms)*mn],hooked=(hk[0].on&&hk[0].att)||(hk[1].on&&hk[1].att);
  const reel=K.Space||T.reel||hooked,out=K.ControlLeft||K.KeyC||T.out,gasOn=!window.__noOdm&&(((K.ShiftLeft||K.ShiftRight)&&!grounded)||T.gas)&&gas>0,brake=K.KeyX||T.brake;gasFx=!!gasOn;
- if(grounded&&!hooked){const sprint=K.ShiftLeft||K.ShiftRight||ml>.93&&!(K.KeyW||K.KeyA||K.KeyS||K.KeyD),sp=ml<.04?0:ml<.4?P.walk*(ml/.4):sprint?P.sprint:ml<.92||(K.KeyW||K.KeyA||K.KeyS||K.KeyD)?P.jog:P.sprint,wd=ml>1e-3?[wish[0]/(ml>1?1:ml)*1,0,wish[2]/(ml>1?1:ml)*1]:[0,0,0],tv=[wd[0]*sp,0,wd[2]*sp],k=Math.min(1,dt*(ml>.05?7:9));
+ if(grounded&&!hooked){const sprint=K.ShiftLeft||K.ShiftRight||ml>.93&&!(K.KeyW||K.KeyA||K.KeyS||K.KeyD),sp=ml<.04?0:ml<.4?P.walk*(ml/.4):sprint?P.sprint:ml<.92||(K.KeyW||K.KeyA||K.KeyS||K.KeyD)?P.jog:P.sprint,wd=ml>1e-3?[wish[0]/(ml>1?1:ml)*1,0,wish[2]/(ml>1?1:ml)*1]:[0,0,0],tv=[wd[0]*(window.__spdMap?window.__spdMap(sp):sp),0,wd[2]*(window.__spdMap?window.__spdMap(sp):sp)],k=Math.min(1,dt*(ml>.05?7:9));
   const hs=Math.hypot(v[0],v[2]);if(dodgeT>0){dodgeT-=dt}else if(hs>P.sprint+2){const f=Math.exp(-dt*1.4);v[0]*=f;v[2]*=f}else{v[0]+=(tv[0]-v[0])*k;v[2]+=(tv[2]-v[2])*k}
   if(K.Space&&!T.jumped){v[1]=P.jump;grounded=false}}
  else{v[1]-=P.g*dt;const s=hooked?P.steer*1.6:P.steer;v[0]+=wish[0]*s*dt;v[2]+=wish[2]*s*dt}
@@ -122,20 +122,20 @@ function grabCam(dt){const T=titan,g=grab,F=[Math.sin(T.yaw),0,Math.cos(T.yaw)],
  for(let j=0;j<3;j++)cam.pos[j]+=(tp[j]-cam.pos[j])*k;{const gy=gh(cam.pos[0],cam.pos[2])+.4;if(cam.pos[1]<gy)cam.pos[1]=gy}const sh=shake*.03;cam.pos[0]+=(Math.random()-.5)*sh;cam.pos[1]+=(Math.random()-.5)*sh;
  cam.target=tg;fov+=(fv-fov)*Math.min(1,dt*3);cam.fov=fov;camDist=len([cam.pos[0]-H[0],cam.pos[1]-H[1],cam.pos[2]-H[2]]);st.wyaw=Math.atan2(tg[0]-cam.pos[0],tg[2]-cam.pos[2]);
  const q=window.ODM&&window.ODM.dbg;if(q){cam.pos=[H[0]+q[0],H[1]+q[1],H[2]+q[2]];cam.target=q.length>3?[q[3],q[4],q[5]]:[H[0],H[1]+.2,H[2]];cam.fov=.6;camDist=9}}
-function camUpdate(dt){if(grab&&titan&&grab.fr){grabCam(dt);return}const sp=len(v);if(Math.abs(st.wyaw-lastYaw)>1e-5)userYawT=performance.now();if(sp>14&&!grab&&!lockOn&&performance.now()-userYawT>1500&&(hk[0].on||hk[1].on||!grounded)){const vy=Math.atan2(v[0],v[2]);let dy=vy-st.wyaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));st.wyaw+=dy*Math.min(1,dt*1.1)*Math.min(1,(sp-14)/18)}lastYaw=st.wyaw;const yaw=st.wyaw,pit=st.wpitch,d=dirYP(yaw,pit),dist=(grab?5.4:2.9)+Math.min(2.8,sp*.05),rt=[-Math.cos(yaw),0,Math.sin(yaw)],pv=[H[0],H[1]+.3,H[2]];
- let want=[pv[0]-d[0]*dist+rt[0]*.32,pv[1]-d[1]*dist+.28,pv[2]-d[2]*dist+rt[2]*.32];if(grab&&titan){const Ft=[Math.sin(titan.yaw),0,Math.cos(titan.yaw)],Rt=[Math.cos(titan.yaw),0,-Math.sin(titan.yaw)],sl=grab.kind==='slam',az=sl?1.25+.25*Math.sin(grab.t*.8):.42*Math.sin(grab.t*.38)+(grab.kind==='bite'?.22*grab.m:0),R_=sl?6.4:2.8,dy=sl?1.3:.05+.15*Math.sin(grab.t*.5);want=[pv[0]+(Ft[0]*Math.cos(az)+Rt[0]*Math.sin(az))*R_,pv[1]+dy,pv[2]+(Ft[2]*Math.cos(az)+Rt[2]*Math.sin(az))*R_]}let to=[want[0]-pv[0],want[1]-pv[1],want[2]-pv[2]];const L=len(to);to=[to[0]/L,to[1]/L,to[2]/L];
- let tm=L;for(const o of[[0,0,0],[rt[0]*.45,0,rt[2]*.45],[-rt[0]*.45,0,-rt[2]*.45],[0,.4,0],[0,-.35,0]]){const h=cast([pv[0]+o[0],pv[1]+o[1],pv[2]+o[2]],to,L+.3);if(h)tm=Math.min(tm,h.t-.35)}tm=Math.max(.45,tm);
+function camUpdate(dt){if(grab&&titan&&grab.fr){grabCam(dt);return}const sp=len(v);if(Math.abs(st.wyaw-lastYaw)>1e-5)userYawT=performance.now();if(sp>14&&!grab&&!lockOn&&performance.now()-userYawT>1500&&(hk[0].on||hk[1].on||!grounded)){const vy=Math.atan2(v[0],v[2]);let dy=vy-st.wyaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));st.wyaw+=dy*Math.min(1,dt*1.1)*Math.min(1,(sp-14)/18)}lastYaw=st.wyaw;const yaw=st.wyaw,pit=st.wpitch,d=dirYP(yaw,pit),dist=((grab?5.4:2.9)+Math.min(2.8,sp*.05))*(window.__camK||1),rt=[-Math.cos(yaw),0,Math.sin(yaw)],pv=[H[0],H[1]+(window.__camH!==undefined?window.__camH:.3),H[2]];
+ let want=[pv[0]-d[0]*dist+rt[0]*.32*(window.__camK||1),pv[1]-d[1]*dist+.28*(window.__camK||1),pv[2]-d[2]*dist+rt[2]*.32*(window.__camK||1)];if(grab&&titan){const Ft=[Math.sin(titan.yaw),0,Math.cos(titan.yaw)],Rt=[Math.cos(titan.yaw),0,-Math.sin(titan.yaw)],sl=grab.kind==='slam',az=sl?1.25+.25*Math.sin(grab.t*.8):.42*Math.sin(grab.t*.38)+(grab.kind==='bite'?.22*grab.m:0),R_=sl?6.4:2.8,dy=sl?1.3:.05+.15*Math.sin(grab.t*.5);want=[pv[0]+(Ft[0]*Math.cos(az)+Rt[0]*Math.sin(az))*R_,pv[1]+dy,pv[2]+(Ft[2]*Math.cos(az)+Rt[2]*Math.sin(az))*R_]}let to=[want[0]-pv[0],want[1]-pv[1],want[2]-pv[2]];const L=len(to);to=[to[0]/L,to[1]/L,to[2]/L];
+ let tm=L;for(const o of[[0,0,0],[rt[0]*.45,0,rt[2]*.45],[-rt[0]*.45,0,-rt[2]*.45],[0,.4,0],[0,-.35,0]]){const h=cast([pv[0]+o[0],pv[1]+o[1],pv[2]+o[2]],to,L+.3);if(h)tm=Math.min(tm,h.t-.35)}tm=Math.max(.45*(window.__camK||1),tm);
  const tgt=[pv[0]+to[0]*tm,pv[1]+to[1]*tm,pv[2]+to[2]*tm],k=1-Math.exp(-dt*(grounded?30:Math.max(8,18-sp*.15)));for(let j=0;j<3;j++)cam.pos[j]+=(tgt[j]-cam.pos[j])*k;
  {const dv=[cam.pos[0]-pv[0],cam.pos[1]-pv[1],cam.pos[2]-pv[2]],dl=len(dv)||1,dn=[dv[0]/dl,dv[1]/dl,dv[2]/dl],h=cast(pv,dn,dl+.1);if(h&&h.t<dl+.05){const t2=Math.max(.45,h.t-.35);for(let j=0;j<3;j++)cam.pos[j]=pv[j]+dn[j]*t2}}
  for(const q of SPH){const dx=cam.pos[0]-q.c[0],dy=cam.pos[1]-q.c[1],dz=cam.pos[2]-q.c[2],dd=Math.hypot(dx,dy,dz),m=q.r+.5;if(dd<m&&dd>1e-3){const f=(m-dd)/dd;cam.pos[0]+=dx*f;cam.pos[1]+=dy*f;cam.pos[2]+=dz*f}}
- {let g=gh(cam.pos[0],cam.pos[2])+.55;if(swimming)g=Math.min(g,WY+.5);if(cam.pos[1]<g)cam.pos[1]=g}
+ {let g=gh(cam.pos[0],cam.pos[2])+.55*(window.__camK||1);if(swimming)g=Math.min(g,WY+.5);if(cam.pos[1]<g)cam.pos[1]=g}
  const tf=P.fovBase+Math.min(1,sp/70)*P.fovGain;fov+=(tf-fov)*Math.min(1,dt*4);
  const sh=shake*(.035+Math.min(.04,sp*.0005));cam.pos[0]+=(Math.random()-.5)*sh;cam.pos[1]+=(Math.random()-.5)*sh;
  cam.target=[H[0]+d[0]*20,H[1]+.6+d[1]*20,H[2]+d[2]*20];if(titan&&!titan.dead&&!grab){const N=SPH.find(q=>q.nape);if(N){const dd=Math.hypot(N.c[0]-H[0],N.c[2]-H[2]),pr=Math.max(0,Math.min(1,(32-dd)/24))*.32;for(let k=0;k<3;k++)cam.target[k]+=(N.c[k]-cam.target[k])*pr;fov+=(.06*pr)}}if(grab&&titan){const hd=titanBone('Bip001 Head');cam.target=[H[0]*.6+hd[0]*.4,H[1]*.6+hd[1]*.4+.2,H[2]*.6+hd[2]*.4];st.wyaw=Math.atan2(cam.target[0]-cam.pos[0],cam.target[2]-cam.pos[2]);fov+=((grab.kind==='slam'?.95:.82)-fov)*.1}cam.fov=fov;camDist=len([cam.pos[0]-H[0],cam.pos[1]-H[1],cam.pos[2]-H[2]]);
  const q=window.ODM&&window.ODM.dbg;if(q){cam.pos=[H[0]+q[0],H[1]+q[1],H[2]+q[2]];cam.target=q.length>3?[q[3],q[4],q[5]]:[H[0],H[1]+.2,H[2]];cam.fov=.6;camDist=9}}
 // ---------- animation clips (retargeted from the uploaded Mixamo packs)
 let AN=null,pend=null;
-async function loadAnims(){const D=window.__ANIMS;if(!D)return;const bin=await new Response(new Blob([b64u8(D.bin)]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer();AN={meta:D.meta,i16:new Int16Array(bin),pi:{}};D.meta.pairs.forEach((p,i)=>AN.pi[p[0]]=i);AN.mir=D.meta.pairs.map(p=>{const n=p[0].indexOf(' L ')>=0?p[0].replace(' L ',' R '):p[0].indexOf(' R ')>=0?p[0].replace(' R ',' L '):p[0];return AN.pi[n]})}
+async function loadAnims(){const D=window.__ANIMS;if(!D)return;const bin=await new Response(new Blob([b64u8(D.bin)]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer();AN={meta:D.meta,i16:new Int16Array(bin),pi:{}};window.__AN=AN;D.meta.pairs.forEach((p,i)=>AN.pi[p[0]]=i);AN.mir=D.meta.pairs.map(p=>{const n=p[0].indexOf(' L ')>=0?p[0].replace(' L ',' R '):p[0].indexOf(' R ')>=0?p[0].replace(' R ',' L '):p[0];return AN.pi[n]})}
 const clipLen=n=>AN&&AN.meta.clips[n]?(AN.meta.clips[n].n-1)/30:1;
 function mirrorPose(o){const m=AN.mir,t=o.d.slice();for(let i=0;i<m.length;i++){const j=m[i];o.d[i*3]=-t[j*3];o.d[i*3+1]=t[j*3+1];o.d[i*3+2]=t[j*3+2]}o.q=[o.q[0],o.q[1],-o.q[2],-o.q[3]]}
 function newPose(){return{d:new Float32Array(45),q:[1,0,0,0],y:0}}
@@ -536,6 +536,7 @@ function actTint(a){return mat=>{const L=a.look;if(!L)return null;const c=actCla
 function actorClip(a,sp){
  if(a.pose==='crouch')return['L:Crouch Idle',1];
  if(a.pose==='fall')return[AN.meta.clips['L:Falling Idle']?'L:Falling Idle':'L:Unarmed Idle',1];
+ {const r_=window.__actorClip&&window.__actorClip(a,sp);if(r_)return r_}
  if(sp>3.4)return['L:Sprint',Math.min(1.5,.55+sp/7)];
  if(sp>1.5)return['L:Jog Forward',Math.min(1.4,.5+sp/4.5)];
  if(sp>.25)return['L:Standard Walk',Math.min(1.5,.4+sp/1.7)];
@@ -557,7 +558,7 @@ function drawActors(dt){
   if(Math.hypot(a.x-H[0],a.z-H[2])>170&&!a.isPlayer)continue;
   if(!a.static){
    if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
-   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
+   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,.25);a.an.rate=rt;if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
    const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;if(a.poseFn)a.poseFn(pz,a,M);/* a.poseFn: edit the pose before it is drawn */
    if(a.talking){const t=a.ph=(a.ph||0)+dt;const g=Math.sin(t*2.3)*.5+.5;const r=AN.pi['Bip001 R Forearm'];if(r!==undefined&&a.talkGest!==false){const i=r*3;pz.d[i+1]+=g*.45;pz.d[i]-=g*.18}}
    const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;

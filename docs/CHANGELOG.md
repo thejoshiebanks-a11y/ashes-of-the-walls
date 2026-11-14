@@ -1,4 +1,8 @@
 # Changelog
+## 0.9.8
+- Repo assembled from the three split uploads and repaired: character creator v2 installed correctly (teen.js, creator.js, actors.js, run clip, anime boy base, v2 teen assets) together with its 8 game.js hooks, so every file is from the same release.
+- Stale .rej / .bak leftovers and old update zips removed from the repo (they are not part of the game).
+
 ## 0.9.7
 - Loading: a blue ring fills around the key-art square (no bar under it, so it never overlaps "Touch to begin").
 - The opening animation after the character creator is removed: creator -> straight into the game.

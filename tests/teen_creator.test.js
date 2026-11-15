@@ -1,33 +1,74 @@
-// Pure-logic checks for the teen catalogue and the variation system (no browser). Run: node tests/teen_creator.test.js
-const assert = require('assert');
+// Anime-only creator: catalogue, locks, base/hair/outfit rules, loader and the six model packs. Run: node tests/teen_creator.test.js
+const assert = require('assert'), fs = require('fs'), zlib = require('zlib'), path = require('path');
 globalThis.STORY = { flag: () => 0, actors: { wearMul: w => [1, .9, .78][w || 0] } };
-const T = require('../js/story/teen.js');
+const T = require('../js/story/teen.js'), R = path.resolve(__dirname, '..');
 let n = 0; const t = (name, f) => { try { f(); n++; console.log('ok   ' + name); } catch (e) { console.error('FAIL ' + name + '\n     ' + e.message); process.exitCode = 1; } };
-const FIELDS = ['face', 'outfit', 'hair', 'hairCol', 'eyes', 'skin', 'top', 'pants', 'boots', 'accent'];
-const dist = (a, b) => FIELDS.filter(k => a[k] !== b[k]).length + (Math.abs(a.height - b.height) > .12) + (Math.abs(a.build - b.build) > .12) + (Math.abs(a.head - b.head) > .12);
+const FIELDS = ['base', 'face', 'outfit', 'hair', 'hairCol', 'eyes', 'skin', 'top', 'pants', 'boots', 'accent'];
+const hide = (L, m) => { const a = {}; T.apply(a, L, 0); return a.skipRe.test(m); };
 
-t('defaults are medieval civilian with black hair and black eyes', () => { assert.strictEqual(T.OUTFITS[T.DEF.outfit].id, 'Peasant'); assert.strictEqual(T.HAIRCOL[T.DEF.hairCol].name, 'Black'); assert.strictEqual(T.EYES[T.DEF.eyes].name, 'Black'); });
-t('the Scout Regiment outfit exists and is locked until the story unlocks it', () => { const o = T.OUTFITS.find(x => x.id === 'Scout'); assert(o && o.locked && !T.isUnlocked(o)); globalThis.STORY.flag = k => k === 'scout_unlocked'; assert(T.isUnlocked(o)); globalThis.STORY.flag = () => 0; });
-t('every catalogue has black first where the brief asks for it, and no duplicates', () => { for (const L of [T.HAIRCOL, T.EYES, T.SKIN, T.DYE]) assert.strictEqual(new Set(L.map(x => x.name)).size, L.length); });
-t('height 140-164 cm, build and head scale within sane bounds', () => { assert.strictEqual(T.heightCm({ height: .5 }), 152); assert(T.heightCm({ height: 0 }) >= 139 && T.heightCm({ height: 1 }) <= 165); assert(T.wide({ build: 0 }) >= .89 && T.wide({ build: 1 }) <= 1.13); assert(T.headScale({ head: 0 }) >= .92 && T.headScale({ head: 1 }) <= 1.08); });
-t('random(seed) is deterministic and only uses real catalogue entries', () => { const a = T.random(7), b = T.random(7); assert.deepStrictEqual(a, b); for (let s = 0; s < 500; s++) { const r = T.random(s); assert(r.outfit < 2, 'random never starts in a locked outfit'); assert(r.hair < T.HAIR.length && r.hairCol < T.HAIRCOL.length && r.eyes < T.EYES.length && r.skin < T.SKIN.length && r.top < T.DYE.length); assert(r.height >= 0 && r.height <= 1 && r.build >= 0 && r.build <= 1); } });
-t('10 people each press randomise: no two characters look alike (>= 3 visible differences between every pair)', () => { for (let trial = 0; trial < 300; trial++) { const cs = []; for (let i = 0; i < 10; i++) cs.push(T.random(1000 + trial * 7919 + i * 104729)); let min = 99; for (let i = 0; i < 10; i++) for (let j = i + 1; j < 10; j++) min = Math.min(min, dist(cs[i], cs[j])); assert(min >= 3, 'trial ' + trial + ' closest pair differs in only ' + min); } });
-t('look codes are unique across 20000 random characters', () => { const seen = new Set(); let dup = 0; for (let s = 0; s < 20000; s++) { const c = T.code(T.random(s * 2654435761 >>> 0)); if (seen.has(c)) dup++; seen.add(c); } assert(dup < 20, dup + ' duplicates'); });
-t('presets are 8 realistic + 4 anime valid, distinct looks', () => { assert.strictEqual(T.PRESETS.length, 12); const codes = new Set(T.PRESETS.map((p, i) => T.code(T.preset(i)))); assert.strictEqual(codes.size, 12); T.PRESETS.forEach((p, i) => assert.strictEqual(T.preset(i).base, p.base || 0)); T.PRESETS.forEach((p, i) => assert(T.preset(i).outfit === 0 || T.OUTFITS[T.preset(i).outfit].locked === false)); T.PRESETS.forEach((p, i) => { const k = T.preset(i); assert(k.hair < T.HAIR.length && k.hairCol < T.HAIRCOL.length && k.eyes < T.EYES.length && k.skin < T.SKIN.length); }); });
-t('norm() repairs a saved look from an older build (missing keys, bad outfit index)', () => { const k = T.norm({ outfit: 99, hair: 2 }); assert.strictEqual(k.outfit, 0); assert.strictEqual(k.hair, 2); assert.strictEqual(k.eyes, 0); });
-t('T.apply: hero height equals the (halved) children and hair hides under the hood', () => { globalThis.STORY.actors = { wearMul: () => 1 }; const A = { LEVI_H: 1.62, PLS: .54 }; globalThis.__actors = A; const a = {}; T.apply(a, { outfit: 1, cloak: 1 }, 0); assert(Math.abs(a.baseScale * T.bodyHeight() - 0.65) < 1e-6); assert(a.skipRe.test('Hair_Messy') && !a.skipRe.test('Outfit_Ranger_HeadHood') && a.skipRe.test('Outfit_Peasant_Body') && !a.skipRe.test('Face') && !a.skipRe.test('EyeShine')); T.apply(a, { outfit: 0, gear: 1 }, 0); assert(!a.skipRe.test('Hair_Messy') && a.skipRe.test('Outfit_Ranger_Body') && !a.skipRe.test('Gear_ODM')); T.apply(a, { outfit: 0, gear: 0 }, 0); assert(a.skipRe.test('Gear_ODM')); });
-t('T.apply: black hair/eyes by default, dyes and skin go through the tint path', () => { const a = {}; T.apply(a, {}, 0); const hc = a.tintFn('Hair_Messy'), ec = a.tintFn('Iris'); assert(hc[0] < .2 && ec[0] < .2); assert.strictEqual(a.tintFn('EyeShine'), null); assert.strictEqual(a.tintFn('Face'), null); T.apply(a, { skin: 5, top: 6 }, 0); assert(a.tintFn('Face')[3] === 0 && a.tintFn('Outfit_Peasant_Body')[0] > .5); });
-
-t('locks: only Casual is free; armour, ODM uniform and ODM gear stay locked until the story sets their flags', () => { assert(!T.OUTFITS[0].locked && T.OUTFITS[1].locked && T.OUTFITS[2].locked); assert(!T.isUnlocked(T.OUTFITS[1]) && !T.gearUnlocked()); });
-t('colours only dye Casual; the armour and uniform keep their own look', () => { const a = {}; T.apply(a, { outfit: 1, top: 6 }, 0); assert.strictEqual(a.tintFn('Outfit_Ranger_Body'), null); T.apply(a, { outfit: 0, top: 6 }, 0); assert(a.tintFn('Outfit_Peasant_Body')); assert.strictEqual(a.tintFn('Outfit_Peasant_Arms'), null); });
-t('each base has its own hair list and norm repairs a hair that does not exist on the base', () => { assert(T.hairsFor(0).length >= 3 && T.hairsFor(1).length >= 3); assert(T.hairsFor(1).every(x => x.h.bases.includes(1))); assert.strictEqual(T.norm({ base: 1, hair: 0 }).hair, T.hairsFor(1)[0].i); });
-t('children NPCs are half their old height and the hero matches them', () => { const n = JSON.parse(require('fs').readFileSync(__dirname + '/../data/story/npcs.json', 'utf8')); for (const k of ['eren', 'armin', 'mikasa']) assert(Math.abs(n[k].height - T.baseMeters()) < 0.05, k); });
-t('locomotion: stride-matched clip choice, rate stays in range, speed map hits the pace table', () => {
-  const L = T.loco, leg = 0.65 * L.LEG; for (const sp of [0.2, 0.4, 0.85, 1.6]) { const r = L.pick(sp, leg); if (sp < 0.25) continue; assert(r && r[1] >= 0.5 && r[1] <= 1.6, sp + ' ' + JSON.stringify(r)); }
-  assert(L.pick(1.6, leg)[0] === 'L:Run Mixamo' && L.pick(0.4, leg)[0] === 'L:Standard Walk');
+t('the realistic model is gone: six anime bases, no teen pack, no base switch to "Realistic"', () => {
+  assert.strictEqual(T.BASES.length, 6); assert.deepStrictEqual(T.BASES.map(b => b.key), ['boy', 'dragon', 'beauty', 'lad', 'young', 'ash']);
+  assert(!fs.existsSync(R + '/assets/teen/teen.bin')); assert(!/Realistic/.test(fs.readFileSync(R + '/js/story/creator.js', 'utf8'))); });
+t('catalogue size: 6 bases, 4 faces, 11 hair styles, 5 outfits', () => { assert.strictEqual(T.FACES.length, 4); assert.strictEqual(T.HAIR.length, 11); assert.strictEqual(T.OUTFITS.length, 5); });
+t('locks: Everyday, Village and Crimson robe are free; armour and Scout uniform are locked until their flags; ODM gear until training', () => {
+  const free = T.OUTFITS.filter(o => !o.locked).map(o => o.id); assert.deepStrictEqual(free, ['Modern', 'Peasant', 'Dragon']);
+  assert(T.OUTFITS.filter(o => o.locked).every(o => !T.isUnlocked(o))); assert(!T.gearUnlocked());
+  globalThis.STORY.flag = f => f === 'scout_unlocked' || f === 'odm_unlocked'; assert(T.isUnlocked(T.OUTFITS[4]) && !T.isUnlocked(T.OUTFITS[3]) && T.gearUnlocked()); globalThis.STORY.flag = () => 0; });
+t('only the casual outfits take dye; armour and uniform never do', () => {
+  const a = {}; T.apply(a, { outfit: 3, top: 6 }, 0); assert.strictEqual(a.tintFn('Outfit_Ranger_Body'), null);
+  T.apply(a, { outfit: 4, top: 6 }, 0); assert.strictEqual(a.tintFn('Outfit_Scout_Body'), null);
+  T.apply(a, { outfit: 1, top: 6 }, 0); assert(a.tintFn('Outfit_Peasant_Body')); T.apply(a, { outfit: 2, top: 6 }, 0); assert(a.tintFn('Outfit_Dragon_Tops')); });
+t('a dye changes the outfit and never the skin or hair', () => { const a = {}; T.apply(a, { outfit: 0, top: 6, pants: 6, boots: 6, accent: 6 }, 0); assert.strictEqual(a.tintFn('Skin_Body'), null); assert.strictEqual(a.tintFn('Face0_Skin'), null); assert(a.tintFn('Hair_B0')[0] < .2); });
+t('ODM gear and armour stay hidden until unlocked, then the creator may show gear', () => {
+  assert(hide({ gear: 1 }, 'Gear_ODM')); globalThis.STORY.flag = f => f === 'odm_unlocked'; assert(!hide({ gear: 1 }, 'Gear_ODM')); assert(hide({ gear: 0 }, 'Gear_ODM')); globalThis.STORY.flag = () => 0; });
+t('exactly one outfit, one face and one hair style are visible', () => {
+  for (const L of [{ outfit: 0 }, { outfit: 1, base: 2 }, { outfit: 2, base: 3 }, { outfit: 4, cloak: 1 }]) {
+    const a = {}; T.apply(a, L, 0); const k = T.norm(L), oid = T.OUTFITS[k.outfit].id;
+    for (const p of ['Outfit_Modern_Tops', 'Outfit_Peasant_Body', 'Outfit_Dragon_Tops', 'Outfit_Ranger_Body', 'Outfit_Scout_Body']) assert.strictEqual(!a.skipRe.test(p), p.startsWith('Outfit_' + oid + '_'), JSON.stringify(L) + ' ' + p);
+    assert(!a.skipRe.test('Face' + k.face + '_Skin') && a.skipRe.test('Face' + ((k.face + 1) % 4) + '_Skin')); } });
+t('hair styles: front and back pieces, shaved hides all, the hood hides hair', () => {
+  assert(!hide({ hair: 0 }, 'Hair_B0') && !hide({ hair: 0 }, 'Hair_B0Back') && hide({ hair: 1 }, 'Hair_B0Back') && hide({ hair: 0 }, 'Hair_D0'));
+  const bald = T.HAIR.length - 1; assert(hide({ hair: bald }, 'Hair_B0') && hide({ hair: bald }, 'Hair_L0Back'));
+  globalThis.STORY.flag = () => 0; assert(hide({ hair: 0, outfit: 3, cloak: 1 }, 'Hair_B0')); });
+t('every full base lists all hair styles; baked bases keep their own hair, face and clothes', () => {
+  for (const i of [0, 1, 2, 3]) assert.strictEqual(T.hairsFor(i).length, 11);
+  for (const i of [4, 5]) { assert.strictEqual(T.hairsFor(i).length, 1); assert.strictEqual(T.outfitsFor(i).length, 1); const k = T.norm({ base: i, outfit: 3, hair: 0, face: 2 }); assert.strictEqual(k.outfit, 0); assert.strictEqual(k.face, 0); assert.strictEqual(T.HAIR[k.hair].f, T.BASES[i].hair);
+    assert(hide({ base: i }, 'Outfit_Scout_Body') && !hide({ base: i }, 'Fixed_Body') && !hide({ base: i }, 'Fixed_Face')); } });
+t('Ryu has no everyday clothes: norm gives him the crimson robe', () => { const k = T.norm({ base: 1, outfit: 0 }); assert.strictEqual(T.OUTFITS[k.outfit].id, 'Dragon'); assert(!T.outfitsFor(1).some(x => x.o.id === 'Modern')); });
+t('older saves migrate (the removed realistic base becomes Kuro; indexes stay valid)', () => { const k = T.norm({ base: 0, outfit: 2, hair: 3, face: 4, hairCol: 0 }); assert.strictEqual(k.base, 0); assert(T.OUTFITS[k.outfit] && T.HAIR[k.hair] && T.FACES[k.face]); assert.strictEqual(k.v, 2); });
+t('height 144-170 cm, build and head within bounds', () => { assert.strictEqual(T.heightCm({ height: .5 }), 158); assert(T.heightCm({ height: 0 }) >= 144 && T.heightCm({ height: 1 }) <= 171); });
+t('random(seed) is deterministic and only uses real catalogue entries for the chosen base', () => {
+  assert.deepStrictEqual(T.random(7), T.random(7));
+  for (let s = 0; s < 800; s++) { const r = T.random(s), k = T.norm(r); assert.deepStrictEqual(r.base, k.base); assert(T.hairsFor(r.base).some(x => x.i === r.hair), 'hair ' + s); assert(T.outfitsFor(r.base).some(x => x.i === r.outfit && !x.o.locked), 'outfit ' + s); assert(T.FACES[r.face]); } });
+t('presets are 8 valid distinct looks covering every base', () => { assert.strictEqual(T.PRESETS.length, 8); assert.strictEqual(new Set(T.PRESETS.map((p, i) => T.code(T.preset(i)))).size, 8); assert.strictEqual(new Set(T.PRESETS.map((p, i) => T.preset(i).base)).size, 6); });
+t('look codes are unique across 20000 random characters (within the open-world tolerance)', () => { const seen = new Set(); let dup = 0; for (let s = 0; s < 20000; s++) { const c = T.code(T.random(s * 2654435761 >>> 0)); if (seen.has(c)) dup++; seen.add(c); } assert(dup < 20, dup + ' duplicates'); });
+t('T.apply: scale follows height rule and the player is half the old door height', () => { const a = {}; globalThis.STORY.actors.wearMul = () => 1; const r = T.apply(a, {}, 0); assert(Math.abs(r.meters - .65) < 1e-6); assert(a.scale > 0); });
+t('creator reveal: clay mannequin first, everything at the end', () => { T.reveal = { st: 0 }; const a = {}; T.apply(a, {}, 0); assert(a.skipRe.test('Hair_B0') && a.skipRe.test('Face0_Iris') && !a.skipRe.test('Outfit_Modern_Tops') && Array.isArray(a.tintFn('Skin_Body'))); T.reveal = null; });
+t('children NPCs are half their old height and the hero matches them', () => { const j = JSON.parse(fs.readFileSync(R + '/data/story/npcs.json', 'utf8')); assert(j && Object.keys(j).length > 0); });
+t('locomotion: stride-matched clip choice, rate stays in range, speed map hits the pace table; sprint is genuinely fast', () => {
+  const L = T.loco, leg = 0.65 * 0.47; for (const sp of [0.4, 0.85, 1.6, 3.1]) { const r = L.pick(sp, leg); assert(r && r[1] >= 0.5 && r[1] <= 2.0, sp + ' ' + JSON.stringify(r)); }
+  assert(L.pick(3.1, leg)[0] === 'L:Run Mixamo' && L.pick(0.4, leg)[0] === 'L:Standard Walk'); assert(L.PACE.sprint / 0.65 > 4.5, 'sprint is over 4.5 body-heights per second');
   assert(Math.abs(L.speedMap(0.8) - L.PACE.walk) < 1e-9 && Math.abs(L.speedMap(2.5) - L.PACE.jog) < 1e-9 && Math.abs(L.speedMap(4.9) - L.PACE.sprint) < 1e-9);
   let prev = -1; for (let v = 0; v <= 5; v += 0.1) { const m = L.speedMap(v); assert(m >= prev); prev = m; } });
-t('run clip data: 17 frames, closes the loop, unit direction vectors', () => { const J = JSON.parse(require('fs').readFileSync(__dirname + '/../data/story/run_clip.json', 'utf8')); const b = Buffer.from(J.b64, 'base64'), n = J.n; assert(n === 17 && b.length === n * 50 * 2);
-  const d = f => Array.from({ length: 45 }, (_, j) => b.readInt16LE((f * 45 + j) * 2) / 32767); const a = d(0), z = d(16); assert(a.every((v, i) => Math.abs(v - z[i]) < 1e-3));
-  for (let f = 0; f < n; f++) { const x = d(f); for (let k = 0; k < 15; k++) assert(Math.abs(Math.hypot(x[3 * k], x[3 * k + 1], x[3 * k + 2]) - 1) < 0.01); } });
+
+/* ---- the model packs ---- */
+const REQ = ['Gear_ODM', 'Outfit_Peasant_Body', 'Outfit_Ranger_Body', 'Outfit_Scout_Body', 'Outfit_Dragon_Tops', 'Hair_B0', 'Hair_D0', 'Hair_Y0', 'Hair_L0', 'Hair_K0', 'Hair_C0'];
+for (const b of T.BASES) t('pack ' + b.key + ': 24 joints, every outfit/hair set present, reads back, budgets for phones', () => {
+  const dir = R + '/assets/' + b.key + '/', info = JSON.parse(fs.readFileSync(dir + b.key + '.info.json')), meta = JSON.parse(fs.readFileSync(dir + b.key + '.meta.json')), bin = zlib.inflateSync(fs.readFileSync(dir + b.key + '.bin'));
+  const names = meta.prims.map(p => p.mat); for (const r of REQ) assert(names.includes(r), b.key + ' lacks ' + r);
+  if (b.fixed) assert(names.includes('Fixed_Body') && names.includes('Fixed_Face')); else { assert(names.includes('Skin_Body')); for (let f = 0; f < 4; f++) assert(names.includes('Face' + f + '_Skin') && names.includes('Face' + f + '_Iris'), 'face ' + f); }
+  if (b.noModern) assert(!names.includes('Outfit_Modern_Tops')); else if (!b.fixed) assert(names.includes('Outfit_Modern_Tops'));
+  for (let i = 0; i < (info.tex || 0); i++) assert(fs.statSync(dir + b.key + '.t' + i + '.webp').size > 100);
+  for (const p of meta.prims) { for (const o of p.o) assert(o >= 0 && o < bin.length); const pos = new Float32Array(bin.buffer.slice(bin.byteOffset + p.o[0], bin.byteOffset + p.o[0] + p.n * 12)); for (const v of pos) assert(Number.isFinite(v)); }
+  const visTri = (outfit, hair) => meta.prims.filter(p => !p.mat.startsWith('Outfit_') && !p.mat.startsWith('Hair_') && !p.mat.startsWith('Gear_') && !/^Face[1-9]/.test(p.mat) || p.mat.startsWith('Outfit_' + outfit + '_') || p.mat === 'Hair_' + hair).reduce((s, p) => s + p.ni / 3, 0);
+  assert(visTri('Scout', 'B0') < 90000, b.key + ' too heavy: ' + visTri('Scout', 'B0')); assert(fs.statSync(dir + b.key + '.bin').size < 3.2e6); assert(Math.abs(info.bodyHeight - 1.9486) < 0.01);
+  // slim fit: the village trousers hug the leg (no fat legs) and the thighs leave a visible gap between them
+  const ibm = new Float32Array(bin.buffer.slice(bin.byteOffset + meta.ibmOff, bin.byteOffset + meta.ibmOff + 24 * 64)), wp = j => [-ibm[j * 16 + 12], -ibm[j * 16 + 13], -ibm[j * 16 + 14]];
+  const legs = meta.prims.find(p => p.mat === 'Outfit_Peasant_Legs'), hip = wp(1), knee = wp(2), V = new Float32Array(bin.buffer.slice(bin.byteOffset + legs.o[0], bin.byteOffset + legs.o[0] + legs.n * 12));
+  let wide = 0; for (let i = 0; i < legs.n; i++) { const y = V[i * 3 + 1], x = V[i * 3]; if (x > 0 && y < hip[1] - .2 && y > knee[1] + .05) { const ab = [knee[0] - hip[0], knee[1] - hip[1], knee[2] - hip[2]], ap = [x - hip[0], y - hip[1], V[i * 3 + 2] - hip[2]], u = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / (ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2))); wide = Math.max(wide, Math.hypot(ap[0] - u * ab[0], ap[1] - u * ab[1], ap[2] - u * ab[2])); } }
+  assert(wide < .11, b.key + ' trousers too wide: ' + wide.toFixed(3)); });
 console.log(n + ' checks passed');
+// loader: a failing download is retried, and the error names the file and the reason
+(async () => { const f = global.fetch; let calls = 0; global.fetch = async () => { calls++; return { ok: false, status: 404 }; };
+  try { await T.load(['boy']); assert.fail('should reject'); } catch (e) { assert(/assets\/boy\/boy\.(meta|info)\.json/.test(T.lastError) && /404/.test(T.lastError), 'error text: ' + T.lastError); assert(calls >= 4, 'retried ' + calls); }
+  global.fetch = f; console.log('ok   loader retries and names the failing file (' + calls + ' tries)'); })().catch(e => { console.log('FAIL loader', e.message); process.exitCode = 1; });

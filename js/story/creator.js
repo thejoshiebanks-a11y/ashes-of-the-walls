@@ -60,7 +60,7 @@
     const cfg = o.cfg || {}, d = o.draft, L = d.look = T.norm(d.look), dest = o.destiny, stage = Object.assign({}, o.stage); stage.yaw += 3.24;   // the view is turned so the camera looks down the street toward the sunset: trees, sky and roofs behind him   // stage = { x, z, gy, yaw }
     const A = S.actors, R = UI.R;
     const root_ = el('section', 'tc'); root_.id = 'tc'; root_.setAttribute('aria-label', 'Character creator');
-    let tab = 'base', camMode = 'default', manual = false, busy = false, turn = false, panMode = false, zoomLvl = 0, destroyed = false;
+    let busy2 = false, tab = 'base', camMode = 'default', manual = false, busy = false, turn = false, panMode = false, zoomLvl = 0, destroyed = false;
 
     /* ---- header ---- */
     const crestImg = h('img', { class: 'tc-crest-img', alt: '', src: 'assets/ui/emblem.svg', onerror: e => { e.target.replaceWith(crestMain()); } });
@@ -101,7 +101,10 @@
     const vig = el('div', 'tc-vig'), flash = el('div', 'tc-flash'), fxc = h('canvas', { class: 'tc-fx', 'aria-hidden': 'true' });
     const hint = el('p', 'tc-hint', el('span', '', 'DRAG'), ' turn', el('span', '', 'PINCH'), ' zoom', el('span', '', 'ESC'), ' back');
     root_.append(vig, drag, fxc, flash, header, nav, back, panel, confirm, right, lower, hint);
-    R.insertBefore(root_, UI.fade); root_.classList.add('in');
+    R.insertBefore(root_, UI.fade);
+    const bars = ['t', 'b'].map(k => el('div', 'tc-bar ' + k)); root_.prepend(...bars);
+    let inT = 0; const showUI = () => { clearTimeout(inT); if (!destroyed) root_.classList.add('in'); };
+    inT = setTimeout(showUI, o.reveal === false ? 0 : 4300);                 // cinematic first: the studio and the build-up play out before the menus slide in
     const tcEls = [header, nav, back, panel, confirm, right, lower, hint];
     tcEls.forEach((e, i) => { e.style.setProperty('--d', (1200 + i * 120) + 'ms'); });
 
@@ -113,7 +116,7 @@
       full: { dist: 4.3, h: 1.0, el: .0, fov: .78, az: .2 } };
     const AUTO = { base: 'default', face: 'close', hair: 'close', eyes: 'close', body: 'full', clothing: 'full', gear: 'full', emblem: 'default', voice: 'default', options: 'default' };
     const cam = { dist: 5.5, h: 1.0, el: .45, fov: .8, az: .0, panX: 0, panY: 0, zoom: 1, zoomT: 1, shift: .0, t: PRE.default };
-    let a = null, yaw = stage.yaw + .35, yawT = yaw, swing = 0, pop = 0, popT = 0, last = performance.now(), raf = 0, introT = 0;
+    let a = null, yaw = stage.yaw + .35, yawT = yaw, swing = 0, spinOn = false, spinP = 0, pop = 0, popT = 0, last = performance.now(), raf = 0, introT = 0;
     const actor = () => A.player;
     function setCamMode(id, fromUser) { camMode = id; cam.t = PRE[id]; for (const k in camBtns) camBtns[k].classList.toggle('on', k === id); if (!fromUser) manual = false; }
     function freeShift() {                                       // NDC x of the middle of the free area between the option panel and the right column
@@ -124,12 +127,12 @@
     function camFrame(now) {
       const dt = Math.min(.05, (now - last) / 1000); last = now; a = actor(); if (root.ODM) root.ODM.hour = GOLD;
       if (a) {
-        const worldH = a.baseScale ? a.baseScale * T.bodyHeight(a.key) : .3, hs = worldH / T.bodyHeight('teen'), k = 1 - Math.exp(-dt * 4.2), t = cam.t;
-        introT = Math.min(1, introT + dt / 4.2); const ik = ease(introT);
+        const worldH = a.baseScale ? a.baseScale * T.bodyHeight(a.key) : .3, hs = worldH / 1.649, k = 1 - Math.exp(-dt * 4.2), t = cam.t;
+        introT = Math.min(1, introT + dt / 5.8); const ik = ease(introT);
         cam.dist += (t.dist - cam.dist) * k; cam.h += (t.h - cam.h) * k; cam.el += (t.el - cam.el) * k; cam.fov += (t.fov - cam.fov) * k; cam.az += (t.az - cam.az) * k; cam.zoom += (cam.zoomT - cam.zoom) * k;
         const sh = freeShift(); cam.shift += (sh - cam.shift) * k;
         const intro = (1 - ik), dist = Math.max((cam.dist * cam.zoom + intro * 3.8) * hs, .36), el_ = cam.el + intro * .3, fov = cam.fov + intro * .32;
-        const tgt = [stage.x, stage.gy + (cam.h + cam.panY * .4) * hs, stage.z], az = stage.yaw + cam.az + intro * 1.1, ce = Math.cos(el_);
+        const tgt = [stage.x, stage.gy + (cam.h + cam.panY * .4) * hs, stage.z], az = stage.yaw + cam.az + intro * 1.5, ce = Math.cos(el_);
         let pos = [tgt[0] + Math.sin(az) * ce * dist, tgt[1] + Math.sin(el_) * dist, tgt[2] + Math.cos(az) * ce * dist];
         // slide the view so the character sits in the free area to the right of the panels
         const f = [tgt[0] - pos[0], tgt[1] - pos[1], tgt[2] - pos[2]], fl = Math.hypot(f[0], f[1], f[2]) || 1, fz = f.map(v => v / fl);
@@ -138,7 +141,8 @@
         const cn = root.__cine; cn.on = true; cn.pos = [pos[0] + rr[0] * off, pos[1], pos[2] + rr[2] * off]; cn.target = [tgt[0] + rr[0] * off, tgt[1], tgt[2] + rr[2] * off]; cn.fov = fov;
         // turntable / drag / equip animation
         if (turn) yawT += dt * .9; yaw += (yawT - yaw) * (1 - Math.exp(-dt * 9)); swing *= Math.exp(-dt * 5.5);
-        a.yaw = yaw + swing;
+        let spin = 0; if (spinOn) { spinP = Math.min(1, spinP + dt / 1.15); spin = ease(spinP) * 6.2832; if (spinP >= 1) { spinOn = false; spin = 0; } }
+        a.yaw = yaw + swing + spin;
         if (popT > 0) { popT = Math.max(0, popT - dt); const p = 1 - popT / .42; pop = Math.sin(p * Math.PI) * (1 - p * .4) * .055; if (a.baseScale) a.scale = a.baseScale * (1 + pop); if (!popT && a.baseScale) a.scale = a.baseScale; }
       }
       parts(dt); if (!destroyed) raf = requestAnimationFrame(camFrame);
@@ -175,7 +179,7 @@
     }
     function equipFx(strength) {
       const W = innerWidth, H = innerHeight, cx = W * (.5 + cam.shift * .5), cy = H * (camMode === 'close' ? .42 : .5);
-      popT = .42; swing += (Math.random() < .5 ? -1 : 1) * .5 * (strength || 1);
+      popT = .42; swing += (Math.random() < .5 ? -1 : 1) * .5 * (strength || 1); if ((strength || 1) >= 1.5 && !spinOn) { spinOn = true; spinP = 0; }      // wardrobe turn: a full slow spin when a whole look changes
       flash.style.setProperty('--x', cx + 'px'); flash.style.setProperty('--y', cy + 'px'); flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
       const n = Math.round(26 * (strength || 1)), u = H / 100;
       for (let i = 0; i < n; i++) { const an = Math.random() * 6.283, sp = (6 + Math.random() * 16) * u; P.push({ x: cx + Math.cos(an) * 6 * u, y: cy + (Math.random() - .3) * 12 * u, vx: Math.cos(an) * sp * .5, vy: -Math.abs(Math.sin(an)) * sp * 1.1, r: (.35 + Math.random() * .6) * u * .6, life: .7 + Math.random() * .7, t: 0, c: Math.random() < .6 ? '#ffd99a' : '#ff7a3c' }); }
@@ -189,17 +193,29 @@
     }
     /* default character -> built-up reveal: clay mannequin, then skin and eyes, then hair, then clothes */
     const revT = []; function endReveal() { if (!T.reveal) return; T.reveal = null; revT.forEach(clearTimeout); revT.length = 0; sync(); }
-    function startReveal() { T.reveal = { st: 0 }; sync(); [[1500, 1, .9], [2400, 2, 1], [3300, 3, 1.5]].forEach(([ms, st, fx]) => revT.push(setTimeout(() => { if (!T.reveal || destroyed) return; if (st >= 3) T.reveal = null; else T.reveal = { st }; sync(); equipFx(fx); AU.menuTick && AU.menuTick(); }, ms))); }
+    function startReveal() { T.reveal = { st: 0 }; sync(); [[1500, 1, .9], [2700, 2, 1], [3900, 3, 1.5]].forEach(([ms, st, fx]) => revT.push(setTimeout(() => { if (!T.reveal || destroyed) return; if (st >= 3) T.reveal = null; else T.reveal = { st }; sync(); equipFx(fx); AU.menuTick && AU.menuTick(); }, ms))); }
     function set(k, v, fx) { endReveal(); L[k] = v; sync(); info(); paint(); if (fx !== false) { equipFx(fx === 'big' ? 1.5 : 1); AU.menuTick && AU.menuTick(); } }
     function setMany(obj, fx) { endReveal(); const nb = obj.base !== undefined && obj.base !== L.base; Object.assign(L, obj); sync(); info(); if (nb) renderTab(); paint(); if (fx !== false) { equipFx(1.6); AU.menuTick && AU.menuTick(); } }
 
     /* ================= option widgets ================= */
     const sec = (title, ...kids) => el('section', 'tc-sec', title ? el('h4', '', title) : null, ...kids);
     const grid = (key, items, cls) => { const g = el('div', 'tc-grid ' + (cls || '')); items.forEach((it, i) => { const b = btn('tc-card' + (it.locked ? ' lock' : ''), () => pick(key, it.i !== undefined ? it.i : i, it), it.img ? h('img', { src: it.img, alt: it.name, loading: 'lazy', draggable: 'false', onerror: e => e.target.replaceWith(el('span', 'tc-ph', it.name)) }) : it.node || el('span', 'tc-ph', it.name), el('span', 'tc-tick', svg('check')), it.locked ? el('span', 'tc-lock', svg('lock')) : null); if (it.locked) b.dataset.note = it.note || ''; b.dataset.k = key; b.dataset.v = it.i !== undefined ? it.i : i; b.setAttribute('aria-label', it.name); b.title = ''; g.append(b); }); return g; };
+    async function applyLook(r, fx) {                       // make sure the model for this look is loaded, then apply it
+      const B = T.BASES[r.base | 0] || T.BASES[0];
+      try { if (!T.has(B.key)) { toast2('Loading ' + B.name + '…'); await T.load([B.key]); } } catch (e) { toast2('That model could not load.'); return; }
+      if (!destroyed) setMany(r, fx);
+    }
+    async function switchBase(i) {
+      if (i === (L.base | 0) || busy2) return; const B = T.BASES[i]; busy2 = true;
+      try { if (!T.has(B.key)) { toast2('Loading ' + B.name + '…'); await T.load([B.key]); } } catch (e) { busy2 = false; toast2('That model could not load: ' + (T.lastError || 'unknown error') + '. Check your connection.'); return; }
+      busy2 = false; if (destroyed || !T.has(B.key)) return;
+      const hs = T.hairsFor(i), os = T.outfitsFor(i); setMany({ base: i, hair: hs.some(x => x.i === L.hair) ? L.hair : hs[0].i, outfit: os.some(x => x.i === L.outfit) ? L.outfit : os[0].i, face: B.fixed ? 0 : L.face, gear: 0 });
+    }
     const pick = (key, i, it) => {
-      if (key === 'preset') { setMany(Object.assign({}, T.preset(i), { crest: L.crest, gear: L.gear })); return; }
+      if (key === 'base') { switchBase(i); return; }
+      if (key === 'preset') { applyLook(Object.assign({}, T.preset(i), { crest: L.crest, gear: L.gear })); return; }
       if (it && it.locked) { toast2('Locked. ' + (it.note || 'Unlocks during missions')); return; }
-      set(key, i, it && it.fx);
+      set(key, i, key === 'outfit' || key === 'gear' ? 'big' : it && it.fx);
     };
     const sw = (key, cols, cls) => { const g = el('div', 'tc-sw ' + (cls || '')); cols.forEach((c, i) => { const b = btn('tc-s', () => set(key, i), el('i', '', '')); b.firstChild.style.background = css(c); b.dataset.k = key; b.dataset.v = i; b.setAttribute('aria-label', c.name); g.append(b); }); return g; };
     const slider = (key, label, fmt) => {
@@ -231,22 +247,22 @@
         const nameIn = h('input', { type: 'text', class: 'tc-input', id: 'tc-name', maxlength: 16, value: d.name, placeholder: 'Enter a name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Name' });
         nameIn.addEventListener('input', () => { d.name = nameIn.value; info(); nameIn.classList.remove('bad'); });
         const dice = btn('tc-mini', () => { const pool = (S.destiny && S.destiny.NAMES && S.destiny.NAMES.m) || ['Emil']; d.name = pool[Math.floor(Math.random() * pool.length)]; nameIn.value = d.name; info(); AU.menuTick && AU.menuTick(); }, svg('dice'));
-        const pres = grid('preset', T.PRESETS.map((p, i) => ({ name: p.name, img: thumb('preset', i), fx: 'big', i, base: p.base || 0 })).filter(x => x.base === (L.base | 0)), 'tc-g5 presets');
-        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('CHARACTER MODEL', el('div', 'tc-seg', ...[['Realistic', 0], ['Anime', 1]].map(([n, v]) => { const b = btn('tc-segb' + ((L.base | 0) === v ? ' on' : ''), () => { if ((L.base | 0) === v) return; const hs = T.hairsFor(v); setMany({ base: v, hair: hs.some(x => x.i === L.hair) ? L.hair : hs[0].i, outfit: 0, gear: 0 }); }, el('span', '', n)); b.dataset.k = 'base'; b.dataset.v = v; return b; }))), sec('BASE PRESETS', pres),
+        const pres = grid('preset', T.PRESETS.map((p, i) => ({ name: p.name, img: thumb('preset', i), fx: 'big', i })), 'tc-g4 presets');
+        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('CHARACTER', grid('base', T.BASES.map((b, i) => ({ name: b.name, img: thumb('base', i), i })), 'tc-g3 bases'), el('p', 'tc-note', T.baseOf(L).note + (T.baseOf(L).fixed ? ' · modelled as one piece: colours, height and build are yours to change.' : ' · every option is open.'))), sec('BASE PRESETS', pres),
           sec('GENDER', el('div', 'tc-gender', btn('tc-g on', () => { }, svg('male'), el('span', '', 'MALE')), (() => { const b = btn('tc-g off', () => toast2('The young female base is not in this build yet.'), svg('female'), el('span', '', 'FEMALE'), el('span', 'tc-lock', svg('lock'))); return b; })())),
           sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
           sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), el('div', 'tc-row tc-swrow', el('label', '', 'SKIN TONE'), sw('skin', T.SKIN))),
           sec('PREVIEW OPTIONS', el('div', 'tc-togs', toggle('showCrest', 'Show Emblem')))];
       },
-      face() { return [(L.base | 0) === 1 ? sec('FACE', el('p', 'tc-note', 'The anime model has one hand-painted face. Skin tone and head size are below.')) : sec('FACE SHAPE', grid('face', T.FACES.map((f, i) => ({ name: f.name, img: thumb('face', i) })), 'tc-g5')), sec('SKIN TONE', sw('skin', T.SKIN, 'big')), sec('HEAD', slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
-      hair() { return [sec('HAIR STYLE', grid('hair', T.hairsFor(L.base | 0).map(x => ({ name: (L.base | 0) === 1 && x.h.bname || x.h.name, img: thumb('hair', x.i), i: x.i })), 'tc-g5')), sec('HAIR COLOUR', sw('hairCol', T.HAIRCOL, 'big')), sec('', slider('shade', 'SHADE', v => v < .4 ? 'Darker' : v > .6 ? 'Lighter' : 'Natural'))]; },
-      eyes() { return [sec('EYE COLOUR', sw('eyes', T.EYES, 'big round')), sec('', el('p', 'tc-note', 'All characters begin with black eyes and hair. Choose a colour any time.'))]; },
+      face() { return [T.baseOf(L).fixed ? sec('FACE', el('p', 'tc-note', T.baseOf(L).name + ' has the face he was modelled with. Skin tone and head size are below.')) : sec('FACE', grid('face', T.FACES.map((f, i) => ({ name: f.name, img: thumb('face', i) })), 'tc-g4')), sec('SKIN TONE', sw('skin', T.SKIN, 'big')), sec('HEAD', slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
+      hair() { return [T.baseOf(L).fixed ? sec('HAIR STYLE', el('p', 'tc-note', T.baseOf(L).name + ' keeps the hair he was modelled with. Colour and shade are yours.')) : sec('HAIR STYLE', grid('hair', T.hairsFor(L.base | 0).map(x => ({ name: x.h.name, img: thumb('hair', x.i), i: x.i })), 'tc-g4')), sec('HAIR COLOUR', sw('hairCol', T.HAIRCOL, 'big')), sec('', slider('shade', 'SHADE', v => v < .4 ? 'Darker' : v > .6 ? 'Lighter' : 'Natural'))]; },
+      eyes() { return [(T.baseOf(L).fixed ? null : sec('EYE COLOUR', sw('eyes', T.EYES, 'big round'))), sec('', el('p', 'tc-note', T.baseOf(L).fixed ? T.baseOf(L).name + ' has painted eyes that are part of the model.' : 'Choose any colour, any time.'))]; },
       body() { return [sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
         sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
       clothing() {
         const dye = (k, label) => el('div', 'tc-row tc-swrow', el('label', '', label), sw(k, T.DYE));
-        return [sec('OUTFIT', grid('outfit', T.OUTFITS.map((x, i) => ({ name: x.name, img: thumb('outfit', i), locked: x.locked && !T.isUnlocked(x), note: x.note })), 'tc-g4 outfits tall')),
-          sec('COLOURS (CASUAL ONLY)', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')),
+        return [sec('OUTFIT', grid('outfit', T.outfitsFor(L.base | 0).map(x => ({ name: x.o.name, img: thumb('outfit', x.i), i: x.i, locked: x.o.locked && !T.isUnlocked(x.o), note: x.o.note })), 'tc-g3 outfits tall')),
+          (T.baseOf(L).fixed ? sec('COLOURS', el('p', 'tc-note', 'The clothes on this model are painted into it. Pick another base to recolour outfits.')) : T.OUTFITS[L.outfit].dye ? sec('COLOURS', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')) : sec('COLOURS', el('p', 'tc-note', 'Armour and the Scout uniform keep their issued colours. Casual clothes and the robe can be recoloured.'))),
           sec('WEAR', chips('wear', cfg.wear || ['Clean', 'Lived-in', 'Weathered'])), sec('', el('div', 'tc-togs', toggle('cloak', 'Show Cloak / Hood')))]; },
       gear() { return [sec('MANEUVER GEAR', grid('gear', [{ name: 'None', img: thumb('gear', 0) }, { name: 'ODM gear', img: thumb('gear', 1), locked: !T.gearUnlocked(), note: T.GEARLOCK.note }], 'tc-g4 tall')), sec('', el('p', 'tc-note', 'ODM gear unlocks after you finish training.'))]; },
       emblem() { return [sec('CREST', grid('crest', T.CRESTS.map((c, i) => { const n = el('span', 'tc-crestcard'); n.append(crestSvg(i, 'tc-crest-card')); return { name: T.CRESTNAMES[i], node: n }; }), 'tc-g5')), sec('', el('div', 'tc-togs', toggle('showCrest', 'Show on registry card')))]; },
@@ -276,7 +292,7 @@
       if (!manual) setCamMode(AUTO[id] || 'default'); else manual = false, setCamMode(AUTO[id] || 'default'); renderTab(); AU.menuTick && AU.menuTick();
     }
     function randomise() {
-      if (busy) return; busy = true; navBtns.random.classList.add('on'); const seed = (Math.random() * 4294967296) >>> 0; const r = T.random(seed); r.crest = L.crest; setMany(r, true); equipFx(1.8); turn = false; yawT += Math.PI * 2 * (Math.random() < .5 ? 1 : -1) * .5;
+      if (busy) return; busy = true; navBtns.random.classList.add('on'); const seed = (Math.random() * 4294967296) >>> 0; const r = T.random(seed); r.crest = L.crest; applyLook(r, true); equipFx(1.8); turn = false; yawT += Math.PI * 2 * (Math.random() < .5 ? 1 : -1) * .5;
       setTimeout(() => { busy = false; navBtns.random.classList.remove('on'); }, 600);
     }
 
@@ -296,7 +312,7 @@
     addEventListener('keydown', keys); addEventListener('resize', fit); fit();
 
     /* ================= start ================= */
-    CR.state = { d, L, cam, skipIntro: () => { introT = 1; endReveal(); }, snap: () => { introT = 1; endReveal(); const t = cam.t; Object.assign(cam, { dist: t.dist, h: t.h, el: t.el, fov: t.fov, az: t.az, zoom: cam.zoomT, shift: freeShift() }); yaw = yawT; swing = 0; }, setYaw: v => { yaw = yawT = stage.yaw + v; swing = 0; },  get tab() { return tab; }, setTab, setCamMode, randomise, equipFx, finish, leave, root: root_ };
+    CR.state = { d, L, cam, skipIntro: () => { introT = 1; endReveal(); showUI(); }, snap: () => { introT = 1; endReveal(); showUI(); const t = cam.t; Object.assign(cam, { dist: t.dist, h: t.h, el: t.el, fov: t.fov, az: t.az, zoom: cam.zoomT, shift: freeShift() }); yaw = yawT; swing = 0; }, setYaw: v => { yaw = yawT = stage.yaw + v; swing = 0; },  get tab() { return tab; }, setTab, setCamMode, randomise, equipFx, finish, leave, root: root_ };
     info(); navBtns.base.classList.add('on'); setCamMode('default'); renderTab(); if (o.reveal === false) sync(); else startReveal();
     root.__cine.on = true; last = performance.now(); raf = requestAnimationFrame(camFrame);
     return CR.state;

@@ -115,7 +115,7 @@
   async function ensureModels(keys) { try { await ACT.ensure(keys); } catch (e) { console.warn('[story] models unavailable, using markers only', e); } }
   async function spawnCast() {
     const pl = S.state.player; ACT.clearAll();
-    const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); if (pl && pl.body === 'teen') need.add('teen'); await ensureModels([...need]);
+    const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); if (pl && pl.body === 'teen') { need.add('teen'); S.teen.want = [S.teen.keyFor(pl.look)]; } await ensureModels([...need]);
     tryA(() => {
       const me = G.pos(); ACT.spawnPlayer(pl, me.x, me.z, root.__st.wyaw, true);
       const at = id => { const q = S.world.pos(pointById(id)); return q; }, face = (q, ref) => yawTo(q.x, q.z, ref.x, ref.z);
@@ -261,8 +261,10 @@
     AU.select(); await coldOpen();
     mode = null; S.fsm.set('creator'); applyFsm(); UI.hideAll();
     await UI.fadeTo(true, 10);
-    let teenOk = true; try { await S.teen.load(); } catch (e) { teenOk = false; console.error('[creator] the teen model failed to load', e); }
-    if (!teenOk) { await UI.fadeTo(false, 300); await showTitle(true); try { UI.toast('The character models did not load. Upload the whole assets/teen folder, then hard refresh.', 6000); } catch (e) { } return; }
+    try { if (!S.teen.ready()) UI.toast('Preparing the character studio…', 5000); } catch (e) { }
+    let teenOk = true; try { await S.teen.load(); } catch (e) { teenOk = false; console.error('[creator] the character models failed to load', e); }
+    if (!teenOk) { await UI.fadeTo(false, 300); await showTitle(true); try { UI.toast('The character model did not load: ' + (S.teen.lastError || 'unknown error') + '. Check your connection and try New Game again.', 8000); } catch (e) { } return; }
+    setTimeout(() => { try { S.teen.preloadAll(); } catch (e) { } }, 2500);          // the other bases stream in while you build your character
     const dest = DST.pending(), draft = defaultDraft();
     root.__noTitan = true; root.__noOdm = true; root.__hideAvatar = true; ACT.clearAll(); root.ODM.hour = 17.65;
     const sp = G.snap(-176.5, -186.5); G.teleport(sp.x + 14, sp.z + 14, 0, 0.1);

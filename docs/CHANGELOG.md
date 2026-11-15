@@ -1,4 +1,18 @@
 # Changelog
+## 0.9.11
+- Clothes fit like the reference: every base's legs are slimmed and every shared outfit (Village, Traveller armour, Scout, Crimson robe, Everyday) now hugs the leg instead of ballooning (cap = leg radius + 1 to 2.4 cm), so there is a clear gap between the legs. Tunic and skirt hems hang outside the trousers, which removes the dark/white patches that showed through at the hem. `tools/teen/slim_outfits.py` does this to a pack (run once per pack; it is not repeatable on an already slimmed pack).
+- Loading: a model pack is fetched six files at a time with up to four retries each (a single dropped request on a mobile connection no longer fails the whole model). The error message now names the exact file and reason. Other bases load only when picked (the old preload of all six bases used far too much texture memory on a phone).
+- Creator opening: letterbox bars, a longer smoother camera crane, the build-up (clay, skin and eyes, hair, clothes) plays first and the menus slide in once the character is built. Dress-up: picking an outfit, gear or a preset now does a full wardrobe turn with the light burst, pop and embers.
+- Tests: new leg-width check on every pack.
+## 0.9.10
+- Character creator is anime-only. The realistic teen model, its presets, faces, hair, `assets/teen/teen.*` and the Character Lab dev page are removed. The creator no longer has a model switch: you pick a **base**.
+- Six bases on the same 24-joint skeleton (so every animation works on all of them): Kuro (the original anime boy), Ryu, Haru, Midori (fully customisable) and Sora, Kaito (modelled as a single piece: colours, height and build are yours, clothes/face/hair are as sculpted). Packs live in `assets/<key>/` and load on demand.
+- 4 faces and 11 hairstyles that work on every full base; hair colour has a new "Original" option plus silver, crimson and midnight. 8 presets.
+- Outfits: Everyday (each base's own clothes), Village clothes, **Crimson robe (the red dragon outfit)**, Traveller armour and Scout Regiment, refitted to every base. Clothes are pushed out of the skin so the body's painted underwear no longer shows through. Colours recolour casual outfits only; armour, Scout uniform are locked until missions, ODM gear until training.
+- Locomotion: sprint pace raised to ~5 body-heights per second, jog 2.2, run clip allowed up to 2x playback so the feet match the ground.
+- Tools: `tools/teen/build_bases.py` rebuilds all packs from the supplied models.
+- Tests: `tests/teen_creator.test.js` rewritten (25 checks incl. every pack); obsolete creator/teen_foundation tests removed.
+
 ## 0.9.8
 - Repo assembled from the three split uploads and repaired: character creator v2 installed correctly (teen.js, creator.js, actors.js, run clip, anime boy base, v2 teen assets) together with its 8 game.js hooks, so every file is from the same release.
 - Stale .rej / .bak leftovers and old update zips removed from the repo (they are not part of the game).

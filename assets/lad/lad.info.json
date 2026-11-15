@@ -1,0 +1,278 @@
+{
+ "key": "lad",
+ "bodyHeight": 1.9486433267593384,
+ "bodyYmin": -0.010604622628208028,
+ "joints": 24,
+ "prims": 66,
+ "tex": 48,
+ "verts": 135213,
+ "height": 1.969864728714939,
+ "ymin": -0.010604622628208028,
+ "unit": 1.0,
+ "bin_kb": 2850,
+ "pelvis": [
+  0.0,
+  1.0694063901901245,
+  0.0
+ ],
+ "head": [
+  -2.7266813251713984e-09,
+  1.65655517578125,
+  -0.029030973091721535
+ ],
+ "hip": 1.0694063901901245,
+ "prim_stats": {
+  "Hair_L0": [
+   11466,
+   14352
+  ],
+  "Skin_Body": [
+   5103,
+   8510
+  ],
+  "Hair_L0Back": [
+   760,
+   1408
+  ],
+  "Outfit_Modern_Bottoms": [
+   674,
+   1088
+  ],
+  "Outfit_Modern_Tops": [
+   700,
+   1226
+  ],
+  "Outfit_Modern_Shoes": [
+   552,
+   732
+  ],
+  "Face0_Mouth": [
+   782,
+   1154
+  ],
+  "Face0_Iris": [
+   153,
+   250
+  ],
+  "Face0_EyeHL": [
+   36,
+   31
+  ],
+  "Face0_Skin": [
+   2209,
+   4118
+  ],
+  "Face0_EyeWhite": [
+   290,
+   528
+  ],
+  "Face0_Brow": [
+   50,
+   56
+  ],
+  "Face0_Eyeline": [
+   124,
+   138
+  ],
+  "Face1_Mouth": [
+   1073,
+   1696
+  ],
+  "Face1_Iris": [
+   212,
+   368
+  ],
+  "Face1_EyeHL": [
+   26,
+   20
+  ],
+  "Face1_Skin": [
+   2266,
+   4232
+  ],
+  "Face1_EyeWhite": [
+   290,
+   528
+  ],
+  "Face1_Brow": [
+   50,
+   52
+  ],
+  "Face1_Eyeline": [
+   92,
+   116
+  ],
+  "Face2_Iris": [
+   222,
+   388
+  ],
+  "Face2_EyeHL": [
+   176,
+   294
+  ],
+  "Face2_Skin": [
+   2266,
+   4232
+  ],
+  "Face2_EyeWhite": [
+   290,
+   528
+  ],
+  "Face2_Brow": [
+   58,
+   58
+  ],
+  "Face2_Eyeline": [
+   92,
+   116
+  ],
+  "Face3_Mouth": [
+   1053,
+   1696
+  ],
+  "Face3_Iris": [
+   212,
+   368
+  ],
+  "Face3_EyeHL": [
+   160,
+   260
+  ],
+  "Face3_Skin": [
+   2266,
+   4232
+  ],
+  "Face3_EyeWhite": [
+   290,
+   528
+  ],
+  "Face3_Brow": [
+   50,
+   52
+  ],
+  "Face3_Eyeline": [
+   90,
+   112
+  ],
+  "Outfit_Peasant_Arms": [
+   3179,
+   5338
+  ],
+  "Outfit_Peasant_Body": [
+   2402,
+   3856
+  ],
+  "Outfit_Peasant_Feet": [
+   1754,
+   2588
+  ],
+  "Outfit_Peasant_Legs": [
+   656,
+   1112
+  ],
+  "Outfit_Ranger_AccPauldron": [
+   1062,
+   1376
+  ],
+  "Outfit_Ranger_Arms": [
+   3042,
+   4928
+  ],
+  "Outfit_Ranger_ArmsBracer": [
+   3938,
+   3636
+  ],
+  "Outfit_Ranger_Body": [
+   2802,
+   2998
+  ],
+  "Outfit_Ranger_BodyBelt1": [
+   914,
+   804
+  ],
+  "Outfit_Ranger_FeetBoots": [
+   9292,
+   9172
+  ],
+  "Outfit_Ranger_HeadHood": [
+   1240,
+   2136
+  ],
+  "Outfit_Ranger_Legs": [
+   638,
+   1128
+  ],
+  "Outfit_Scout_Body": [
+   7866,
+   8397
+  ],
+  "Outfit_Scout_Boots": [
+   1160,
+   1512
+  ],
+  "Outfit_Scout_Hands": [
+   1562,
+   2192
+  ],
+  "Outfit_Scout_Cloak": [
+   1142,
+   1614
+  ],
+  "Gear_ODM": [
+   9910,
+   8110
+  ],
+  "Gear_SwordL": [
+   1056,
+   923
+  ],
+  "Gear_SwordR": [
+   1056,
+   923
+  ],
+  "Outfit_Dragon_Tops": [
+   1614,
+   2881
+  ],
+  "Outfit_Dragon_Bottoms": [
+   788,
+   1288
+  ],
+  "Outfit_Dragon_Shoes": [
+   468,
+   570
+  ],
+  "Hair_B0Back": [
+   394,
+   676
+  ],
+  "Hair_B0": [
+   2273,
+   2428
+  ],
+  "Hair_D0Back": [
+   760,
+   1408
+  ],
+  "Hair_D0": [
+   9641,
+   11810
+  ],
+  "Hair_Y0": [
+   10976,
+   13954
+  ],
+  "Hair_Y0Back": [
+   760,
+   1408
+  ],
+  "Hair_K0": [
+   5898,
+   8376
+  ],
+  "Hair_C0": [
+   11507,
+   15220
+  ]
+ }
+}

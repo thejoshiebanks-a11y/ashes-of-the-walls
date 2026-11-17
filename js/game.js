@@ -534,6 +534,7 @@ function actClass(a,mat){const m=mat.toLowerCase();
  if(/face|skin/.test(m))return'skin';if(/foot|boot|shoe/.test(m))return'shoes';return'top'}
 function actTint(a){return mat=>{const L=a.look;if(!L)return null;const c=actClass(a,mat),col=L[c];if(!col)return null;return c==='skin'?[col[0],col[1],col[2],0]:[col[0],col[1],col[2],1]}}
 function actorClip(a,sp){
+ if(a.forceClip)return a.forceClip;/* a.forceClip: [clip,rate] chosen by a cinematic */
  if(a.pose==='crouch')return['L:Crouch Idle',1];
  if(a.pose==='fall')return[AN.meta.clips['L:Falling Idle']?'L:Falling Idle':'L:Unarmed Idle',1];
  {const r_=window.__actorClip&&window.__actorClip(a,sp);if(r_)return r_}

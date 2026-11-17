@@ -104,7 +104,9 @@
     R.insertBefore(root_, UI.fade);
     const bars = ['t', 'b'].map(k => el('div', 'tc-bar ' + k)); root_.prepend(...bars);
     let inT = 0; const showUI = () => { clearTimeout(inT); if (!destroyed) root_.classList.add('in'); };
-    inT = setTimeout(showUI, o.reveal === false ? 0 : 4300);                 // cinematic first: the studio and the build-up play out before the menus slide in
+    let STK = null;                                                           // the opening: storm, lightning strike, landing, fog, crouch-to-stand, walk to camera (js/story/strike.js)
+    const wantStrike = o.reveal !== false && S.strike && !(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    inT = setTimeout(showUI, o.reveal === false ? 0 : wantStrike ? 20000 : 4300);          // cinematic first: the studio and the build-up play out before the menus slide in
     const tcEls = [header, nav, back, panel, confirm, right, lower, hint];
     tcEls.forEach((e, i) => { e.style.setProperty('--d', (1200 + i * 120) + 'ms'); });
 
@@ -126,6 +128,10 @@
     }
     function camFrame(now) {
       const dt = Math.min(.05, (now - last) / 1000); last = now; a = actor(); if (root.ODM) root.ODM.hour = GOLD;
+      if (STK && STK.active) {                                   // the cinematic owns the camera until it hands over
+        const c = STK.update(dt), cn = root.__cine; if (c) { cn.on = true; cn.pos = c.pos; cn.target = c.target; cn.fov = c.fov; }
+        if (a) a.yaw = yaw; parts(dt); if (!destroyed) raf = requestAnimationFrame(camFrame); return;
+      }
       if (a) {
         const worldH = a.baseScale ? a.baseScale * T.bodyHeight(a.key) : .3, hs = worldH / 1.649, k = 1 - Math.exp(-dt * 4.2), t = cam.t;
         introT = Math.min(1, introT + dt / 5.8); const ik = ease(introT);
@@ -149,7 +155,7 @@
     }
     /* drag to turn (or pan in MOVE mode), pinch / wheel to zoom */
     { const pts = new Map(); let pinch = 0;
-      drag.addEventListener('pointerdown', e => { try { drag.setPointerCapture(e.pointerId); } catch (x) { } pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [p, q] = [...pts.values()]; pinch = Math.hypot(p[0] - q[0], p[1] - q[1]); } });
+      drag.addEventListener('pointerdown', e => { if (STK && STK.active) { STK.skip(); return; } try { drag.setPointerCapture(e.pointerId); } catch (x) { } pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [p, q] = [...pts.values()]; pinch = Math.hypot(p[0] - q[0], p[1] - q[1]); } });
       drag.addEventListener('pointermove', e => { const o = pts.get(e.pointerId); if (!o) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
         if (pts.size === 2) { const [p, q] = [...pts.values()], dd = Math.hypot(p[0] - q[0], p[1] - q[1]); if (pinch) { cam.zoomT = Math.min(1.5, Math.max(.45, cam.zoomT * pinch / dd)); } pinch = dd; return; }
         if (panMode) { cam.panX = Math.max(-1, Math.min(1, cam.panX + (e.clientX - o[0]) * .004)); cam.panY = Math.max(-1, Math.min(1, cam.panY - (e.clientY - o[1]) * .006)); } else { yawT += (e.clientX - o[0]) * .012; turn = false; bRot.classList.remove('on'); } });
@@ -173,7 +179,7 @@
       fctx.restore();
     }
     function parts(dt) {
-      if (!fctx) return; fctx.clearRect(0, 0, fxc.width, fxc.height); birds(dt); if (!P.length) return;
+      if (!fctx) return; fctx.clearRect(0, 0, fxc.width, fxc.height); if (STK && STK.active) { STK.draw(fctx, fxc.width, fxc.height); return; } birds(dt); if (!P.length) return;
       for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.t += dt; if (p.t > p.life) { P.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.vy -= 18 * dt; const q = 1 - p.t / p.life; fctx.globalAlpha = q * q; fctx.fillStyle = p.c; fctx.beginPath(); fctx.arc(p.x, p.y, p.r * (.4 + q * .6), 0, 6.283); fctx.fill(); }
       fctx.globalAlpha = 1;
     }
@@ -209,11 +215,10 @@
       if (i === (L.base | 0) || busy2) return; const B = T.BASES[i]; busy2 = true;
       try { if (!T.has(B.key)) { toast2('Loading ' + B.name + '…'); await T.load([B.key]); } } catch (e) { busy2 = false; toast2('That model could not load: ' + (T.lastError || 'unknown error') + '. Check your connection.'); return; }
       busy2 = false; if (destroyed || !T.has(B.key)) return;
-      const hs = T.hairsFor(i), os = T.outfitsFor(i); setMany({ base: i, hair: hs.some(x => x.i === L.hair) ? L.hair : hs[0].i, outfit: os.some(x => x.i === L.outfit) ? L.outfit : os[0].i, face: B.fixed ? 0 : L.face, gear: 0 });
+      setMany({ base: i, face: B.face, hair: T.baseHair(i), gear: 0 });   // a base brings its own face and signature hair; every other option stays as chosen
     }
     const pick = (key, i, it) => {
       if (key === 'base') { switchBase(i); return; }
-      if (key === 'preset') { applyLook(Object.assign({}, T.preset(i), { crest: L.crest, gear: L.gear })); return; }
       if (it && it.locked) { toast2('Locked. ' + (it.note || 'Unlocks during missions')); return; }
       set(key, i, key === 'outfit' || key === 'gear' ? 'big' : it && it.fx);
     };
@@ -247,22 +252,21 @@
         const nameIn = h('input', { type: 'text', class: 'tc-input', id: 'tc-name', maxlength: 16, value: d.name, placeholder: 'Enter a name', autocomplete: 'off', autocapitalize: 'words', spellcheck: 'false', 'aria-label': 'Name' });
         nameIn.addEventListener('input', () => { d.name = nameIn.value; info(); nameIn.classList.remove('bad'); });
         const dice = btn('tc-mini', () => { const pool = (S.destiny && S.destiny.NAMES && S.destiny.NAMES.m) || ['Emil']; d.name = pool[Math.floor(Math.random() * pool.length)]; nameIn.value = d.name; info(); AU.menuTick && AU.menuTick(); }, svg('dice'));
-        const pres = grid('preset', T.PRESETS.map((p, i) => ({ name: p.name, img: thumb('preset', i), fx: 'big', i })), 'tc-g4 presets');
-        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('CHARACTER', grid('base', T.BASES.map((b, i) => ({ name: b.name, img: thumb('base', i), i })), 'tc-g3 bases'), el('p', 'tc-note', T.baseOf(L).note + (T.baseOf(L).fixed ? ' · modelled as one piece: colours, height and build are yours to change.' : ' · every option is open.'))), sec('BASE PRESETS', pres),
+        return [sec('NAME', el('div', 'tc-namerow', nameIn, dice)), sec('BASE', grid('base', T.BASES.map((b, i) => ({ name: b.name, img: thumb('base', i), i })), 'tc-g3 bases'), el('p', 'tc-note', T.baseOf(L).note + ' · every face, hairstyle and outfit fits every base.')),
           sec('GENDER', el('div', 'tc-gender', btn('tc-g on', () => { }, svg('male'), el('span', '', 'MALE')), (() => { const b = btn('tc-g off', () => toast2('The young female base is not in this build yet.'), svg('female'), el('span', '', 'FEMALE'), el('span', 'tc-lock', svg('lock'))); return b; })())),
           sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
           sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), el('div', 'tc-row tc-swrow', el('label', '', 'SKIN TONE'), sw('skin', T.SKIN))),
           sec('PREVIEW OPTIONS', el('div', 'tc-togs', toggle('showCrest', 'Show Emblem')))];
       },
-      face() { return [T.baseOf(L).fixed ? sec('FACE', el('p', 'tc-note', T.baseOf(L).name + ' has the face he was modelled with. Skin tone and head size are below.')) : sec('FACE', grid('face', T.FACES.map((f, i) => ({ name: f.name, img: thumb('face', i) })), 'tc-g4')), sec('SKIN TONE', sw('skin', T.SKIN, 'big')), sec('HEAD', slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
-      hair() { return [T.baseOf(L).fixed ? sec('HAIR STYLE', el('p', 'tc-note', T.baseOf(L).name + ' keeps the hair he was modelled with. Colour and shade are yours.')) : sec('HAIR STYLE', grid('hair', T.hairsFor(L.base | 0).map(x => ({ name: x.h.name, img: thumb('hair', x.i), i: x.i })), 'tc-g4')), sec('HAIR COLOUR', sw('hairCol', T.HAIRCOL, 'big')), sec('', slider('shade', 'SHADE', v => v < .4 ? 'Darker' : v > .6 ? 'Lighter' : 'Natural'))]; },
-      eyes() { return [(T.baseOf(L).fixed ? null : sec('EYE COLOUR', sw('eyes', T.EYES, 'big round'))), sec('', el('p', 'tc-note', T.baseOf(L).fixed ? T.baseOf(L).name + ' has painted eyes that are part of the model.' : 'Choose any colour, any time.'))]; },
+      face() { return [sec('FACE', grid('face', T.FACES.map((f, i) => ({ name: f.name, img: thumb('face', i) })), 'tc-g4')), sec('SKIN TONE', sw('skin', T.SKIN, 'big')), sec('HEAD', slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
+      hair() { return [sec('HAIR STYLE', grid('hair', T.hairsFor(L.base | 0).map(x => ({ name: x.h.name, img: thumb('hair', x.i), i: x.i })), 'tc-g4')), sec('HAIR COLOUR', sw('hairCol', T.HAIRCOL, 'big')), sec('', slider('shade', 'SHADE', v => v < .4 ? 'Darker' : v > .6 ? 'Lighter' : 'Natural'))]; },
+      eyes() { return [sec('EYE COLOUR', sw('eyes', T.EYES, 'big round')), sec('', el('p', 'tc-note', 'Choose any colour, any time.'))]; },
       body() { return [sec('BODY TYPE', grid('bodyType', T.BODYTYPES.map((b, i) => { const n = el('span', 'tc-sil'); n.innerHTML = '<svg viewBox="0 0 64 80">' + SIL[i] + '</svg>'; return { name: b.name, node: n }; }), 'tc-g4 bodies')),
         sec('', slider('height', 'HEIGHT', v => T.heightCm({ height: v }) + ' cm'), slider('build', 'BUILD', v => Math.round(v * 100) + '%'), slider('head', 'HEAD SIZE', v => Math.round(T.headScale({ head: v }) * 100) + '%'))]; },
       clothing() {
         const dye = (k, label) => el('div', 'tc-row tc-swrow', el('label', '', label), sw(k, T.DYE));
-        return [sec('OUTFIT', grid('outfit', T.outfitsFor(L.base | 0).map(x => ({ name: x.o.name, img: thumb('outfit', x.i), i: x.i, locked: x.o.locked && !T.isUnlocked(x.o), note: x.o.note })), 'tc-g3 outfits tall')),
-          (T.baseOf(L).fixed ? sec('COLOURS', el('p', 'tc-note', 'The clothes on this model are painted into it. Pick another base to recolour outfits.')) : T.OUTFITS[L.outfit].dye ? sec('COLOURS', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')) : sec('COLOURS', el('p', 'tc-note', 'Armour and the Scout uniform keep their issued colours. Casual clothes and the robe can be recoloured.'))),
+        return [sec('OUTFIT', grid('outfit', T.outfitsFor(L.base | 0).map(x => ({ name: x.o.name, img: thumb('outfit', x.i), i: x.i, locked: x.o.locked && !T.isUnlocked(x.o), note: x.o.note })), 'tc-g4 outfits tall')),
+          (T.OUTFITS[L.outfit].id === 'Under' ? sec('COLOURS', dye('pants', 'UNDERCLOTHES')) : T.OUTFITS[L.outfit].dye ? sec('COLOURS', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')) : sec('COLOURS', el('p', 'tc-note', 'Armour and the Scout uniform keep their issued colours. Underclothes and village clothes can be recoloured.'))),
           sec('WEAR', chips('wear', cfg.wear || ['Clean', 'Lived-in', 'Weathered'])), sec('', el('div', 'tc-togs', toggle('cloak', 'Show Cloak / Hood')))]; },
       gear() { return [sec('MANEUVER GEAR', grid('gear', [{ name: 'None', img: thumb('gear', 0) }, { name: 'ODM gear', img: thumb('gear', 1), locked: !T.gearUnlocked(), note: T.GEARLOCK.note }], 'tc-g4 tall')), sec('', el('p', 'tc-note', 'ODM gear unlocks after you finish training.'))]; },
       emblem() { return [sec('CREST', grid('crest', T.CRESTS.map((c, i) => { const n = el('span', 'tc-crestcard'); n.append(crestSvg(i, 'tc-crest-card')); return { name: T.CRESTNAMES[i], node: n }; }), 'tc-g5')), sec('', el('div', 'tc-togs', toggle('showCrest', 'Show on registry card')))]; },
@@ -313,7 +317,14 @@
 
     /* ================= start ================= */
     CR.state = { d, L, cam, skipIntro: () => { introT = 1; endReveal(); showUI(); }, snap: () => { introT = 1; endReveal(); showUI(); const t = cam.t; Object.assign(cam, { dist: t.dist, h: t.h, el: t.el, fov: t.fov, az: t.az, zoom: cam.zoomT, shift: freeShift() }); yaw = yawT; swing = 0; }, setYaw: v => { yaw = yawT = stage.yaw + v; swing = 0; },  get tab() { return tab; }, setTab, setCamMode, randomise, equipFx, finish, leave, root: root_ };
-    info(); navBtns.base.classList.add('on'); setCamMode('default'); renderTab(); if (o.reveal === false) sync(); else startReveal();
+    info(); navBtns.base.classList.add('on'); setCamMode('default'); renderTab();
+    if (wantStrike && actor()) {
+      STK = S.strike.create({ actor, stage, audio: AU, bodyHeight: T.bodyHeight, flash: () => { }, showUI,
+        done: hnd => { Object.assign(cam, { dist: hnd.dist, h: hnd.h, el: hnd.el, fov: hnd.fov, az: hnd.az, shift: 0, zoom: 1 }); introT = 1; showUI(); setCamMode('close');          // the studio opens on a close-up and eases out
+          setTimeout(() => { if (!destroyed && camMode === 'close' && !manual && tab === 'base') setCamMode('default'); }, 1700); } });
+      sync();
+    } else if (o.reveal === false) sync(); else startReveal();
+    CR.stk = () => STK;                                                      // read-only handle for tests and tools
     root.__cine.on = true; last = performance.now(); raf = requestAnimationFrame(camFrame);
     return CR.state;
   };

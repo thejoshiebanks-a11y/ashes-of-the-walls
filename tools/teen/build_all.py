@@ -35,6 +35,31 @@ def with_tex(prims, tx, off, T):
         out.append(q)
     return out
 
+def hair_norm(parts, T):
+    """the game dyes hair as tint x (luma*1.6+.05): a hair map whose own brightness is dark (or a flat untextured hair) would swallow every colour.
+    Re-base every hair map to a mid-grey luma (keeping its strand/highlight structure and alpha) so each style takes the whole dye range."""
+    done = {}
+    for p in parts:
+        if not p['mat'].startswith('Hair_'): continue
+        t = p.get('srctex')
+        if t is None:
+            if 39999 not in T: T[39999] = Image.new('RGBA', (8, 8), (132, 132, 132, 255))
+            p['srctex'] = 39999; continue
+        if t in done: continue
+        im = np.asarray(T[t].convert('RGBA'), float) / 255; l = im[..., :3] @ np.array([.299, .587, .114]); a = im[..., 3] > .5
+        m = float(l[a].mean()) if a.any() else .3; sd = float(l[a].std()) if a.any() else .1
+        nl = np.clip(.50 + (l - m) * min(2.4, max(1.0, .17 / max(sd, 1e-3))), .06, .98)             # mean .50, contrast raised if the map is flat
+        out = np.concatenate([np.repeat(nl[..., None], 3, 2), im[..., 3:]], 2)
+        T[t] = Image.fromarray((out * 255).astype(np.uint8), 'RGBA'); done[t] = 1
+
+def warp_all(parts, w2):
+    out = []
+    for p in parts:
+        q = dict(p); P0 = q['pos']; P1 = C.shoulder_warp(P0).astype(P0.dtype)
+        if np.abs(P1 - P0).max() > 5e-4: q['pos'] = P1; q['nrm'] = C.wnorm(P1, q['ix'].reshape(-1, 3)).astype(q['nrm'].dtype)
+        out.append(q)
+    return out, C.shoulder_warp(w2)
+
 def build(key, src, common, wpl, out_root):
     s = src[key]; T = {}; tone = {}
     for k in BASES:                                   # skin tone of each source's body
@@ -68,7 +93,9 @@ def build(key, src, common, wpl, out_root):
     for p in common['garments']:
         q = dict(p); parts.append(q)
     T.update(common['T'])
+    hair_norm(parts, T)
     wpo = wp.copy(); w2 = wpl.copy(); w2[18] = wp[18] + (d_tgt - wp[17]); w2[19] = wp[19] + (d_tgt - wp[17]); w2[17] = wpl[17]
+    parts, w2 = warp_all(parts, w2)
     assemble(key, [(p, T) for p in parts], w2, os.path.join(out_root, key))
 
 def common_parts():
@@ -80,7 +107,7 @@ def common_parts():
     for p in ar:
         if p.get('srctex') is not None: T[30000 + p['srctex']] = tx0[p['srctex']]; p['srctex'] = 30000 + p['srctex']
     gar = [p for p in sc + ca + ar if p['mat'] in ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_FeetBoots')]
-    body = C.tuck_body(body, gar); bx = C.boxers(body, T)
+    body = C.relief(body); body = C.tuck_body(body, gar); C.reweight(sc + ca + ar, body); bx = C.boxers(body, T)
     return dict(body=body, garments=[bx] + sc + ca + ar, T=T), wpl
 
 if __name__ == '__main__':

@@ -44,7 +44,7 @@ def new_body(skin_rgb):
     ax = np.array([0, 0, np.median(P[(P[:, 1] > 1.5) & (P[:, 1] < 1.6) & (np.abs(P[:, 0]) < .1)][:, 2])])
     t = np.clip((P[:, 1] - 1.52) / .08, 0, 1) * (np.abs(P[:, 0]) < .12)
     P[:, 0] *= 1 - .08 * t; P[:, 2] = ax[2] + (P[:, 2] - ax[2]) * (1 - .08 * t)
-    P[:, 1] += NECK * np.clip((P[:, 1] - 1.50) / .10, 0, 1)                           # stretch the neck column up
+    _c = np.clip((np.abs(P[:, 0]) - .04) / .09, 0, 1); P[:, 1] += NECK * np.clip((P[:, 1] - 1.50) / .10, 0, 1) * (1 - _c * _c * (3 - 2 * _c))   # stretch the neck column up (not the shoulders)
     body['nrm'] = wnorm(P, body['ix'].reshape(-1, 3)); body['mat'] = 'Skin_Body'; body['srctex'] = 900
     return body
 
@@ -71,15 +71,77 @@ def clip_y(p, y0, keep_above=True):
 
 def boxers(body, T):
     F = body['ix'].reshape(-1, 3); c = body['pos'][F].mean(1)
-    m = (c[:, 1] > .70) & (c[:, 1] < 1.2) & (np.abs(c[:, 0]) < .2)
-    p = sub(body, m, 'Outfit_Under_Bottoms'); p = clip_y(clip_y(p, .79, True), 1.04, False); n = p['nrm']
-    ease = .007 + .006 * np.clip((.90 - p['pos'][:, 1]) / .12, 0, 1)   # tight but separate
+    m = (c[:, 1] > .70) & (c[:, 1] < 1.25) & (np.abs(c[:, 0]) < .2)
+    p = sub(body, m, 'Outfit_Under_Bottoms'); p = clip_y(clip_y(p, .78, True), WAIST, False); n = p['nrm']
+    ease = .007 + .006 * np.clip((.90 - p['pos'][:, 1]) / .12, 0, 1) + .004 * np.clip((p['pos'][:, 1] - (WAIST - .045)) / .045, 0, 1)   # tight but separate; the waistband sits a little proud
     p['pos'] = p['pos'] + n * ease[:, None]
     # waistband: gather the top rim slightly
-    T[901] = cloth_tex((176, 158, 126)); p['srctex'] = 901
+    T[901] = boxer_tex(); p['srctex'] = 901
     # uv: planar cylindrical so the cloth weave reads evenly
-    th = np.arctan2(p['pos'][:, 0], p['pos'][:, 2]); p['uv'] = np.stack([np.abs(th) / np.pi, (p['pos'][:, 1] - .76) / .3], 1).astype(np.float32)
+    th = np.arctan2(p['pos'][:, 0], p['pos'][:, 2]); p['uv'] = np.stack([np.abs(th) / np.pi * .5 + .0, np.clip((p['pos'][:, 1] - .78) / (WAIST - .78), 0, 1)], 1).astype(np.float32)
     p['nrm'] = smooth_normals(p['pos'], p['ix'].reshape(-1, 3)); return p
+WAIST = 1.125                                            # top of the boxers: the waistband sits at the waist, just under the navel
+def boxer_tex(w=128, h=256):
+    """plain cotton boxers: weave + a darker, ribbed waistband across the top 11% of the uv height, a stitched hem at the bottom"""
+    r = np.random.RandomState(11); y, x = np.mgrid[0:h, 0:w]; base = np.array((178, 160, 128), float)
+    a = base[None, None, :] * (1 + (np.sin(x * 2.1) * np.sin(y * 2.1) * .05 + r.randn(h, w) * .02))[..., None]
+    v = y / h                                             # last image rows = uv v 1 = the waist
+    for flip in (0,):
+        band = (v > .885); a[band] = np.array((96, 84, 70), float) * (1 + (np.sin(x[band] * 1.6) * .10) + r.randn(int(band.sum())) * .02)[:, None]
+        a[(v > .878) & (v <= .885)] *= .78                  # band seam
+        a[(v < .035)] *= .86                                # hem
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), 'RGB').convert('RGBA')
+TIGHT = ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_Arms', 'Outfit_Ranger_ArmsBracer',
+         'Outfit_Ranger_FeetBoots', 'Outfit_Ranger_BodyBelt1', 'Outfit_Ranger_BodyBelt2', 'Outfit_Ranger_AccPauldron')
+def reweight(garments, body, k=8):
+    """skin weights of every fitted garment are copied from the body surface beneath it (inverse-distance over the k nearest body vertices),
+    so cloth always moves exactly with the skin: no sleeve stretching to the elbow, no spikes at the wrist, no shoulder sliding out of a sleeve"""
+    from scipy.spatial import cKDTree
+    n = len(body['pos']); D = np.zeros((n, 24))
+    for c in range(4): np.add.at(D, (np.arange(n), body['jj'][:, c]), body['ww'][:, c])
+    tree = cKDTree(body['pos'])
+    for g in garments:
+        if g['mat'] not in TIGHT: continue
+        d, ix = tree.query(g['pos'], k=k); w = 1 / (d + .004) ** 2; w /= w.sum(1, keepdims=True)
+        A = (w[:, :, None] * D[ix]).sum(1); jj = np.argsort(-A, axis=1)[:, :4]; ww = np.take_along_axis(A, jj, 1); ww /= ww.sum(1, keepdims=True)
+        g['jj'] = jj.astype(g['jj'].dtype); g['ww'] = ww.astype(g['ww'].dtype)
+    return garments
+def _ss(t): t = np.clip(t, 0, 1); return t * t * (3 - 2 * t)
+def shoulder_warp(P, dx=.030, dy=.028):
+    """one smooth map applied to every vertex and every joint: pulls the arms in by `dx`, drops the shoulder girdle by `dy` and slopes the trapezius,
+    so the shoulders are narrower and lower (a human ~2.2 head-widths wide) while skin, clothes and skeleton stay exactly consistent"""
+    P = np.array(P, float, copy=True); ax = np.abs(P[:, 0]); y = P[:, 1]; sg = np.sign(P[:, 0])
+    gy = _ss((y - 1.30) / .16) * (1 - _ss((y - 1.60) / .06))                           # only the shoulder/arm band; neck, head, torso untouched
+    drop = dy * _ss((ax - .03) / .13) * gy; shift = dx * _ss((ax - .10) / .13) * gy
+    P[:, 1] -= drop; P[:, 0] -= sg * shift; return P
+def _gauss(x, s): return np.exp(-.5 * (x / s) ** 2)
+def relief(body, amp=1.5):
+    """sculpted anatomy on the bare body: collarbones, pectorals with a lower edge, sternum groove, 6-pack with tendon grooves and linea alba, iliac V-lines,
+    obliques, back muscles (spine groove, scapulae, lats) and deltoid/biceps definition; displacement along the normal, slim and anime-clean"""
+    P = body['pos']; N = body['nrm']; x = P[:, 0]; y = P[:, 1]; z = P[:, 2]; ax = np.abs(x); fr = np.clip((N[:, 2] - .15) / .5, 0, 1); bk = np.clip((-N[:, 2] - .15) / .5, 0, 1)
+    d = np.zeros(len(P))
+    tz = (ax < .16) & (y > 1.05) & (y < 1.56)
+    # --- front
+    pec = _gauss(ax - .052, .042) * _gauss(y - 1.405, .030); d += .0085 * pec * fr
+    d -= .0030 * _gauss(y - 1.366, .006) * _gauss(ax - .05, .05) * fr * (ax < .11)                  # lower pectoral edge
+    d -= .0040 * _gauss(ax, .0055) * _ss((y - 1.33) / .03) * (1 - _ss((y - 1.47) / .03)) * fr        # sternum groove
+    d += .0035 * _gauss(y - (1.508 + .12 * (ax - .02)), .009) * _ss((ax - .015) / .02) * (1 - _ss((ax - .11) / .03)) * fr   # collarbones
+    for r in range(3):                                                                              # abs: three rows of paired blocks
+        yr = 1.150 + .063 * r; d += .0062 * _gauss(ax - .031, .016) * _gauss(y - yr, .0215) * fr
+    d -= .0022 * _gauss(ax, .0045) * _ss((y - 1.10) / .03) * (1 - _ss((y - 1.355) / .02)) * fr     # linea alba
+    for r in range(4): d -= .0016 * _gauss(ax - .03, .028) * _gauss(y - (1.1185 + .063 * r), .004) * fr   # tendon grooves
+    d += .0045 * _gauss(ax - .092, .016) * _gauss(y - 1.215, .075) * fr * (ax > .05)               # obliques / serratus flank
+    d -= .0030 * _gauss(ax - (.045 + (1.115 - y) * 1.1) , .008) * (y < 1.125) * (y > 1.045) * fr    # iliac V-lines
+    # --- back
+    d += .0050 * _gauss(ax - .060, .038) * _gauss(y - 1.405, .045) * bk                             # scapulae / rhomboids
+    d -= .0040 * _gauss(ax, .006) * _ss((y - 1.08) / .04) * (1 - _ss((y - 1.52) / .03)) * bk        # spine groove
+    d += .0040 * _gauss(ax - .085, .030) * _gauss(y - 1.27, .06) * bk                               # lats
+    d += .0030 * _gauss(ax - .03, .02) * _gauss(y - 1.12, .035) * bk                                # erector columns
+    # --- arms (deltoid cap, biceps / forearm definition), side-agnostic along the limb axis
+    ar = (ax > .15) & (ax < .64) & (y > 1.48) & (y < 1.60)
+    d += .0040 * _gauss(ax - .205, .035) * _gauss(y - 1.545, .035) * (N[:, 1] > -.2)                # deltoid
+    d *= amp; out = dict(body); out['pos'] = P + N * d[:, None] * (tz | (ax >= .15))[:, None]
+    out['nrm'] = wnorm(out['pos'], body['ix'].reshape(-1, 3)); return out
 def cloth_tex(col, w=128, h=128, seed=7):
     r = np.random.RandomState(seed); y, x = np.mgrid[0:h, 0:w]
     a = np.array(col, float)[None, None, :] * (1 + (np.sin(x * 2.1) * np.sin(y * 2.1) * .06 + r.randn(h, w) * .025))[..., None]

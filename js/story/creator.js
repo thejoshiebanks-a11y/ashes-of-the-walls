@@ -127,7 +127,7 @@
       return Math.max(0, Math.min(.7, ((pr + rl) / 2 / W) * 2 - 1));
     }
     function camFrame(now) {
-      const dt = Math.min(.05, (now - last) / 1000); last = now; a = actor(); if (root.ODM) root.ODM.hour = GOLD;
+      const dt = Math.min(.05, (now - last) / 1000); last = now; a = actor(); if (a) a.lookCam = true; if (root.ODM) root.ODM.hour = GOLD;
       if (STK && STK.active) {                                   // the cinematic owns the camera until it hands over
         const c = STK.update(dt), cn = root.__cine; if (c) { cn.on = true; cn.pos = c.pos; cn.target = c.target; cn.fov = c.fov; }
         if (a) a.yaw = yaw; parts(dt); if (!destroyed) raf = requestAnimationFrame(camFrame); return;
@@ -319,7 +319,7 @@
     CR.state = { d, L, cam, skipIntro: () => { introT = 1; endReveal(); showUI(); }, snap: () => { introT = 1; endReveal(); showUI(); const t = cam.t; Object.assign(cam, { dist: t.dist, h: t.h, el: t.el, fov: t.fov, az: t.az, zoom: cam.zoomT, shift: freeShift() }); yaw = yawT; swing = 0; }, setYaw: v => { yaw = yawT = stage.yaw + v; swing = 0; },  get tab() { return tab; }, setTab, setCamMode, randomise, equipFx, finish, leave, root: root_ };
     info(); navBtns.base.classList.add('on'); setCamMode('default'); renderTab();
     if (wantStrike && actor()) {
-      STK = S.strike.create({ actor, stage, audio: AU, bodyHeight: T.bodyHeight, flash: () => { }, showUI,
+      STK = S.strike.create({ actor, stage, audio: AU, bodyHeight: T.bodyHeight, flash: () => { }, showUI, cast: root.__world && root.__world.cast ? (o, d, m) => root.__world.cast(o, d, m) : null, gh: root.__world && root.__world.gh ? (x, z) => root.__world.gh(x, z) : null,
         done: hnd => { Object.assign(cam, { dist: hnd.dist, h: hnd.h, el: hnd.el, fov: hnd.fov, az: hnd.az, shift: 0, zoom: 1 }); introT = 1; showUI(); setCamMode('close');          // the studio opens on a close-up and eases out
           setTimeout(() => { if (!destroyed && camMode === 'close' && !manual && tab === 'base') setCamMode('default'); }, 1700); } });
       sync();

@@ -1,4 +1,13 @@
 # Changelog
+## 0.9.13
+- **Opening rebuilt.** Wide, centred start over the Shiganshina wall; the sky darkens, anime-style golden forked lightning (3D bolts with glow, branches and after-flash) strikes, the character drops out of the bolt, lands with a shock ring and fog, rises as a silhouette while the fog thins, then the reveal and the studio slide-in. Hermite camera with fluid tracking, hit-stop and a camera that stays out of buildings. Tap to skip. `js/story/strike.js` (storm lighting via `window.__storm`).
+- **Neck, head and hair are alive.** Every creator character now has a live layer on top of the clips: idle drift and glances, the head leads into turns and looks toward the camera, two spring chains (neck, head), and hair that swings and settles from the body's motion (shader sway on Hair_* only). Bounded and tested (`tests/live_head.test.js`).
+- **Shoulders and arms.** Narrower, lower, smoother shoulders with no raised-shoulder look; sleeve stretching (the hand poking out while running) fixed by re-deriving every garment's skin weights from the body; garments no longer stick out at the shoulder.
+- **Body detail.** Boxers now start at the waist (waistband) and end at the thigh; chest, abs (six-pack) and back muscle relief added.
+- **Dye.** Hair textures re-based so every hairstyle takes any dye colour.
+- **Thumbnails** for bases, faces, hair, outfits and gear regenerated from the fixed body.
+- Tools: `tools/teen/posecl.py` poses a pack with a clip frame for checking deformation.
+- Not verified on a phone: the cinematic and the head/hair layer were checked by logic tests and 2D mocks only.
 ## 0.9.12
 - **New body.** One slim, anatomically proportioned anime body replaces the old procedural one; shoulders, armpits, torso and arms are smoothed (no creases or armpit web) and the neck is slightly longer so no collar swallows the head. Every base shares it, so every outfit fits every base and one animation set drives all of them.
 - **Real outfits, worn like the references.** Scout Regiment: the full kit (jacket, straps, cloak with the Wings emblem, boots, ODM gear, swords) adapted from the Levi rig. Village clothes: vest, shirt, breeches and boots adapted from the Furlan character. Traveller armour is refitted. New default underclothes (boxers) replace "Everyday"; **no modern clothing remains** (Everyday and the Crimson robe are gone).

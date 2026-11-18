@@ -39,12 +39,8 @@ def new_body(skin_rgb):
         P = pickle.load(open(S + '/w/g12/tmp/body.pkl', 'rb')); _cache['body'] = P
     body, wp = copy.deepcopy(_cache['body'][0]), _cache['body'][1]
     F = body['ix'].reshape(-1, 3); c = body['pos'][F].mean(1)
-    body = sub(body, c[:, 1] < 1.60); P = body['pos']
-    # neck: tuck the top of the neck a little inside the head piece's neck so the two never z-fight
-    ax = np.array([0, 0, np.median(P[(P[:, 1] > 1.5) & (P[:, 1] < 1.6) & (np.abs(P[:, 0]) < .1)][:, 2])])
-    t = np.clip((P[:, 1] - 1.52) / .08, 0, 1) * (np.abs(P[:, 0]) < .12)
-    P[:, 0] *= 1 - .08 * t; P[:, 2] = ax[2] + (P[:, 2] - ax[2]) * (1 - .08 * t)
-    _c = np.clip((np.abs(P[:, 0]) - .04) / .09, 0, 1); P[:, 1] += NECK * np.clip((P[:, 1] - 1.50) / .10, 0, 1) * (1 - _c * _c * (3 - 2 * _c))   # stretch the neck column up (not the shoulders)
+    body = clip_y(body, 1.625, False); P = body['pos']                              # an exact straight cut (no stair-stepped teeth at the neck)
+    # (the neck of the reference body is tapered to meet the head piece in mkbody.body_from_ref: no tuck or stretch needed here)
     body['nrm'] = wnorm(P, body['ix'].reshape(-1, 3)); body['mat'] = 'Skin_Body'; body['srctex'] = 900
     return body
 
@@ -100,11 +96,23 @@ def reweight(garments, body, k=8):
     n = len(body['pos']); D = np.zeros((n, 24))
     for c in range(4): np.add.at(D, (np.arange(n), body['jj'][:, c]), body['ww'][:, c])
     tree = cKDTree(body['pos'])
+    def drop_bridge(g):
+        # a few cloth faces bridge the crotch from one thigh to the other: they would be stretched into a web between the legs in every stride, so they are dropped
+        L = (np.isin(g['jj'], [1, 2, 3, 4]) * g['ww']).sum(1); R = (np.isin(g['jj'], [5, 6, 7, 8]) * g['ww']).sum(1); t = R - L; F = g['ix'].reshape(-1, 3); ft = t[F]; P = g['pos'][F].mean(1)
+        keep = ~(((ft.max(1) - ft.min(1)) > .45) & (np.abs(P[:, 0]) < .12) & (P[:, 1] > .5) & (P[:, 1] < 1.05))
+        if (~keep).any(): g['ix'] = F[keep].reshape(-1).astype(g['ix'].dtype)
     for g in garments:
-        if g['mat'] not in TIGHT: continue
+        if g['mat'] not in TIGHT: drop_bridge(g); continue
         d, ix = tree.query(g['pos'], k=k); w = 1 / (d + .004) ** 2; w /= w.sum(1, keepdims=True)
-        A = (w[:, :, None] * D[ix]).sum(1); jj = np.argsort(-A, axis=1)[:, :4]; ww = np.take_along_axis(A, jj, 1); ww /= ww.sum(1, keepdims=True)
-        g['jj'] = jj.astype(g['jj'].dtype); g['ww'] = ww.astype(g['ww'].dtype)
+        A = (w[:, :, None] * D[ix]).sum(1)
+        # relax the copied weights over the cloth itself (welded by position): neighbouring cloth vertices never get wildly different bone mixes, so no tiny edge is stretched into a spike
+        key = np.round(g['pos'] * 2e3).astype(np.int64); _, inv = np.unique(key, axis=0, return_inverse=True); inv = inv.reshape(-1); m = inv.max() + 1; Fv = inv[g['ix'].reshape(-1, 3)]
+        ea = np.r_[Fv[:, 0], Fv[:, 1], Fv[:, 2], Fv[:, 1], Fv[:, 2], Fv[:, 0]]; eb = np.r_[Fv[:, 1], Fv[:, 2], Fv[:, 0], Fv[:, 0], Fv[:, 1], Fv[:, 2]]; cn = np.maximum(np.bincount(ea, minlength=m), 1)[:, None]
+        Aw = np.zeros((m, 24)); np.add.at(Aw, inv, A); Aw /= np.maximum(np.bincount(inv, minlength=m), 1)[:, None]
+        for _ in range(3):
+            S2 = np.zeros((m, 24)); np.add.at(S2, ea, Aw[eb]); Aw = .5 * Aw + .5 * S2 / cn
+        A = Aw[inv]; jj = np.argsort(-A, axis=1)[:, :4]; ww = np.take_along_axis(A, jj, 1); ww /= ww.sum(1, keepdims=True)
+        g['jj'] = jj.astype(g['jj'].dtype); g['ww'] = ww.astype(g['ww'].dtype); drop_bridge(g)
     return garments
 def _ss(t): t = np.clip(t, 0, 1); return t * t * (3 - 2 * t)
 def shoulder_warp(P, dx=.030, dy=.028):
@@ -206,9 +214,10 @@ def casual(T, body):
     for p, q in zip(tight, fixed): p.update(q)
     return out
 
-def tuck_body(body, garments, depth=.010, near=.03, inside=.004):
+def tuck_body(body, garments, depth=.030, near=.05, inside=.005, passes=2):
     """wherever the body surface pokes through (or sits closer than `inside` to) a garment surface, press it inward along its normal"""
     from scipy.spatial import cKDTree
+    for _p in range(passes - 1): body = tuck_body(body, garments, depth, near, inside, 1)
     G = np.concatenate([g['pos'] for g in garments]); GN = np.concatenate([g['nrm'] for g in garments]); tree = cKDTree(G)
     P = body['pos']; d, i = tree.query(P, k=1); sd = ((P - G[i]) * GN[i]).sum(1)     # signed distance along the garment normal (+ = outside the cloth)
     push = np.where((d < near) & (sd > -inside), np.minimum(sd + inside, depth), 0)

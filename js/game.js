@@ -218,17 +218,18 @@ function liveHead(a,M,dt){const ni=M.nkI===undefined?(M.nkI=M.id('Bip001 Neck'))
  const h=a.hl||(a.hl={s:new Float64Array(12),t:Math.random()*60,yaw:a.yaw,px:a.x,pz:a.z,py:0,rate:0});h.t+=dt;const t=h.t;
  let dy=_wrap(a.yaw-h.yaw);h.yaw=a.yaw;h.rate+=(dy/dt-h.rate)*Math.min(1,dt*8);
  const sp=a.speed||0,mv=_clamp(sp/2.5,0,1),calm=1-.55*mv,gseg=Math.floor(t/5.3),gf=t/5.3-gseg,hash=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
- const gA=hash(gseg)<.62?(hash(gseg+9)-.5)*.9:0,gP=hash(gseg+4)<.5?(hash(gseg+2)-.4)*.22:0,gk=Math.sin(Math.PI*_clamp(gf*1.25,0,1)),gg=gk*gk*(3-2*gk)*(gf<.8?1:0);
+ const gA=hash(gseg)<.62?(hash(gseg+9)-.5)*1.25:0,gP=hash(gseg+4)<.5?(hash(gseg+2)-.4)*.22:0,gk=Math.sin(Math.PI*_clamp(gf*1.25,0,1)),gg=gk*gk*(3-2*gk)*(gf<.8?1:0);
  /* a glance fades while the head is already turned toward the camera or the player's heading is changing */
  let gq=1;if(a.lookCam&&E.camPos){const q0=_wrap(Math.atan2(E.camPos[0]-a.x,E.camPos[2]-a.z)-a.yaw);if(Math.abs(q0)<2.0)gq=1-.85*_clamp(Math.abs(q0)/.5,0,1)}gq*=1-.8*_clamp(Math.abs(h.rate)/.6,0,1);
- let ty=calm*(.09*Math.sin(t*.41)+.05*Math.sin(t*1.07+1.3))+gA*gg*calm*gq,tp=calm*(.035*Math.sin(t*.57+.5)+.02*Math.sin(t*1.9))+gP*gg*calm+.012*Math.sin(t*2.1),tr=calm*.035*Math.sin(t*.47+2);
+ let ty=calm*(.12*Math.sin(t*.41)+.07*Math.sin(t*1.07+1.3))+gA*gg*calm*gq,tp=calm*(.05*Math.sin(t*.57+.5)+.03*Math.sin(t*1.9))+gP*gg*calm+.012*Math.sin(t*2.1),tr=calm*.035*Math.sin(t*.47+2);
  ty+=_clamp(h.rate*.22,-.5,.5);tr-=_clamp(h.rate*.05,-.15,.15);tp-=.1*mv;
  /* the clips steer the neck direction only, so a leaning run would also pitch the head down: cancel most of the head tilt the clip itself caused (last frame's measured tilt minus what this layer added) */
- tp-=.6*_clamp((h.tilt||0)-(h.phi||0),-.8,.8);
+ tp-=.94*_clamp((h.tilt||0)-(h.phi||0),-1.2,1.2);
  if(a.lookCam&&E.camPos){const q=_wrap(Math.atan2(E.camPos[0]-a.x,E.camPos[2]-a.z)-a.yaw);if(Math.abs(q)<2.0){ty+=_clamp(q,-.8,.8)*.75*(1-Math.abs(q)/2.4);const dy_=E.camPos[1]-(a.gy||0)-(a.fly||0)-.3*(a.scale||.3);tp+=_clamp(-Math.atan2(dy_,Math.hypot(E.camPos[0]-a.x,E.camPos[2]-a.z)),-.2,.2)*.5}}
  if(a.lookYaw!==undefined)ty+=a.lookYaw;if(a.lookPitch!==undefined)tp+=a.lookPitch;
- ty=_clamp(ty,-1.1,1.1);tp=_clamp(tp,-.5,.55);tr=_clamp(tr,-.3,.3);
- const s=h.s;_spr(s,0,ty,7,.85,dt);_spr(s,2,tp,7,.85,dt);_spr(s,4,tr,7,.85,dt);   /* neck chain */
+ ty=_clamp(ty,-1.1,1.1);tp=_clamp(tp,-1.15,.55);tr=_clamp(tr,-.3,.3);
+ const s=h.s;if(h.tilt!==undefined&&!h.sn){h.sn=1;s[2]=s[8]=tp}   /* first measured frame: pitch starts at its target (no nod up from zero) */
+ _spr(s,0,ty,7,.85,dt);_spr(s,2,tp,7,.85,dt);_spr(s,4,tr,7,.85,dt);   /* neck chain */
  _spr(s,6,s[0],11,.7,dt);_spr(s,8,s[2],11,.7,dt);_spr(s,10,s[4],11,.7,dt);          /* head chases the neck, a beat later */
  const U=[0,1,0],Fw=[0,0,1],Rt=[1,0,0],o=[];o[ni]=[[U,s[0]*.42],[Rt,s[2]*.42],[Fw,s[4]*.4]];o[hi]=[[U,s[6]*.58],[Rt,s[8]*.58],[Fw,s[10]*.6]];h.phi=s[2]*.42+s[8]*.58;return o}
 function liveHair(a,M,mm,dt,sc,R,U,F){const hi=M.hi;if(hi<0)return null;dt=Math.min(.033,Math.max(.001,dt||.016));const w=M.W[hi],wp=[mm[0]*w[12]+mm[4]*w[13]+mm[8]*w[14]+mm[12],mm[1]*w[12]+mm[5]*w[13]+mm[9]*w[14]+mm[13],mm[2]*w[12]+mm[6]*w[13]+mm[10]*w[14]+mm[14]];

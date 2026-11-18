@@ -20,18 +20,18 @@
   const TM = { flick1: 1.25, flick2: 2.2, call: 3.35, strike: 4.7, fallLen: 2.0, land: 6.7, jdEnd: 8.14, standEnd: 11.51, flash2: 12.55, walk: 11.95, walkLen: 3.3, close: 15.25, ui: 15.7, end: 16.6 };
   TM.stand = TM.jdEnd; K.TM = TM;
   /* camera keyframes. dist and h are in 'hs' units (1 hs = 1/1.649 of the character's height, the creator's own unit); az is added to the stage yaw */
-  const KF = [
-    { t: 0.00, dist: 31, h: 5.4, el: 0.15, fov: 0.90, az: 0.66 },
-    { t: 3.35, dist: 26, h: 4.8, el: 0.11, fov: 0.88, az: 0.58 },
-    { t: 4.70, dist: 24, h: 4.4, el: 0.09, fov: 0.86, az: 0.52 },
-    { t: 5.70, dist: 17, h: 3.0, el: 0.04, fov: 0.82, az: 0.45 },
-    { t: 6.70, dist: 10.5, h: 1.4, el: -0.01, fov: 0.76, az: 0.38 },
-    { t: 7.40, dist: 8.4, h: 1.05, el: -0.07, fov: 0.72, az: 0.30 },
-    { t: 9.20, dist: 7.6, h: 1.0, el: -0.08, fov: 0.70, az: 0.22 },
-    { t: 11.5, dist: 7.2, h: 1.05, el: -0.05, fov: 0.70, az: 0.15 },
-    { t: 13.2, dist: 6.2, h: 1.1, el: -0.03, fov: 0.72, az: 0.22 },
-    { t: 15.25, dist: 4.2, h: 1.25, el: -0.02, fov: 0.70, az: 0.30 },
-    { t: 16.6, dist: 2.3, h: 1.5, el: -0.01, fov: 0.24, az: 0.36 }];
+  const KF = [                                                                                  // centred on the stage axis (az .35 = the way he faces): looks up into the storm first, tips down with the bolt, then a slow push-in for the reveal and a pull back to the studio framing
+    { t: 0.00, dist: 30, h: 19, el: -0.60, fov: 0.95, az: 0.35 },
+    { t: 3.35, dist: 28, h: 15, el: -0.46, fov: 0.92, az: 0.35 },
+    { t: 4.70, dist: 26, h: 11, el: -0.30, fov: 0.90, az: 0.35 },
+    { t: 5.70, dist: 19, h: 4.2, el: -0.12, fov: 0.84, az: 0.35 },
+    { t: 6.70, dist: 12, h: 1.5, el: -0.04, fov: 0.78, az: 0.33 },
+    { t: 7.40, dist: 9.6, h: 1.05, el: -0.07, fov: 0.74, az: 0.30 },
+    { t: 9.20, dist: 8.8, h: 1.0, el: -0.07, fov: 0.72, az: 0.30 },
+    { t: 11.5, dist: 8.4, h: 1.05, el: -0.04, fov: 0.72, az: 0.30 },
+    { t: 13.2, dist: 7.0, h: 1.1, el: -0.03, fov: 0.70, az: 0.30 },
+    { t: 14.6, dist: 4.7, h: 1.3, el: -0.02, fov: 0.58, az: 0.28 },
+    { t: 16.6, dist: 3.3, h: 1.2, el: -0.03, fov: 0.80, az: 0.26 }];
   const PR = ['dist', 'h', 'el', 'fov', 'az'];
   /* a cubic Hermite through the keys with finite-difference tangents: no stop-start at the keys, a soft ease at both ends */
   const kf = t => {
@@ -112,11 +112,12 @@
       if (env.cast) {                                                                           // never put the lens inside a building: shorten the dolly when something is in the way
         let hit = null; try { hit = env.cast(tgt0, dirv, dist); } catch (e) { hit = null; }
         const want = hit && typeof hit.t === 'number' && hit.t < dist ? clamp((hit.t * 0.9) / dist, 0.3, 1) : 1;
-        if (want < ST.dk) ST.dk = want; else ST.dk += (want - ST.dk) * Math.min(1, (dt || 0.016) * 1.2);
+        ST.dk += (want - ST.dk) * Math.min(1, (dt || 0.016) * (want < ST.dk ? 3.2 : 0.9));   // eased both ways: no snap when a wall comes between the lens and him
       }
       dist *= ST.dk;
       const s = ST.shake, tm = ST.rt, sw = 0.012 * hs * Math.min(1, dist / (8 * hs));            // a trace of hand-held drift, and the shake of the strike and the landing
-      const sx = (Math.random() - 0.5) * s * hs * 0.5 + Math.sin(tm * 0.9) * sw, sy = (Math.random() - 0.5) * s * hs * 0.4 + Math.sin(tm * 1.3 + 1) * sw, sz = (Math.random() - 0.5) * s * hs * 0.5 + Math.sin(tm * 0.7 + 2) * sw;
+      const nz = (f1, f2, ph) => Math.sin(tm * f1 + ph) * 0.6 + Math.sin(tm * f2 + ph * 2.3) * 0.4;            // smooth band-limited shake (no white noise: nothing jitters)
+      const sx = nz(23, 37, 0.3) * s * hs * 0.32 + Math.sin(tm * 0.9) * sw, sy = nz(29, 41, 1.7) * s * hs * 0.26 + Math.sin(tm * 1.3 + 1) * sw, sz = nz(19, 31, 2.9) * s * hs * 0.32 + Math.sin(tm * 0.7 + 2) * sw;
       let pos = [tgt0[0] + dirv[0] * dist + sx, tgt0[1] + dirv[1] * dist + sy, tgt0[2] + dirv[2] * dist + sz];
       if (env.gh) { try { const g = env.gh(pos[0], pos[2]); if (isFinite(g) && pos[1] < g + 0.6 * hs) pos[1] = g + 0.6 * hs; } catch (e) { } }
       return { pos, target: [tgt0[0] + sx, tgt0[1] + sy, tgt0[2] + sz], fov: k.fov, dist: k.dist, h: k.h, el: k.el, az: k.az };

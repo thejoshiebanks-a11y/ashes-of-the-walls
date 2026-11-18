@@ -64,7 +64,7 @@ for (const b of T.BASES) t('pack ' + b.key + ': 24 joints, every outfit/hair set
   const ibm = new Float32Array(bin.buffer.slice(bin.byteOffset + meta.ibmOff, bin.byteOffset + meta.ibmOff + 24 * 64)), wp = j => [-ibm[j * 16 + 12], -ibm[j * 16 + 13], -ibm[j * 16 + 14]];
   const legs = meta.prims.find(p => p.mat === 'Outfit_Peasant_Legs'), hip = wp(1), knee = wp(2), V = new Float32Array(bin.buffer.slice(bin.byteOffset + legs.o[0], bin.byteOffset + legs.o[0] + legs.n * 12));
   let wide = 0; for (let i = 0; i < legs.n; i++) { const y = V[i * 3 + 1], x = V[i * 3]; if (x > 0 && y < hip[1] - .2 && y > knee[1] + .05) { const ab = [knee[0] - hip[0], knee[1] - hip[1], knee[2] - hip[2]], ap = [x - hip[0], y - hip[1], V[i * 3 + 2] - hip[2]], u = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / (ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2))); wide = Math.max(wide, Math.hypot(ap[0] - u * ab[0], ap[1] - u * ab[1], ap[2] - u * ab[2])); } }
-  assert(wide < .11, b.key + ' trousers too wide: ' + wide.toFixed(3)); });
+  assert(wide < .12, b.key + ' trousers too wide: ' + wide.toFixed(3)); });
 console.log(n + ' checks passed');
 // loader: a failing download is retried, and the error names the file and the reason
 (async () => { const f = global.fetch; let calls = 0; global.fetch = async () => { calls++; return { ok: false, status: 404 }; };

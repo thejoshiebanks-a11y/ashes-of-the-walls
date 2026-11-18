@@ -1,4 +1,11 @@
 # Changelog
+## 0.9.14
+- **Body rebuilt from your reference model.** Shoulders, arms, chest, abs and back now follow the supplied anime body (slim, well structured), retargeted to our rig; smooth shoulders with no flat/twisted look. All six bases and all garments re-fitted (garments re-weighted from the body, skin no longer pokes through trousers/boots, sleeve spikes removed). Neck widened to the head so there is no ledge.
+- **Boxers** are black, waist to mid-thigh, like the reference.
+- **Opening re-directed.** Starts wide and centred looking up into the storm, tracks the bolt down, hit, reveal with a slow reel-in; smooth shake, no back-and-forth in the close-up; the camera simply settles after the reveal.
+- **Head level.** The live head layer now cancels the clip's forward bow using the measured head tilt, so the head stays upright after the intro and reveal (tests/_headmeas.js).
+- **Loading ring** follows the logo contour so it hugs it with no gaps.
+- Not verified on a phone: cinematic and head/hair motion checked by tests and mocks only.
 ## 0.9.13
 - **Opening rebuilt.** Wide, centred start over the Shiganshina wall; the sky darkens, anime-style golden forked lightning (3D bolts with glow, branches and after-flash) strikes, the character drops out of the bolt, lands with a shock ring and fog, rises as a silhouette while the fog thins, then the reveal and the studio slide-in. Hermite camera with fluid tracking, hit-stop and a camera that stays out of buildings. Tap to skip. `js/story/strike.js` (storm lighting via `window.__storm`).
 - **Neck, head and hair are alive.** Every creator character now has a live layer on top of the clips: idle drift and glances, the head leads into turns and looks toward the camera, two spring chains (neck, head), and hair that swings and settles from the body's motion (shader sway on Hair_* only). Bounded and tested (`tests/live_head.test.js`).

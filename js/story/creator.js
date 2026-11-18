@@ -320,8 +320,7 @@
     info(); navBtns.base.classList.add('on'); setCamMode('default'); renderTab();
     if (wantStrike && actor()) {
       STK = S.strike.create({ actor, stage, audio: AU, bodyHeight: T.bodyHeight, flash: () => { }, showUI, cast: root.__world && root.__world.cast ? (o, d, m) => root.__world.cast(o, d, m) : null, gh: root.__world && root.__world.gh ? (x, z) => root.__world.gh(x, z) : null,
-        done: hnd => { Object.assign(cam, { dist: hnd.dist, h: hnd.h, el: hnd.el, fov: hnd.fov, az: hnd.az, shift: 0, zoom: 1 }); introT = 1; showUI(); setCamMode('close');          // the studio opens on a close-up and eases out
-          setTimeout(() => { if (!destroyed && camMode === 'close' && !manual && tab === 'base') setCamMode('default'); }, 1700); } });
+        done: hnd => { Object.assign(cam, { dist: hnd.dist, h: hnd.h, el: hnd.el, fov: hnd.fov, az: hnd.az, shift: 0, zoom: 1 }); introT = 1; showUI(); setCamMode('default'); } });          // the last key of the cinematic IS the studio framing: nothing zooms back and forth after the hand-over
       sync();
     } else if (o.reveal === false) sync(); else startReveal();
     CR.stk = () => STK;                                                      // read-only handle for tests and tools

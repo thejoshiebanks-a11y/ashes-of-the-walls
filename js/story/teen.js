@@ -118,10 +118,11 @@
       if (m === 'Skin_Body' || /^Face\d_Skin$/.test(m)) return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
       if (/^Face\d_Iris$/.test(m)) return [ec[0], ec[1], ec[2], .82];
       if (m.startsWith('Hair_')) return hc ? [hc[0], hc[1], hc[2], .93] : (wm < 1 ? [wm, wm, wm, 0] : null);
-      if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .5] : (wm < 1 ? [wm, wm, wm, 0] : null); }
+      if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; if (m === 'Outfit_Under_Bottoms' && !k.pants) return [.075 * wm, .075 * wm, .09 * wm, .5];   // plain black boxers until a colour is picked
+ const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .5] : (wm < 1 ? [wm, wm, wm, 0] : null); }
       return null; };
     const meters = T.meters(k);
-    a.baseScale = meters / T.bodyHeight(a.key); a.scale = a.baseScale; a.wide = T.wide(k); a.headScale = T.headScale(k) * 0.96;
+    a.live = true; a.baseScale = meters / T.bodyHeight(a.key); a.scale = a.baseScale; a.wide = T.wide(k); a.headScale = T.headScale(k) * 0.96;
     a.speedK = meters / 1.75;                               // clip speed is divided by this (see docs: optional game.js one-liner)
     if (a.isPlayer && T.loco) T.loco.setCamera(true);
     a.look = null; a.teen = k; return { meters, look: k };

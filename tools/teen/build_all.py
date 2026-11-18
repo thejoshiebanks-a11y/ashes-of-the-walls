@@ -13,17 +13,23 @@ BASES = ['boy', 'dragon', 'beauty', 'lad', 'nin', 'blen']      # face k = native
 NEWM = {'nin': ('anime_boy_ninja_character_-_fully_rigged.glb', 'N0'), 'blen': ('anime_boy_for_blender..glb', 'F0')}
 OFF = {k: 1000 * (i + 1) for i, k in enumerate(BASES)}
 
+def dropflange(p):
+    """the head piece of the old bodies ends in a collar flange (trapezius stump); the new body has its own smooth trapezius, so the flange would hover above it: keep only the neck column"""
+    if p['mat'] != 'Skin_Body': return p
+    P = p['pos']; bad = (np.abs(P[:, 0]) > .0615) & (P[:, 1] < 1.60); return C.sub(p, ~bad[p['ix'].reshape(-1, 3)].any(1))      # every triangle touching the flange goes; the neck tube (|x| <= .06) and the jaw stay
 def load_sources():
     src = {}
     for k in ('boy', 'dragon', 'beauty', 'lad'):
         pr, wp, tx = BB.read_pack(os.path.join(OLD, k), k)
         head = [p for p in C.head_parts(pr, wp, wp) if p['mat'] == 'Skin_Body']            # head piece (no shift)
         faces = {int(p['mat'][4]): p for p in pr if False}
+        head = [dropflange(p) for p in head]
         src[k] = dict(wp=wp, tx=tx, head=head, prims=pr)
     for k, (f, hid) in NEWM.items():
         raw, wp, texs = BB.convert(NEWDIR + f, BB.VRM, 'vrm', 512); own = BB.name_native(raw, hid, 'X'); tx = dict(enumerate(texs))
         body = [p for p in own if p['mat'] == 'Skin_Body'][0]; c = C.centroid(body); sel = (c[:, 1] > 1.545) & (np.abs(c[:, 0]) < .3)
         head = [C.sub(body, sel)]
+        head = [dropflange(p) for p in head]
         src[k] = dict(wp=wp, tx=tx, head=head, prims=own, hid=hid)
     return src
 

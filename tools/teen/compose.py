@@ -79,7 +79,7 @@ def boxers(body, T):
 WAIST = 1.125                                            # top of the boxers: the waistband sits at the waist, just under the navel
 def boxer_tex(w=128, h=256):
     """plain cotton boxers: weave + a darker, ribbed waistband across the top 11% of the uv height, a stitched hem at the bottom"""
-    r = np.random.RandomState(11); y, x = np.mgrid[0:h, 0:w]; base = np.array((178, 160, 128), float)
+    r = np.random.RandomState(11); y, x = np.mgrid[0:h, 0:w]; base = np.array((62, 62, 68), float)
     a = base[None, None, :] * (1 + (np.sin(x * 2.1) * np.sin(y * 2.1) * .05 + r.randn(h, w) * .02))[..., None]
     v = y / h                                             # last image rows = uv v 1 = the waist
     for flip in (0,):
@@ -214,18 +214,37 @@ def casual(T, body):
     for p, q in zip(tight, fixed): p.update(q)
     return out
 
-def tuck_body(body, garments, depth=.030, near=.05, inside=.005, passes=2):
+def tuck_body(body, garments, depth=.030, near=.05, inside=.005, passes=2, fade=True):
     """wherever the body surface pokes through (or sits closer than `inside` to) a garment surface, press it inward along its normal"""
     from scipy.spatial import cKDTree
-    for _p in range(passes - 1): body = tuck_body(body, garments, depth, near, inside, 1)
+    for _p in range(passes - 1): body = tuck_body(body, garments, depth, near, inside, 1, fade)
     G = np.concatenate([g['pos'] for g in garments]); GN = np.concatenate([g['nrm'] for g in garments]); tree = cKDTree(G)
     P = body['pos']; d, i = tree.query(P, k=1); sd = ((P - G[i]) * GN[i]).sum(1)     # signed distance along the garment normal (+ = outside the cloth)
     push = np.where((d < near) & (sd > -inside), np.minimum(sd + inside, depth), 0)
     F = body['ix'].reshape(-1, 3); n = len(P); a = np.r_[F[:, 0], F[:, 1], F[:, 2], F[:, 1], F[:, 2], F[:, 0]]; b = np.r_[F[:, 1], F[:, 2], F[:, 0], F[:, 0], F[:, 1], F[:, 2]]; cnt = np.maximum(np.bincount(a, minlength=n), 1)
     for _ in range(10):
         acc = np.zeros(n); np.add.at(acc, a, push[b]); push = np.maximum(.4 * push + .6 * acc / cnt, 0) * 1.0 if False else (.4 * push + .6 * acc / cnt)
-    push = np.minimum(push, depth)
+    push = np.minimum(push, depth) * (np.clip((P[:, 1] - .24) / .14, 0, 1) if fade else 1)          # never below the ankle: bare feet and ankles stay exactly as modelled
     out = dict(body); out['pos'] = P - body['nrm'] * push[:, None]; out['nrm'] = wnorm(out['pos'], body['ix'].reshape(-1, 3)); return out
+
+def inflate_garments(garments, body, margin=.0035, near=.06):
+    """fit the clothes to the body (not the body to the clothes): wherever a cloth vertex lies inside, or closer than `margin` to, the skin, it is pressed outward along the skin normal.
+    The body keeps its exact anime shape (clean feet, ankles, calves); the cloth only puffs by the few millimetres it needs, spread smoothly over the cloth"""
+    from scipy.spatial import cKDTree
+    tree = cKDTree(body['pos']); BP = body['pos']; BN = body['nrm']; moved = 0
+    for g in garments:
+        if g['mat'] not in TIGHT or len(g['pos']) == 0: continue
+        P = g['pos']; d, ix = tree.query(P, k=3); w = 1 / (d + 1e-3); w /= w.sum(1, keepdims=True)
+        bp = (BP[ix] * w[..., None]).sum(1); bn = (BN[ix] * w[..., None]).sum(1); bn /= np.maximum(np.linalg.norm(bn, axis=1, keepdims=True), 1e-9)
+        sd = ((P - bp) * bn).sum(1); push0 = np.where(d[:, 0] < near, np.maximum(margin - sd, 0), 0); push = push0.copy()
+        key = np.round(P * 2e3).astype(np.int64); _, inv = np.unique(key, axis=0, return_inverse=True); inv = inv.reshape(-1); m = inv.max() + 1; Fv = inv[g['ix'].reshape(-1, 3)]
+        ea = np.r_[Fv[:, 0], Fv[:, 1], Fv[:, 2], Fv[:, 1], Fv[:, 2], Fv[:, 0]]; eb = np.r_[Fv[:, 1], Fv[:, 2], Fv[:, 0], Fv[:, 0], Fv[:, 1], Fv[:, 2]]; cn = np.maximum(np.bincount(ea, minlength=m), 1)
+        pv = np.zeros(m); np.add.at(pv, inv, push0); pv /= np.maximum(np.bincount(inv, minlength=m), 1); p0 = pv.copy()
+        for _ in range(5): S2 = np.zeros(m); np.add.at(S2, ea, pv[eb]); pv = np.maximum(p0, .5 * pv + .5 * S2 / cn)
+        push = pv[inv]; g['pos'] = P + bn * push[:, None]; moved += int((push > 5e-4).sum())
+        if 'nrm' in g: g['nrm'] = wnorm(g['pos'], g['ix'].reshape(-1, 3))
+    print('inflate_garments: %d cloth vertices eased outward' % moved)
+    return garments
 
 def head_parts(pr, wpo, wpl):
     """this base's own head/face/hair, carried over unchanged but moved into the new rig's frame (head joint differs by a few cm)"""

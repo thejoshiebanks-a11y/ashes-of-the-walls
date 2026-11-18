@@ -3,13 +3,13 @@
  "bodyHeight": 1.9486433267593384,
  "bodyYmin": -0.02296711486799319,
  "joints": 24,
- "prims": 77,
+ "prims": 78,
  "tex": 66,
- "verts": 168196,
+ "verts": 178528,
  "height": 2.0082272209546743,
  "ymin": -0.02296711486799319,
  "unit": 1.0,
- "bin_kb": 3506,
+ "bin_kb": 3730,
  "pelvis": [
   -6.157831956666535e-08,
   1.0619320389784968,
@@ -23,8 +23,16 @@
  "hip": 1.0619320389784968,
  "prim_stats": {
   "Skin_Body": [
-   683,
-   1184
+   15742,
+   31438
+  ],
+  "Skin_BodyD": [
+   10085,
+   19955
+  ],
+  "Skin_Neck": [
+   652,
+   1134
   ],
   "Face0_Mouth": [
    782,
@@ -247,8 +255,8 @@
    11674
   ],
   "Outfit_Under_Bottoms": [
-   1197,
-   2182
+   1195,
+   2178
   ],
   "Outfit_Scout_Cloak": [
    1142,
@@ -268,11 +276,11 @@
   ],
   "Outfit_Scout_Body": [
    7866,
-   8394
+   8396
   ],
   "Outfit_Scout_Boots": [
    1160,
-   1510
+   1512
   ],
   "Outfit_Peasant_Body": [
    2590,
@@ -280,7 +288,7 @@
   ],
   "Outfit_Peasant_Legs": [
    520,
-   844
+   848
   ],
   "Outfit_Peasant_Feet": [
    980,

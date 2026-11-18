@@ -58,6 +58,30 @@ def hair_norm(parts, T):
         out = np.concatenate([np.repeat(nl[..., None], 3, 2), im[..., 3:]], 2)
         T[t] = Image.fromarray((out * 255).astype(np.uint8), 'RGBA'); done[t] = 1
 
+def shrink_dressed(bd, wp):
+    """the skin worn under clothes is also drawn in 14% around each leg and 12% around each arm (hands and feet excepted): under any outfit it can no longer show through at a seam while the limbs bend; the bare body is never touched"""
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
+    P = bd['pos'].copy(); x, y = P[:, 0], P[:, 1]; sg = np.where(x >= 0, 1., -1.)
+    for side, (a, b, c) in ((1., (1, 2, 3)), (-1., (5, 6, 7))):
+        ys = [wp[c][1], wp[b][1], wp[a][1]]; cx = np.interp(y, ys, [wp[c][0], wp[b][0], wp[a][0]]); cz = np.interp(y, ys, [wp[c][2], wp[b][2], wp[a][2]])
+        m = (sg == side) & (y < 1.02) & (np.abs(x) > .012); k = 1 - .14 * sm((1.0 - y) / .08) * sm((y - .16) / .1)
+        P[m, 0] = cx[m] + (x[m] - cx[m]) * k[m]; P[m, 2] = cz[m] + (P[m, 2] - cz[m]) * k[m]
+    f = (y < .07); P[f, 1] = y[f] * (1 - .2 * sm((.07 - y[f]) / .05))
+    ax = np.abs(x); kk = 1 - .12 * sm((ax - .2) / .08) * (1 - sm((ax - .46) / .1)); m = (y > 1.3) & (ax > .2)
+    P[m, 1] = wp[13][1] + (P[m, 1] - wp[13][1]) * kk[m]; P[m, 2] = wp[13][2] + (P[m, 2] - wp[13][2]) * kk[m]
+    bd = dict(bd); bd['pos'] = P; bd['nrm'] = C.wnorm(P, bd['ix'].reshape(-1, 3)).astype(bd['nrm'].dtype); return bd
+
+def snapneck(q, body):
+    """the head piece's neck tube must never stand proud of the body's neck: below y 1.615 its half-width is held 3 mm inside the body's own neck (fading out above), so the tube's lower rim is
+    hidden inside the body and the two surfaces simply cross -- no wings, no collar ledge"""
+    Fq = q['ix'].reshape(-1, 3); q = C.sub(q, ~(q['pos'][Fq][:, :, 1].min(1) < 1.594))                 # the tube's flared lower skirt goes; its rim now starts inside the body
+    B = body['pos']; P = q['pos'].copy(); ys = np.arange(1.50, 1.70, .004); hw = []
+    for y in ys:
+        s = B[(np.abs(B[:, 1] - y) < .006) & (np.abs(B[:, 0]) < .1)]; hw.append(np.abs(s[:, 0]).max() if len(s) > 3 else np.nan)
+    hw = np.array(hw); ok = ~np.isnan(hw); hwy = np.interp(P[:, 1], ys[ok], hw[ok]); f = np.clip((1.618 - P[:, 1]) / .008, 0, 1); f = f * f * (3 - 2 * f)
+    lim = np.minimum(np.abs(P[:, 0]), np.maximum(hwy - .006, .02)); P[:, 0] = np.sign(P[:, 0]) * (np.abs(P[:, 0]) * (1 - f) + lim * f)
+    q = dict(q); q['pos'] = P; q['nrm'] = C.wnorm(P, q['ix'].reshape(-1, 3)).astype(q['nrm'].dtype); return q
+
 def warp_all(parts, w2):
     out = []
     for p in parts:
@@ -74,8 +98,12 @@ def build(key, src, common, wpl, out_root):
     parts = []
     # --- body in this base's skin colour
     T[900] = Image.new('RGBA', (8, 8), tuple(int(v) for v in bt) + (255,)); body = dict(common['body']); body['srctex'] = 900; parts.append(body)
+    bd = shrink_dressed(common['body_d'], wpl); bd = C.sub(bd, ~(bd['pos'][bd['ix'].reshape(-1, 3)][:, :, 1].max(1) < .98)); bd['srctex'] = 900; bd['mat'] = 'Skin_BodyD'; parts.append(bd)      # every outfit covers the legs completely, so this skin (pressed in under the clothes, used whenever an outfit is worn; the bare body is used with the boxers) starts at the hips and nothing can show through trousers or boots. Same skin, pressed in under the clothes: used whenever an outfit is worn (the bare body is used with the boxers)
     # --- head piece (native)
-    for p in with_tex(s['head'], s['tx'], OFF[key], T): q = dict(p); q['pos'] = q['pos'] + (d_tgt - wp[17]); parts.append(q)
+    for p in with_tex(s['head'], s['tx'], OFF[key], T):
+        q = dict(p); q['pos'] = q['pos'] + (d_tgt - wp[17]); q = snapneck(q, body) if (q['mat'] == 'Skin_Body' and len(q['pos']) < 2000) else q
+        if q['mat'] == 'Skin_Body' and len(q['pos']) < 2000: q = dict(q); q['mat'] = 'Skin_Neck'
+        parts.append(q)
     # --- six faces: Face k = native face of BASES[k]
     for k, fk in enumerate(BASES):
         fs = src[fk]; own = [p for p in fs['prims'] if p['mat'] in FACE_PART] if fk in NEWM else [p for p in fs['prims'] if p['mat'].startswith('Face%d_' % k)]
@@ -113,8 +141,8 @@ def common_parts():
     for p in ar:
         if p.get('srctex') is not None: T[30000 + p['srctex']] = tx0[p['srctex']]; p['srctex'] = 30000 + p['srctex']
     gar = [p for p in sc + ca + ar if p['mat'] in ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_FeetBoots')]
-    body = C.relief(body); body = C.tuck_body(body, gar); C.reweight(sc + ca + ar, body); bx = C.boxers(body, T)
-    return dict(body=body, garments=[bx] + sc + ca + ar, T=T), wpl
+    body = C.relief(body, amp=float(os.environ.get('RELIEF', '1.8'))); body_d = C.tuck_body(body, gar, depth=.045, inside=.013, passes=2, fade=False); C.reweight(sc + ca + ar, body); bx = C.boxers(body, T)
+    return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar, T=T), wpl
 
 if __name__ == '__main__':
     out = sys.argv[1]; keys = sys.argv[2:] or BASES

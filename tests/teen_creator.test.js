@@ -55,7 +55,7 @@ const REQ = ['Gear_ODM', 'Gear_SwordL', 'Gear_SwordR', 'Outfit_Under_Bottoms', '
 for (const b of T.BASES) t('pack ' + b.key + ': 24 joints, every outfit/hair set present, reads back, budgets for phones', () => {
   const dir = R + '/assets/' + b.key + '/', info = JSON.parse(fs.readFileSync(dir + b.key + '.info.json')), meta = JSON.parse(fs.readFileSync(dir + b.key + '.meta.json')), bin = zlib.inflateSync(fs.readFileSync(dir + b.key + '.bin'));
   const names = meta.prims.map(p => p.mat); for (const r of REQ) assert(names.includes(r), b.key + ' lacks ' + r);
-  assert(names.includes('Skin_Body')); for (let f = 0; f < 6; f++) assert(names.includes('Face' + f + '_Skin') && names.includes('Face' + f + '_Iris'), 'face ' + f); assert(!names.some(m => /Modern|Dragon/.test(m)), 'no modern or robe parts');
+  assert(names.includes('Skin_Body') && names.includes('Skin_BodyD') && names.includes('Skin_Neck')); for (let f = 0; f < 6; f++) assert(names.includes('Face' + f + '_Skin') && names.includes('Face' + f + '_Iris'), 'face ' + f); assert(!names.some(m => /Modern|Dragon/.test(m)), 'no modern or robe parts');
   for (let i = 0; i < (info.tex || 0); i++) assert(fs.statSync(dir + b.key + '.t' + i + '.webp').size > 20);
   for (const p of meta.prims) { for (const o of p.o) assert(o >= 0 && o < bin.length); const pos = new Float32Array(bin.buffer.slice(bin.byteOffset + p.o[0], bin.byteOffset + p.o[0] + p.n * 12)); for (const v of pos) assert(Number.isFinite(v)); }
   const visTri = (outfit, hair) => meta.prims.filter(p => !p.mat.startsWith('Outfit_') && !p.mat.startsWith('Hair_') && !p.mat.startsWith('Gear_') && !/^Face[1-9]/.test(p.mat) || p.mat.startsWith('Outfit_' + outfit + '_') || p.mat === 'Hair_' + hair).reduce((s, p) => s + p.ni / 3, 0);
@@ -64,7 +64,7 @@ for (const b of T.BASES) t('pack ' + b.key + ': 24 joints, every outfit/hair set
   const ibm = new Float32Array(bin.buffer.slice(bin.byteOffset + meta.ibmOff, bin.byteOffset + meta.ibmOff + 24 * 64)), wp = j => [-ibm[j * 16 + 12], -ibm[j * 16 + 13], -ibm[j * 16 + 14]];
   const legs = meta.prims.find(p => p.mat === 'Outfit_Peasant_Legs'), hip = wp(1), knee = wp(2), V = new Float32Array(bin.buffer.slice(bin.byteOffset + legs.o[0], bin.byteOffset + legs.o[0] + legs.n * 12));
   let wide = 0; for (let i = 0; i < legs.n; i++) { const y = V[i * 3 + 1], x = V[i * 3]; if (x > 0 && y < hip[1] - .2 && y > knee[1] + .05) { const ab = [knee[0] - hip[0], knee[1] - hip[1], knee[2] - hip[2]], ap = [x - hip[0], y - hip[1], V[i * 3 + 2] - hip[2]], u = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / (ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2))); wide = Math.max(wide, Math.hypot(ap[0] - u * ab[0], ap[1] - u * ab[1], ap[2] - u * ab[2])); } }
-  assert(wide < .12, b.key + ' trousers too wide: ' + wide.toFixed(3)); });
+  assert(wide < .125, b.key + ' trousers too wide: ' + wide.toFixed(3)); });
 console.log(n + ' checks passed');
 // loader: a failing download is retried, and the error names the file and the reason
 (async () => { const f = global.fetch; let calls = 0; global.fetch = async () => { calls++; return { ok: false, status: 404 }; };

@@ -1,11 +1,15 @@
 # Changelog
 ## 0.9.14
-- **Body rebuilt from your reference model.** Shoulders, arms, chest, abs and back now follow the supplied anime body (slim, well structured), retargeted to our rig; smooth shoulders with no flat/twisted look. All six bases and all garments re-fitted (garments re-weighted from the body, skin no longer pokes through trousers/boots, sleeve spikes removed). Neck widened to the head so there is no ledge.
-- **Boxers** are black, waist to mid-thigh, like the reference.
-- **Opening re-directed.** Starts wide and centred looking up into the storm, tracks the bolt down, hit, reveal with a slow reel-in; smooth shake, no back-and-forth in the close-up; the camera simply settles after the reveal.
-- **Head level.** The live head layer now cancels the clip's forward bow using the measured head tilt, so the head stays upright after the intro and reveal (tests/_headmeas.js).
-- **Loading ring** follows the logo contour so it hugs it with no gaps.
-- Not verified on a phone: cinematic and head/hair motion checked by tests and mocks only.
+- **Body rebuilt from your reference model, then re-sculpted.** Slim anime body (your reference mesh retargeted to our rig) with sculpted, symmetric anatomy: collarbones, pectorals with a lower edge, sternum groove, six-pack with a centre line, iliac V-lines, obliques, scapulae, spine and lat definition (amplitude `RELIEF`, default 1.8).
+- **Feet, ankles and legs fixed.** The old build pressed the body in under every outfit, which shredded the bare feet and thinned the legs. The bare body is now left exactly as modelled.
+- **Two skins.** `Skin_Body` (bare, used with the boxers), `Skin_BodyD` (hips up, pressed in under the clothes, used for every outfit so nothing shows through trousers/boots) and `Skin_Neck` (head piece neck, always on). Switched in js/story/teen.js.
+- **Neck.** The body's neck is widened to the head's neck tube and tapers inside it; the tube's flared lower rim is removed and held inside the body, so there is no ledge, wings or collar edge.
+- **Boxers** are dark charcoal cotton in the pack itself (also in thumbnails), waist to mid-thigh.
+- **Opening re-directed.** Wide centred start looking up into the storm, tracked bolt, reveal with a slow reel-in; smoothed shake; the camera settles after the reveal.
+- **Head level.** The live head layer cancels the clip's forward bow using the measured head tilt (tests/_headmeas.js).
+- **Loading ring** follows the logo contour.
+- Tools: tools/teen/ref_body.npz, build_all `RELIEF`, compose.inflate_garments (kept, unused by default).
+- Not verified on a phone: cinematic and head/hair motion are checked by tests and mock-ups only. Known: peasant shirt sleeves and ranger boot tops are the donor garments' own ragged edges.
 ## 0.9.13
 - **Opening rebuilt.** Wide, centred start over the Shiganshina wall; the sky darkens, anime-style golden forked lightning (3D bolts with glow, branches and after-flash) strikes, the character drops out of the bolt, lands with a shock ring and fog, rises as a silhouette while the fog thins, then the reveal and the studio slide-in. Hermite camera with fluid tracking, hit-stop and a camera that stays out of buildings. Tap to skip. `js/story/strike.js` (storm lighting via `window.__storm`).
 - **Neck, head and hair are alive.** Every creator character now has a live layer on top of the clips: idle drift and glances, the head leads into turns and looks toward the camera, two spring chains (neck, head), and hair that swings and settles from the body's motion (shader sway on Hair_* only). Bounded and tested (`tests/live_head.test.js`).

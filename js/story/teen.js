@@ -102,7 +102,9 @@
     const hood = rv > 2 && outfit === 'Ranger' && k.cloak, cloak = rv > 2 && outfit === 'Scout' && k.cloak;
     const clayOutfit = 'Under', gearOn = !!k.gear && T.gearUnlocked();
     a.skipRe = { test: m => {
-      if (m === 'Skin_Body') return false;
+      if (m === 'Skin_Neck') return false;
+      if (m === 'Skin_Body') return rv >= 3 && outfit !== clayOutfit;      // bare body with the boxers; a body pressed in under the cloth for every other outfit
+      if (m === 'Skin_BodyD') return !(rv >= 3 && outfit !== clayOutfit);
       const f = FACEP.exec(m); if (f) return +f[1] !== k.face || (/^(Iris|EyeHL)$/.test(f[2]) && rv < 1);
       if (m.startsWith('Hair_')) { if (rv < 2 || hood) return true; if (H.bald) return true; return m !== 'Hair_' + H.f && m !== 'Hair_' + H.k; }
       if (m.startsWith('Gear_')) return !(gearOn && rv >= 3);
@@ -115,10 +117,10 @@
     const dyes = O.dye ? { top: T.DYE[k.top].c, pants: T.DYE[k.pants].c, boots: T.DYE[k.boots].c, accent: T.DYE[k.accent].c } : {};   // colours recolour the casual outfits only, never armour or the uniform
     const CLAY = [.78, .76, .73, .92];
     a.tintFn = m => {
-      if (m === 'Skin_Body' || /^Face\d_Skin$/.test(m)) return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
+      if (m === 'Skin_Body' || m === 'Skin_BodyD' || m === 'Skin_Neck' || /^Face\d_Skin$/.test(m)) return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
       if (/^Face\d_Iris$/.test(m)) return [ec[0], ec[1], ec[2], .82];
       if (m.startsWith('Hair_')) return hc ? [hc[0], hc[1], hc[2], .93] : (wm < 1 ? [wm, wm, wm, 0] : null);
-      if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; if (m === 'Outfit_Under_Bottoms' && !k.pants) return [.075 * wm, .075 * wm, .09 * wm, .5];   // plain black boxers until a colour is picked
+      if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; if (m === 'Outfit_Under_Bottoms' && !k.pants) return [wm, wm, wm, .5];   // plain black boxers (dark charcoal cotton in the pack itself) until a colour is picked
  const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .5] : (wm < 1 ? [wm, wm, wm, 0] : null); }
       return null; };
     const meters = T.meters(k);

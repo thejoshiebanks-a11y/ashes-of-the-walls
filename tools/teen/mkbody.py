@@ -138,15 +138,19 @@ def _skin_mats(wp,deg,elbow=0.):
     for j in range(24):
         M=np.eye(4); M[:3,:3]=R[j]; M[:3,3]=wp[j]-(wp[PAR[j]] if PAR[j]>=0 else 0); Wm[j]=M if PAR[j]<0 else Wm[PAR[j]]@M
     return np.array([Wm[j]@np.block([[np.eye(3),-wp[j][:,None]],[np.zeros((1,3)),np.ones((1,1))]]) for j in range(24)])
+XZS=float(os.environ.get('XZS','1.12'))
 def body_from_ref(Q,F,jj,ww,wp,Ltip):
     """the whole body below the neck is the supplied reference mesh (anime_male_base_body.glb): one clean, smooth surface instead of overlapping shells.
     It is scaled to our height, its arm lengthened/shortened to our arm, skinned by copying the weights of our own body (nearest vertices, in the lowered-arm pose both share),
     and carried back to the bind pose through the inverse skinning matrix. Returns pos, faces, jj, ww."""
     from scipy.spatial import cKDTree
-    z=np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)),'ref_body.npz')); V=z['P'].astype(float)*[-1,1,-1]; RF=z['F'].astype(np.int64)
+    CM=os.environ.get('BODYREF','ref')=='c'
+    z=np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)),'ref_body_c.npz' if CM else 'ref_body.npz')); V=z['P'].astype(float)*[-1,1,-1]; RF=z['F'].astype(np.int64)
     key=np.round(z['P'].astype(float)*1e4).astype(np.int64); _,first,inv=np.unique(key,axis=0,return_index=True,return_inverse=True); inv=inv.reshape(-1)     # weld the UV-seam duplicates: one vertex per position, so no cracks when posed
     V=V[first]; RF=inv[RF]; RF=RF[(RF[:,0]!=RF[:,1])&(RF[:,1]!=RF[:,2])&(RF[:,0]!=RF[:,2])]
-    V=(V+[0,.0368,0])*(1.8955/(V[:,1].max()+.0368))
+    if CM:      # anime_base_character_-_male_1 (T-pose, 1.70 m): piecewise height map feet->hips->shoulder->neck onto our skeleton, uniform 1.12 width scale
+        V[:,1]-=V[:,1].min(); V[:,1]=np.interp(V[:,1],[0,.953,1.339,1.433,1.733],[0,1.062,1.516,1.600,1.870]); V[:,[0,2]]*=XZS
+    else: V=(V+[0,.0368,0])*(1.8955/(V[:,1].max()+.0368))
     S0=wp[13].copy()
     # ref arm: direction shoulder->fingertip
     tip=V[V[:,0]>V[:,0].max()-.03].mean(0); dv=tip-S0; deg=float(np.degrees(np.arctan2(-dv[1],dv[0]))); Lr=np.hypot(dv[0],dv[1]); r=(Ltip-S0[0])/Lr; print('ref arm angle',deg,'len',Lr,'ours',Ltip-S0[0],'ratio',r)
@@ -157,7 +161,7 @@ def body_from_ref(Q,F,jj,ww,wp,Ltip):
     d=dv/np.linalg.norm(dv)
     for sg in(1,-1):                                                                     # lengthen / shorten each arm along its own axis (smooth ramp at the shoulder so the torso never moves)
         sel=sg*V[:,0]>S0[0]-.02; P=V[sel]*[sg,1,1]; m=np.clip((P[:,0]-S0[0])/.05,0,1); a=(P[:,:2]-S0[:2])@d[:2]; P[:,:2]+=d[None,:2]*((r-1)*a*m)[:,None]; V[sel]=P*[sg,1,1]
-    cV=V[RF].mean(1); keep=(cV[:,1]<1.625)&~((cV[:,1]>1.585)&(cV[:,2]>.095))      # the reference's own chin/jaw hangs lower than ours: those front-of-neck triangles are left out
+    cV=V[RF].mean(1); keep=(cV[:,1]<1.625)      # the reference's own chin/jaw hangs lower than ours: those front-of-neck triangles are left out
     RFk=RF[keep]; used=np.unique(RFk); remap=-np.ones(len(V),np.int64); remap[used]=np.arange(len(used)); Vk=V[used]; Fk=remap[RFk]
     # weights: nearest 6 of our posed vertices (inverse distance)
     tr=cKDTree(QA); dd,ix=tr.query(Vk,k=6); w=1/(dd+2e-3)**2; w/=w.sum(1,keepdims=True)
@@ -173,10 +177,13 @@ def body_from_ref(Q,F,jj,ww,wp,Ltip):
     sm=lambda x:(lambda t:t*t*(3-2*t))(np.clip(x,0,1)); y=T[:,1]
     nc=(np.abs(y-1.60)<.008)&(np.abs(T[:,0])<.075)&(T[:,2]<.095)
     hw_r=np.abs(T[nc][:,0]).max(); z0,z1=T[nc][:,2].min(),T[nc][:,2].max(); zc_r=(z0+z1)/2; zd_r=(z1-z0)/2
-    hw_t,zc_t,zd_t=.057,.040,.039; print('neck ref hw %.3f zc %.3f zd %.3f -> %.3f %.3f %.3f'%(hw_r,zc_r,zd_r,hw_t,zc_t,zd_t))
-    r=np.hypot(T[:,0],T[:,2]-zc_r); wr=1-sm((r-.06)/.07); g=sm((y-1.49)/.085)*wr
-    kx=hw_t/hw_r; kz=zd_t/zd_r
-    T=T.copy(); T[:,0]*=1+(kx-1)*g; T[:,2]=zc_r+(zc_t-zc_r)*g+(T[:,2]-zc_r)*(1+(kz-1)*g)
+    hw_t,zc_t,zd_t=.064,.043,.047; print('neck ref hw %.3f zc %.3f zd %.3f -> %.3f %.3f %.3f'%(hw_r,zc_r,zd_r,hw_t,zc_t,zd_t))
+    r=np.hypot(T[:,0],T[:,2]-zc_r); wr=1-sm((r-.06)/.07); g=sm((y-1.47)/.09)*wr
+    kx=hw_t/hw_r; kz=zd_t/zd_r; tp=1-.30*sm((y-1.585)/.04)                  # wider than the head's neck tube where the tube begins (hides its rim), narrowing to inside the tube above
+    T=T.copy(); T[:,0]*=(1+(kx-1)*g)*(1-(1-tp)*wr); T[:,2]=zc_r+(zc_t-zc_r)*g+(T[:,2]-zc_r)*(1+(kz-1)*g)*(1-(1-tp)*wr)
+    zmax=np.interp(T[:,1],[1.56,1.575,1.605,1.64],[9,.108,.076,.076]); fr=(np.abs(T[:,0])<.08)&(T[:,2]>zc_t)               # the reference's low-hanging jaw/throat is folded back inside the head's neck tube (no hole, no ledge)
+    T[:,2]=np.where(fr,np.minimum(T[:,2],zmax),T[:,2])
+    sr=sm((T[:,1]-1.604)/.02)*(np.abs(T[:,0])<.08); T[:,0]*=1-.14*sr; T[:,2]=np.where(T[:,2]>zc_t-.0,T[:,2]-(T[:,2]-zc_t)*.10*sr,T[:,2])      # rim of the body neck drawn well inside the head's tube
     return T,Fk,j2,w2
 
 def make():

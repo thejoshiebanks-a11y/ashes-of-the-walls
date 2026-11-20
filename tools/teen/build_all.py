@@ -67,9 +67,67 @@ def shrink_dressed(bd, wp):
         m = (sg == side) & (y < 1.02) & (np.abs(x) > .012); k = 1 - .14 * sm((1.0 - y) / .08) * sm((y - .16) / .1)
         P[m, 0] = cx[m] + (x[m] - cx[m]) * k[m]; P[m, 2] = cz[m] + (P[m, 2] - cz[m]) * k[m]
     f = (y < .07); P[f, 1] = y[f] * (1 - .2 * sm((.07 - y[f]) / .05))
-    ax = np.abs(x); kk = 1 - .12 * sm((ax - .2) / .08) * (1 - sm((ax - .46) / .1)); m = (y > 1.3) & (ax > .2)
+    ax = np.abs(x); kk = 1 - .12 * sm((ax - .12) / .08) * (1 - sm((ax - .46) / .1)); m = (y > 1.3) & (ax > .12)
     P[m, 1] = wp[13][1] + (P[m, 1] - wp[13][1]) * kk[m]; P[m, 2] = wp[13][2] + (P[m, 2] - wp[13][2]) * kk[m]
     bd = dict(bd); bd['pos'] = P; bd['nrm'] = C.wnorm(P, bd['ix'].reshape(-1, 3)).astype(bd['nrm'].dtype); return bd
+
+def fit_sleeves(prims, bd, mats=('Outfit_Scout_Body', 'Outfit_Ranger_Arms', 'Outfit_Ranger_ArmsBracer', 'Outfit_Ranger_AccPauldron')):
+    """the donor jackets' sleeves hang ~3 cm higher / further back than our arm and are no wider: the skin showed beside them. Per x-slice, each sleeve is moved onto the arm's own centre line and widened to clear it."""
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
+    P = bd['pos']; ax = np.abs(P[:, 0]); edges = np.arange(.17, .70, .03); mid = (edges[:-1] + edges[1:]) / 2; cs, rs = [], []
+    for a, b in zip(edges[:-1], edges[1:]):
+        k = (ax >= a) & (ax < b) & (P[:, 1] > 1.2); q = P[k][:, 1:]; c = q.mean(0); cs.append(c); rs.append(np.linalg.norm(q - c, axis=1).mean())
+    cs = np.array(cs); rs = np.array(rs); out = []
+    for p in prims:
+        if p['mat'] not in mats: out.append(p); continue
+        V = p['pos'].copy(); ax = np.abs(V[:, 0]); w = sm((ax - .17) / .10) * (1 - sm((ax - .60) / .08)) * (V[:, 1] > 1.2) * (V[:, 1] < 1.8)
+        for sg in (1, -1):
+            for i, (a, b) in enumerate(zip(edges[:-1], edges[1:])):
+                k = (np.sign(V[:, 0]) == sg) & (ax >= a) & (ax < b) & (w > .02)
+                if k.sum() < 6: continue
+                cg = V[k][:, 1:].mean(0); rg = max(np.linalg.norm(V[k][:, 1:] - cg, axis=1).mean(), 1e-3)
+                f = 1 + (max(1., (rs[i] * 1.12 + .007) / rg) - 1) * w[k]
+                d = (V[k][:, 1:] - cg) * f[:, None]; V[k, 1:] = cg + d + (cs[i] - cg) * w[k][:, None]
+        q = dict(p); q['pos'] = V; q['nrm'] = C.wnorm(V, p['ix'].reshape(-1, 3)).astype(p['nrm'].dtype); out.append(q)
+    return out
+
+def ranger_lining(ar, body, T):
+    """the ranger tunic is an open, torn mesh: a dark-green lining grown from the torso surface sits just under it so the skin can never show through the holes"""
+    out = []
+    for p in ar:
+        if p['mat'] != 'Outfit_Ranger_Body': out.append(p); continue
+        im = np.asarray(T[p['srctex']].convert('RGB')).astype(float); h, w = im.shape[:2]; uv = p['uv']
+        px = im[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)]
+        k = (px[:, 1] > px[:, 0] * 1.25) & (px[:, 1] > px[:, 2] * 1.25) & (px[:, 1] < 120)
+        uvs = np.median(uv[k], axis=0) if k.sum() > 5 else uv.mean(0)
+        BF = body['ix'].reshape(-1, 3); bc = body['pos'][BF].mean(1); m = (bc[:, 1] > 1.10) & (bc[:, 1] < 1.56) & (np.abs(bc[:, 0]) < .19)
+        L = C.sub(body, m, p['mat']); L['pos'] = L['pos'] + L['nrm'] * .006; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype)
+        n0 = len(p['pos']); q = dict(p)
+        for kk in ('pos', 'nrm', 'uv', 'jj', 'ww'): q[kk] = np.concatenate([p[kk], L[kk]])
+        q['ix'] = np.concatenate([p['ix'], L['ix'] + n0]).astype(p['ix'].dtype); out.append(q)
+    return out
+
+def ranger_sleeves(ar, body, T):
+    """the donor ranger sleeves and bracers are spiky, torn and leave the shoulder bare: replaced by clean sleeves and cuffs grown from our own arm (green cloth, brown leather taken from the tunic texture)"""
+    bod = [p for p in ar if p['mat'] == 'Outfit_Ranger_Body'][0]
+    im = np.asarray(T[bod['srctex']].convert('RGB')).astype(float); h, w = im.shape[:2]; uv = bod['uv']
+    px = im[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)]
+    kg = (px[:, 1] > px[:, 0] * 1.25) & (px[:, 1] > px[:, 2] * 1.25) & (px[:, 1] < 120); kb = (px[:, 0] > px[:, 1] * 1.25) & (px[:, 1] > px[:, 2] * 1.15) & (px[:, 0] > 70) & (px[:, 0] < 170)
+    ug = np.median(uv[kg], axis=0) if kg.sum() > 5 else uv.mean(0); ub = np.median(uv[kb], axis=0) if kb.sum() > 5 else ug
+    out = []
+    for p in ar:
+        if p['mat'] == 'Outfit_Ranger_Arms': out.append(C.arm_tube(body, ug, p, .15, .52, .90, .007))
+        elif p['mat'] == 'Outfit_Ranger_ArmsBracer': out.append(C.arm_tube(body, ub, p, .43, .585, .90, .013))
+        elif p['mat'] == 'Outfit_Ranger_AccPauldron': out.append(C.arm_tube(body, ub, p, .17, .34, 1.0, .017))
+        else: out.append(p)
+    return out
+
+def keep_neck(bd, orig):
+    """tuck_body presses the dressed skin 4.5 cm under the cloth; at the throat that collapsed the neck into a faceted pyramid showing through every open collar: the neck column and its base keep the untucked, smooth shape"""
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
+    P = bd['pos'].copy(); O = orig['pos']; assert len(P) == len(O)
+    w = sm((np.abs(O[:, 1]) - 1.47) / .05) * (1 - sm((np.abs(O[:, 0]) - .075) / .05)); P = P * (1 - w[:, None]) + O * w[:, None]
+    bd = dict(bd); bd['pos'] = P.astype(bd['pos'].dtype); bd['nrm'] = C.wnorm(P, bd['ix'].reshape(-1, 3)).astype(bd['nrm'].dtype); return bd
 
 def snapneck(q, body):
     """the head piece's neck tube must never stand proud of the body's neck: below y 1.615 its half-width is held 3 mm inside the body's own neck (fading out above), so the tube's lower rim is
@@ -97,8 +155,8 @@ def build(key, src, common, wpl, out_root):
     bt = tone[key]; wp = s['wp']; d_tgt = wpl[17] + np.array([0, C.NECK, 0])
     parts = []
     # --- body in this base's skin colour
-    T[900] = Image.new('RGBA', (8, 8), tuple(int(v) for v in bt) + (255,)); body = dict(common['body']); body['srctex'] = 900; parts.append(body)
-    bd = shrink_dressed(common['body_d'], wpl); bd = C.sub(bd, ~(bd['pos'][bd['ix'].reshape(-1, 3)][:, :, 1].max(1) < .98)); bd['srctex'] = 900; bd['mat'] = 'Skin_BodyD'; parts.append(bd)      # every outfit covers the legs completely, so this skin (pressed in under the clothes, used whenever an outfit is worn; the bare body is used with the boxers) starts at the hips and nothing can show through trousers or boots. Same skin, pressed in under the clothes: used whenever an outfit is worn (the bare body is used with the boxers)
+    T[900] = Image.new('RGBA', (8, 8), tuple(int(v) for v in bt) + (255,)); body = dict(common['body']); body['srctex'] = 902; parts.append(body)
+    bd = shrink_dressed(common['body_d'], wpl); bd = C.sub(bd, ~(bd['pos'][bd['ix'].reshape(-1, 3)][:, :, 1].max(1) < .98)); bd['srctex'] = 902; bd['mat'] = 'Skin_BodyD'; parts.append(bd)      # every outfit covers the legs completely, so this skin (pressed in under the clothes, used whenever an outfit is worn; the bare body is used with the boxers) starts at the hips and nothing can show through trousers or boots. Same skin, pressed in under the clothes: used whenever an outfit is worn (the bare body is used with the boxers)
     # --- head piece (native)
     for p in with_tex(s['head'], s['tx'], OFF[key], T):
         q = dict(p); q['pos'] = q['pos'] + (d_tgt - wp[17]); q = snapneck(q, body) if (q['mat'] == 'Skin_Body' and len(q['pos']) < 2000) else q
@@ -136,12 +194,16 @@ def common_parts():
     pr, wpo, tx0 = BB.read_pack(os.path.join(OLD, 'boy'), 'boy')
     lv, wpl, ltx, fu, wpf, ftx = C.donors(); T = {}
     sk = mean_skin(tx0[0]); T[900] = Image.new('RGBA', (8, 8), tuple(int(v) for v in sk) + (255,))
-    body = C.new_body(sk); sc = C.scout(T, body); ca = C.casual(T, body); ar = C.armour(pr, T, body, wpo, wpl)
-    # armour textures live in the boy pack's texture table: pull them in under unique ids
+    body = C.new_body(sk); body_c = C.slim_arms(C.shoulder_slope(body)); body = C.subdivide(body, lambda c: (c[:, 1] > 1.38) & (np.abs(c[:, 0]) < .30)); body = C.subdivide(body, lambda c: (c[:, 1] > 1.46) & (np.abs(c[:, 0]) < .27)); body = C.slim_arms(C.shoulder_slope(body)); body_c = C.subdivide(body_c, lambda c: (c[:, 1] > 1.46) & (np.abs(c[:, 0]) < .20)); body_c = C.slim_arms(C.shoulder_slope(body_c)); sc = C.scout(T, body); ca = C.casual(T, body); ar = C.armour(pr, T, body, wpo, wpl)
+    bdf = shrink_dressed(body, wpl); sc = [C.swap_sleeves(p, body, scale=.90, off=.007, x0=.20, xs=.14, ylow=1.40) if p['mat'] == 'Outfit_Scout_Body' else p for p in sc]; ar = fit_sleeves(ar, bdf)
     for p in ar:
         if p.get('srctex') is not None: T[30000 + p['srctex']] = tx0[p['srctex']]; p['srctex'] = 30000 + p['srctex']
+    ar = ranger_lining(ar, body, T); ar = ranger_sleeves(ar, body, T)
+    # armour textures live in the boy pack's texture table: pull them in under unique ids
     gar = [p for p in sc + ca + ar if p['mat'] in ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_FeetBoots')]
-    body = C.relief(body, amp=float(os.environ.get('RELIEF', '1.8'))); body_d = C.tuck_body(body, gar, depth=.045, inside=.013, passes=2, fade=False); C.reweight(sc + ca + ar, body); bx = C.boxers(body, T)
+    body_pre = C.trapezius(C.relief(body, amp=float(os.environ.get('RELIEF', '2.2')))); body = C.shoulder_anatomy(C.limbs(body_pre));       # the sculpted anatomy is for the bare body; the pressed-in skin under clothes keeps the smooth shape so ridges never poke through cloth
+    body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=.013, passes=2, fade=False); C.reweight(sc + ca + ar, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
+    T[902] = C.skin_atlas(sk); body = C.skin_uv(body); body_d = C.skin_uv(body_d)
     return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar, T=T), wpl
 
 if __name__ == '__main__':

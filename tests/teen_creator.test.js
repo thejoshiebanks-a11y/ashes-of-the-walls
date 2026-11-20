@@ -20,7 +20,7 @@ t('only the casual outfits take dye; armour and uniform never do', () => {
   const a = {}; T.apply(a, { outfit: 2, top: 6 }, 0); assert.strictEqual(a.tintFn('Outfit_Ranger_Body'), null);
   T.apply(a, { outfit: 3, top: 6 }, 0); assert.strictEqual(a.tintFn('Outfit_Scout_Body'), null);
   T.apply(a, { outfit: 1, top: 6 }, 0); assert(a.tintFn('Outfit_Peasant_Body')); T.apply(a, { outfit: 0, pants: 6 }, 0); assert(a.tintFn('Outfit_Under_Bottoms')); });
-t('a dye changes the outfit and never the skin or hair', () => { const a = {}; T.apply(a, { outfit: 0, top: 6, pants: 6, boots: 6, accent: 6 }, 0); assert.strictEqual(a.tintFn('Skin_Body'), null); assert.strictEqual(a.tintFn('Face0_Skin'), null); assert(a.tintFn('Hair_B0')[0] < .2); });
+t('a dye changes the outfit and never the skin or hair', () => { const a = {}; T.apply(a, { outfit: 0, skin: 0, top: 6, pants: 6, boots: 6, accent: 6 }, 0); assert.strictEqual(a.tintFn('Skin_Body'), null); assert.strictEqual(a.tintFn('Face0_Skin'), null); assert(a.tintFn('Hair_B0')[0] < .2); });
 t('ODM gear and armour stay hidden until unlocked, then the creator may show gear', () => {
   assert(hide({ gear: 1 }, 'Gear_ODM')); globalThis.STORY.flag = f => f === 'odm_unlocked'; assert(!hide({ gear: 1 }, 'Gear_ODM')); assert(hide({ gear: 0 }, 'Gear_ODM')); globalThis.STORY.flag = () => 0; });
 t('exactly one outfit, one face and one hair style are visible', () => {
@@ -59,7 +59,7 @@ for (const b of T.BASES) t('pack ' + b.key + ': 24 joints, every outfit/hair set
   for (let i = 0; i < (info.tex || 0); i++) assert(fs.statSync(dir + b.key + '.t' + i + '.webp').size > 20);
   for (const p of meta.prims) { for (const o of p.o) assert(o >= 0 && o < bin.length); const pos = new Float32Array(bin.buffer.slice(bin.byteOffset + p.o[0], bin.byteOffset + p.o[0] + p.n * 12)); for (const v of pos) assert(Number.isFinite(v)); }
   const visTri = (outfit, hair) => meta.prims.filter(p => !p.mat.startsWith('Outfit_') && !p.mat.startsWith('Hair_') && !p.mat.startsWith('Gear_') && !/^Face[1-9]/.test(p.mat) || p.mat.startsWith('Outfit_' + outfit + '_') || p.mat === 'Hair_' + hair).reduce((s, p) => s + p.ni / 3, 0);
-  assert(visTri('Scout', 'B0') < 90000, b.key + ' too heavy: ' + visTri('Scout', 'B0')); assert(fs.statSync(dir + b.key + '.bin').size < 4.2e6); assert(Math.abs(info.bodyHeight - 1.9486) < 0.01);
+  assert(visTri('Scout', 'B0') < 135000, b.key + ' too heavy: ' + visTri('Scout', 'B0')); assert(fs.statSync(dir + b.key + '.bin').size < 5.5e6); assert(Math.abs(info.bodyHeight - 1.9486) < 0.01);
   // slim fit: the village trousers hug the leg (no fat legs) and the thighs leave a visible gap between them
   const ibm = new Float32Array(bin.buffer.slice(bin.byteOffset + meta.ibmOff, bin.byteOffset + meta.ibmOff + 24 * 64)), wp = j => [-ibm[j * 16 + 12], -ibm[j * 16 + 13], -ibm[j * 16 + 14]];
   const legs = meta.prims.find(p => p.mat === 'Outfit_Peasant_Legs'), hip = wp(1), knee = wp(2), V = new Float32Array(bin.buffer.slice(bin.byteOffset + legs.o[0], bin.byteOffset + legs.o[0] + legs.n * 12));

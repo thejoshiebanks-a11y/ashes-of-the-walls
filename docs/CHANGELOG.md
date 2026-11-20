@@ -1,4 +1,28 @@
 # Changelog
+## 0.9.19
+- **No hunchback, broader smooth slope.** A designed neck-to-shoulder envelope (steady drop from the neck base out to the deltoid, no hump at the upper back) is applied to the body and to every outfit; the trapezius is smoother and the neck/shoulder anatomy softer, so the line reads as one broad slope.
+- **Textures.** The body skin now has real baked shading: a gradient atlas with per-vertex cavity/curvature shading and warm blush at knees, elbows, shoulders, knuckles and toes (before it was one flat colour). New default skin tone "Sun" (warm tan, swatch 7 appended, saved looks keep their indices). Carved grooves (spine, sternum, linea alba) are wider so they no longer alias into hairlines on the back.
+- **Neck.** Under clothes the neck column keeps its smooth shape (the "tuck under cloth" no longer collapses it into a faceted pyramid in open collars); dressed skin mesh is subdivided like the bare one.
+- **Ranger outfit rebuilt cleanly:** the spiky, torn donor sleeves, bracers and shoulder piece are replaced by smooth sleeves, leather cuffs and shoulder caps grown from our own arm. **Village clothes:** the waistcoat/shirt no longer swap order (no cream shards through the vest); sleeves clear the shoulder.
+- Pack size ~5.3 MB raw per base (test limit raised to 5.5 MB). Not verified on a phone. Still well below the reference render: faces, hair, boots, cloak, gear and PBR/normal-map materials are unchanged; faint hairline marks remain on the back; cloth has no folds.
+## 0.9.18
+- **Why the neck/shoulders looked like wood:** the body surface there was 13-21 mm per polygon, too coarse for any anatomy to show. The neck/shoulder/upper-chest surface is now subdivided (to ~3-5 mm) without cracks, and the anatomy is sculpted on it: suprasternal notch, clavicles with grooves, sternocleidomastoid cords, trapezius edge, acromion, separated deltoid, legs (quadriceps, kneecap, calves, hamstrings, slim ankles), arms (biceps, triceps, forearm, slim wrist).
+- **Shoulder deformation:** the chest side of the shoulder no longer rides the upper arm (weights fall to 0 by |x|=.115), which removes the folded/torn faces at the front of the shoulder when the arm lowers.
+- Under clothes the pressed-in skin keeps the smooth shape, so the ridges never poke through cloth.
+- Pack size ~+1.5 MB per base (compressed still under the test limit). Not verified on a phone. Faces, hair, boots, gear and PBR materials are unchanged and still well below the reference render.
+## 0.9.17
+- **Slimmer.** Arms drawn in toward their centre line (upper arm 16%, forearm 10%); every sleeve is built from the slimmed arm, so outfits are slim too.
+- **Neck and shoulders.** Trapezius raised and smoothed so the visible neck is shorter and the neck-to-shoulder line is one even slope; relief amplitude 1.8 -> 2.2 for more chest/ab/collarbone detail.
+- All six bases and thumbnails rebuilt. Not verified on a phone. Known: tiny dark slits at the front of the deltoid in some poses; muscle detail still softer than your reference.
+## 0.9.16
+- **Shoulders.** Root cause found: the clips swing the clavicle bones ~25-30 degrees (a shrug), which lifted the deltoid cap off the neck line. The clip's clavicle direction is now damped to 10% (game.js toDirs), and the body no longer binds to the clavicle joints. Neck-to-shoulder is one continuous slope in every pose I rendered.
+- **Sleeves.** Scout jacket and peasant shirt sleeves are rebuilt from the body's own arm surface (same weights, cloth UV, clean cuff ring), so the arm can't poke out of them; the dressed skin shoulder/arm is pulled in. Ranger: sleeves refitted to the arm, dark lining under the tunic.
+- Boxer waistband is charcoal. All six bases and thumbnails rebuilt.
+- Not verified on a phone. Known rough: Ranger tunic/boots geometry (donor mesh) is still crumpled with small gaps; tiny dark slivers at the top of the bare shoulder in some frames; peasant collar/vest edge is ragged.
+## 0.9.15
+- **Shoulders and upper body.** Shoulder-girdle skin weights are smoothed so the deltoid/clavicle no longer splits or balls up when the arm moves; creator thumbnails regenerated (sloped neck-to-shoulder line).
+- **No more bones/skin through outfits.** Peasant shirt sleeves are now grown from the body's own arm surface (the donor's floating double sleeves are removed); arms are no longer tucked/braided under clothing.
+- All six bases rebuilt. Not verified on a phone. Still imperfect: ragged donor collar on the peasant shirt, rough cuff edge, Ranger sleeves not yet refitted.
 ## 0.9.14
 - **Body rebuilt from your reference model, then re-sculpted.** Slim anime body (your reference mesh retargeted to our rig) with sculpted, symmetric anatomy: collarbones, pectorals with a lower edge, sternum groove, six-pack with a centre line, iliac V-lines, obliques, scapulae, spine and lat definition (amplitude `RELIEF`, default 1.8).
 - **Feet, ankles and legs fixed.** The old build pressed the body in under every outfit, which shredded the bare feet and thinned the legs. The bare body is now left exactly as modelled.

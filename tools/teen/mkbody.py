@@ -168,6 +168,14 @@ def body_from_ref(Q,F,jj,ww,wp,Ltip):
     Dm=np.zeros((len(Vk),24))
     for c in range(4):
         for t in range(6): np.add.at(Dm,(np.arange(len(Vk)),jj[ix[:,t],c]),w[:,t]*ww[ix[:,t],c])
+    import scipy.sparse as sps                      # smooth the skin weights over the shoulder girdle (clavicle / deltoid / scapula / trapezius): no sharp weight steps, so no cracks or pinching when the arm swings down
+    E=np.r_[Fk[:,[0,1]],Fk[:,[1,2]],Fk[:,[2,0]]]; E=np.r_[E,E[:,::-1]]; A=sps.coo_matrix((np.ones(len(E)),(E[:,0],E[:,1])),shape=(len(Vk),len(Vk))).tocsr(); A.data[:]=1; Dn=sps.diags(1/np.maximum(np.asarray(A.sum(1)).reshape(-1),1))@A
+    sm_=lambda t:(lambda c:c*c*(3-2*c))(np.clip(t,0,1)); mz=sm_((Vk[:,1]-1.36)/.06)*(1-sm_((np.abs(Vk[:,0])-.30)/.06))*sm_((np.abs(Vk[:,0])-.035)/.04)*(1-sm_((Vk[:,1]-1.60)/.03))
+    for _ in range(int(os.environ.get('WSMOOTH','160'))): Dm=Dm+(.65*mz)[:,None]*(Dn@Dm-Dm)
+    # the chest side of the shoulder must not ride the arm: the upper-arm weight falls to zero by |x| = .115 and reaches full only at the deltoid (|x| .205); the excess goes to the spine
+    tgt=np.clip(np.where(Vk[:,1]>1.0, sm_((np.abs(Vk[:,0])-.115)/.09), 1.0)+ (1-sm_((Vk[:,1]-1.34)/.05)),0,1)
+    for ua in (13,21):
+        cur=Dm[:,ua]; f=np.where(cur>tgt,tgt/np.maximum(cur,1e-9),1.0); Dm[:,11]+=cur*(1-f); Dm[:,ua]=cur*f
     j2=np.argsort(-Dm,axis=1)[:,:4]; w2=np.take_along_axis(Dm,j2,1); w2/=w2.sum(1,keepdims=True)
     M=np.zeros((len(Vk),4,4))
     for k in range(4): M+=w2[:,k,None,None]*Sk[j2[:,k]]
@@ -202,6 +210,7 @@ def make():
     hand=[p for p in lv if 'hands' in p['mat']][0]
     T,Fk,jj,ww=body_from_ref(Q,F,jj,ww,wp,float(np.abs(hand['pos'][:,0]).max()))
     jj,ww=B.smooth_weights(T,Fk,jj,ww,8); jj,ww=knn_smooth(T,jj,ww); jj,ww=shoulder_ramp(T,jj,ww); jj,ww=pit_smooth(T,jj,ww)
+    jj=np.where((jj==12)|(jj==20),11,jj)      # the clavicle joints swing a long way in the clips and tore the shoulder cap off the neck line: the body follows the spine/upper arm only
     T=taubin_ref(T,Fk)
     import compose as C
     body=dict(mat='Skin_Body',pos=T,uv=np.full((len(T),2),.5,np.float32),ix=Fk.reshape(-1),jj=jj,ww=ww,srctex=None); body['nrm']=C.wnorm(T,Fk)

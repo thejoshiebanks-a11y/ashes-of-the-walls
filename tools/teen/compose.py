@@ -1,3 +1,4 @@
+import os
 """Compose one base pack: new anime body (+ this base's own head/face/hair) + real garments (Levi scout kit, Furlan casual, boxers, armour)."""
 import sys, os, pickle, copy
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -83,7 +84,7 @@ def boxer_tex(w=128, h=256):
     a = base[None, None, :] * (1 + (np.sin(x * 2.1) * np.sin(y * 2.1) * .05 + r.randn(h, w) * .02))[..., None]
     v = y / h                                             # last image rows = uv v 1 = the waist
     for flip in (0,):
-        band = (v > .885); a[band] = np.array((96, 84, 70), float) * (1 + (np.sin(x[band] * 1.6) * .10) + r.randn(int(band.sum())) * .02)[:, None]
+        band = (v > .885); a[band] = np.array((78, 78, 86), float) * (1 + (np.sin(x[band] * 1.6) * .10) + r.randn(int(band.sum())) * .02)[:, None]
         a[(v > .878) & (v <= .885)] *= .78                  # band seam
         a[(v < .035)] *= .86                                # hem
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), 'RGB').convert('RGBA')
@@ -132,17 +133,17 @@ def relief(body, amp=1.5):
     # --- front
     pec = _gauss(ax - .052, .042) * _gauss(y - 1.405, .030); d += .0085 * pec * fr
     d -= .0030 * _gauss(y - 1.366, .006) * _gauss(ax - .05, .05) * fr * (ax < .11)                  # lower pectoral edge
-    d -= .0040 * _gauss(ax, .0055) * _ss((y - 1.33) / .03) * (1 - _ss((y - 1.47) / .03)) * fr        # sternum groove
+    d -= .0032 * _gauss(ax, .0095) * _ss((y - 1.33) / .03) * (1 - _ss((y - 1.47) / .03)) * fr        # sternum groove
     d += .0035 * _gauss(y - (1.508 + .12 * (ax - .02)), .009) * _ss((ax - .015) / .02) * (1 - _ss((ax - .11) / .03)) * fr   # collarbones
     for r in range(3):                                                                              # abs: three rows of paired blocks
         yr = 1.150 + .063 * r; d += .0062 * _gauss(ax - .031, .016) * _gauss(y - yr, .0215) * fr
-    d -= .0022 * _gauss(ax, .0045) * _ss((y - 1.10) / .03) * (1 - _ss((y - 1.355) / .02)) * fr     # linea alba
+    d -= .0018 * _gauss(ax, .0085) * _ss((y - 1.10) / .03) * (1 - _ss((y - 1.355) / .02)) * fr     # linea alba
     for r in range(4): d -= .0016 * _gauss(ax - .03, .028) * _gauss(y - (1.1185 + .063 * r), .004) * fr   # tendon grooves
     d += .0045 * _gauss(ax - .092, .016) * _gauss(y - 1.215, .075) * fr * (ax > .05)               # obliques / serratus flank
     d -= .0030 * _gauss(ax - (.045 + (1.115 - y) * 1.1) , .008) * (y < 1.125) * (y > 1.045) * fr    # iliac V-lines
     # --- back
     d += .0050 * _gauss(ax - .060, .038) * _gauss(y - 1.405, .045) * bk                             # scapulae / rhomboids
-    d -= .0040 * _gauss(ax, .006) * _ss((y - 1.08) / .04) * (1 - _ss((y - 1.52) / .03)) * bk        # spine groove
+    d -= .0028 * _gauss(ax, .0115) * _ss((y - 1.08) / .04) * (1 - _ss((y - 1.52) / .03)) * bk        # spine groove (wider than the mesh spacing: a narrower cut aliased into a hairline)
     d += .0040 * _gauss(ax - .085, .030) * _gauss(y - 1.27, .06) * bk                               # lats
     d += .0030 * _gauss(ax - .03, .02) * _gauss(y - 1.12, .035) * bk                                # erector columns
     # --- arms (deltoid cap, biceps / forearm definition), side-agnostic along the limb axis
@@ -201,6 +202,42 @@ def scout(T, body):
     for p, q in zip(tight, fixed): p.update(q)
     return out
 
+def swap_sleeves(p, body, scale=.90, off=.007, x0=.20, xs=.14, ylow=1.40, xend=.585):
+    """replace a donor garment's own sleeves (they float, fold, double up and let the arm show) with smooth sleeves grown from our body's arm surface: same cloth uv, the arm's own weights, a clean cuff ring"""
+    th = lambda y: np.where(y > 1.40, xs, x0)
+    F = p['ix'].reshape(-1, 3); c = p['pos'][F].mean(1); slv = (np.abs(c[:, 0]) > th(c[:, 1])) & (np.abs(c[:, 0]) < .75) & (c[:, 1] > ylow)
+    pure = slv & (np.abs(c[:, 0]) > .30) & (c[:, 1] > 1.43); uvs = np.median(p['uv'][F[pure if pure.sum() > 5 else slv]].reshape(-1, 2), axis=0); top = sub(p, ~slv)
+    BF = body['ix'].reshape(-1, 3); bV = body['pos'][BF]; bc = bV.mean(1); am = (np.abs(bc[:, 0]) > th(bc[:, 1])) & (np.abs(bV[:, :, 0]).max(1) < xend) & (bc[:, 1] > 1.2) & (bc[:, 1] < 1.65)
+    arm = sub(body, am, p['mat']); AP = arm['pos'].copy(); lim = np.abs(AP[:, 0]) > x0
+    for sg in (-1, 1):
+        for a in np.arange(x0, .60, .025):
+            mk = lim & (np.sign(AP[:, 0]) == sg) & (np.abs(AP[:, 0]) >= a) & (np.abs(AP[:, 0]) < a + .025)
+            if mk.sum() > 3: cc = AP[mk][:, 1:].mean(0); AP[mk, 1:] = cc + (AP[mk][:, 1:] - cc) * (1 - (1 - scale) * (lambda t: t * t * (3 - 2 * t))(min(max((a - .20) / .12, 0), 1)))
+    arm['pos'] = AP + arm['nrm'] * (off + .006 * (1 - np.clip((np.abs(AP[:, 0]) - .14) / .15, 0, 1)))[:, None]; arm['uv'] = np.tile(uvs, (len(AP), 1)).astype(arm['uv'].dtype)
+    cl = np.abs(arm['pos'][:, 0]) > xend - .04; arm['pos'][cl, 0] = np.sign(arm['pos'][cl, 0]) * (xend - .04)      # every rim vertex lands on one plane: a clean cuff ring
+    n0 = len(top['pos'])
+    for k in ('pos', 'nrm', 'uv', 'jj', 'ww'): top[k] = np.concatenate([top[k], arm[k]])
+    top['ix'] = np.concatenate([top['ix'], arm['ix'] + n0]).astype(top['ix'].dtype); top['nrm'] = wnorm(top['pos'], top['ix'].reshape(-1, 3)).astype(top['nrm'].dtype)
+    for k in ('tex', 'srctex'):
+        if k in p: top[k] = p[k]
+    return top
+
+def arm_tube(body, uvs, tpl, xa, xb, scale=.90, off=.007, x0=.20):
+    """a smooth sleeve / cuff grown from our own arm surface between |x|=xa..xb (same method as swap_sleeves); cloth uv fixed to one swatch, template prim tpl supplies mat and textures"""
+    BF = body['ix'].reshape(-1, 3); bV = body['pos'][BF]; bc = bV.mean(1)
+    am = (np.abs(bc[:, 0]) > xa) & (np.abs(bV[:, :, 0]).max(1) < xb) & (bc[:, 1] > 1.2) & (bc[:, 1] < 1.65)
+    arm = sub(body, am, tpl['mat']); AP = arm['pos'].copy()
+    for sg in (-1, 1):
+        for a in np.arange(xa, xb, .025):
+            mk = (np.sign(AP[:, 0]) == sg) & (np.abs(AP[:, 0]) >= a) & (np.abs(AP[:, 0]) < a + .025)
+            if mk.sum() > 3: cc = AP[mk][:, 1:].mean(0); AP[mk, 1:] = cc + (AP[mk][:, 1:] - cc) * (1 - (1 - scale) * (lambda t: t * t * (3 - 2 * t))(min(max((a - x0) / .12, 0), 1)))
+    arm['pos'] = AP + arm['nrm'] * (off + .006 * (1 - np.clip((np.abs(AP[:, 0]) - .14) / .15, 0, 1)))[:, None]; arm['uv'] = np.tile(uvs, (len(AP), 1)).astype(arm['uv'].dtype)
+    cl = np.abs(arm['pos'][:, 0]) > xb - .04; arm['pos'][cl, 0] = np.sign(arm['pos'][cl, 0]) * (xb - .04)
+    arm['nrm'] = wnorm(arm['pos'], arm['ix'].reshape(-1, 3)).astype(arm['nrm'].dtype)
+    for k in ('tex', 'srctex'):
+        if k in tpl: arm[k] = tpl[k]
+    return arm
+
 def casual(T, body):
     lv, wpl, ltx, fu, wpf, ftx = donors(); fu = retex(copy.deepcopy(fu), T, 'F', ftx); out = []
     fu = shift_by_joints([p for p in fu if 'face' not in p['mat'] and 'hair' not in p['mat']], wpf, wpl)
@@ -208,11 +245,164 @@ def casual(T, body):
     for p in fu:
         c = centroid(p)
         if p['pos'].shape[0] == 3080:     # vest + shirt + breeches in one mesh: split so top and trousers dye separately
-            out.append(sub(p, c[:, 1] >= 1.075, 'Outfit_Peasant_Body')); out.append(sub(p, c[:, 1] < 1.075, 'Outfit_Peasant_Legs'))
+            top = swap_sleeves(sub(p, c[:, 1] >= 1.075, 'Outfit_Peasant_Body'), body, scale=.80, off=.012, x0=.17, xs=.12, ylow=1.2)
+            out.append(top); out.append(sub(p, c[:, 1] < 1.075, 'Outfit_Peasant_Legs'))
         elif p['pos'].shape[0] == 980: q = dict(p); q['mat'] = 'Outfit_Peasant_Feet'; out.append(q)
-    tight = [p for p in out]; fixed = BB.inflate(tight, body, margin=.014, reach=.14)
+    tight = [p for p in out if p['mat'] != 'Outfit_Peasant_Body']; fixed = BB.inflate(tight, body, margin=.014, reach=.14)      # the waistcoat and shirt are interleaved layers: pushing them out of the body one by one swapped their order (jagged shirt shards through the vest), so the top keeps the donor's own layering
     for p, q in zip(tight, fixed): p.update(q)
     return out
+
+def limbs(body, amp=1.0):
+    """legs, arms and neck anatomy (reference: lean athletic anime build): quadriceps with the vastus sweep, kneecap, calf bellies, tapered ankles, shin crest, hamstrings,
+    biceps/triceps, forearm bulge to a slim wrist, sternocleidomastoid cords and stronger collarbones; displacement along the normal"""
+    P = body['pos']; N = body['nrm']; x = P[:, 0]; y = P[:, 1]; z = P[:, 2]; ax = np.abs(x); fr = np.clip((N[:, 2] + .1) / .6, 0, 1); bk = np.clip((-N[:, 2] + .1) / .6, 0, 1)
+    d = np.zeros(len(P)); leg = (y < 1.0) & (ax > .015)
+    lx = ax - .085                                                                                       # leg axis
+    d += .0075 * _gauss(y - .80, .085) * _gauss(lx + .004, .045) * fr * leg                              # quadriceps (rectus)
+    d += .0040 * _gauss(y - .72, .10) * _gauss(lx - .040, .022) * leg * np.clip(N[:, 0] * np.sign(x) * 2, 0, 1)   # vastus lateralis sweep
+    d += .0030 * _gauss(y - .66, .035) * _gauss(lx + .035, .018) * fr * leg                              # vastus medialis teardrop
+    d += .0050 * _gauss(y - .50, .022) * _gauss(lx, .022) * fr * leg                                     # kneecap
+    d -= .0030 * _gauss(y - .445, .016) * fr * leg                                                        # groove below the knee
+    d += .0100 * _gauss(y - .375, .055) * _gauss(lx - .004, .040) * bk * leg                             # calf belly
+    d += .0040 * _gauss(y - .33, .06) * _gauss(lx - .02, .02) * leg * np.clip(N[:, 0] * np.sign(x) * 2, 0, 1)    # outer gastrocnemius
+    d += .0028 * _gauss(y - .30, .09) * _gauss(lx + .002, .014) * fr * leg                               # shin crest
+    d += .0040 * _gauss(y - .80, .09) * _gauss(lx, .040) * bk * leg                                      # hamstrings
+    d -= .0045 * _gauss(y - .095, .040) * leg                                                             # slim ankle
+    d += .0030 * _gauss(y - .98, .03) * _gauss(lx, .05) * bk * leg                                       # glute fold
+    arm = (ax > .20) & (ax < .64) & (y > 1.35) & (y < 1.62); ut = np.clip(N[:, 1] * 2 + .3, 0, 1)
+    d += .0055 * _gauss(ax - .31, .050) * arm * np.clip(N[:, 1] * 1.5 + N[:, 2] * 1.0, 0, 1)              # biceps
+    d += .0045 * _gauss(ax - .31, .055) * arm * np.clip(-N[:, 1] * 1.5 - N[:, 2] * .8, 0, 1)              # triceps
+    d += .0050 * _gauss(ax - .445, .045) * arm                                                            # forearm bulge
+    d -= .0050 * _ss((ax - .50) / .06) * (1 - _ss((ax - .64) / .05)) * arm                                # slim wrist
+    d -= .0030 * _gauss(ax - .385, .014) * arm                                                            # elbow crease
+    nk = (ax < .09) & (y > 1.50) & (y < 1.60); sc = _gauss(ax - (.018 + (y - 1.52) * .62), .008) * _ss((y - 1.515) / .02) * (1 - _ss((y - 1.585) / .015))
+    d += .0020 * sc * fr * nk                                                                              # sternocleidomastoid cords (front V)
+    d += .0008 * _gauss(y - (1.508 + .12 * (ax - .02)), .010) * _ss((ax - .015) / .02) * (1 - _ss((ax - .12) / .03)) * fr   # collarbones, stronger
+    out = dict(body); out['pos'] = P + N * (d * amp)[:, None]; out['nrm'] = wnorm(out['pos'], body['ix'].reshape(-1, 3)); return out
+
+def subdivide(p, region):
+    """conforming midpoint subdivision of the faces picked by region(face centroids): the shoulder/neck/chest surface was 13-21 mm per edge, too coarse for anatomy to read; split edges are shared with the neighbours, so there are no cracks"""
+    F = p['ix'].reshape(-1, 3).astype(np.int64); P = p['pos']; n = len(P); sel = region(P[F].mean(1))
+    E = np.stack([np.minimum(F[:, [0, 1, 2]], F[:, [1, 2, 0]]), np.maximum(F[:, [0, 1, 2]], F[:, [1, 2, 0]])], -1).reshape(-1, 2)
+    key = E[:, 0] * n + E[:, 1]; uk, inv = np.unique(key, return_inverse=True)
+    _, wid = np.unique(np.round(P, 5), axis=0, return_inverse=True); wid = wid.reshape(-1); WE = np.sort(wid[E], 1); wk = WE[:, 0] * n + WE[:, 1]; uw, iw = np.unique(wk, return_inverse=True)
+    fw = np.zeros(len(uw), bool); fw[iw[np.repeat(sel, 3)]] = True; flag = np.zeros(len(uk), bool); flag[inv[fw[iw]]] = True       # the flag is shared across uv/normal seams (duplicate vertices), so no cracks open there
+    ua, ub = uk // n, uk % n; mid = np.where(flag, n + np.cumsum(flag) - 1, -1)
+    sp = flag.reshape(-1)[inv].reshape(-1, 3); m = mid[inv].reshape(-1, 3)
+    A, B = ua[flag], ub[flag]; q = dict(p)
+    q['pos'] = np.concatenate([P, (P[A] + P[B]) / 2]); q['uv'] = np.concatenate([p['uv'], (p['uv'][A] + p['uv'][B]) / 2]).astype(p['uv'].dtype)
+    nn = p['nrm'][A] + p['nrm'][B]; q['nrm'] = np.concatenate([p['nrm'], nn / np.maximum(np.linalg.norm(nn, axis=1, keepdims=True), 1e-9)]).astype(p['nrm'].dtype)
+    jj = np.zeros((len(A), 4), p['jj'].dtype); ww = np.zeros((len(A), 4), p['ww'].dtype)
+    for i in range(len(A)):
+        d = {}
+        for k in range(4):
+            d[int(p['jj'][A[i], k])] = d.get(int(p['jj'][A[i], k]), 0) + float(p['ww'][A[i], k]) / 2; d[int(p['jj'][B[i], k])] = d.get(int(p['jj'][B[i], k]), 0) + float(p['ww'][B[i], k]) / 2
+        it = sorted(d.items(), key=lambda t: -t[1])[:4]; s = sum(v for _, v in it) or 1
+        for k, (j, v) in enumerate(it): jj[i, k] = j; ww[i, k] = v / s
+    q['jj'] = np.concatenate([p['jj'], jj]); q['ww'] = np.concatenate([p['ww'], ww])
+    v0, v1, v2 = F[:, 0], F[:, 1], F[:, 2]; m0, m1, m2 = m[:, 0], m[:, 1], m[:, 2]; s0, s1, s2 = sp[:, 0], sp[:, 1], sp[:, 2]; cnt = sp.sum(1); out = [F[cnt == 0]]
+    def add(mask, a, b, c): 
+        if mask.any(): out.append(np.stack([a[mask], b[mask], c[mask]], 1))
+    k = cnt == 3; add(k, v0, m0, m2); add(k, m0, v1, m1); add(k, m2, m1, v2); add(k, m0, m1, m2)
+    k = (cnt == 1) & s0; add(k, v0, m0, v2); add(k, m0, v1, v2)
+    k = (cnt == 1) & s1; add(k, v1, m1, v0); add(k, m1, v2, v0)
+    k = (cnt == 1) & s2; add(k, v2, m2, v1); add(k, m2, v0, v1)
+    k = (cnt == 2) & s0 & s1; add(k, m0, v1, m1); add(k, v0, m0, m1); add(k, v0, m1, v2)
+    k = (cnt == 2) & s1 & s2; add(k, m1, v2, m2); add(k, v0, v1, m1); add(k, v0, m1, m2)
+    k = (cnt == 2) & s2 & s0; add(k, m2, v0, m0); add(k, m0, v1, v2); add(k, m0, v2, m2)
+    q['ix'] = np.concatenate(out).reshape(-1).astype(p['ix'].dtype); q['nrm'] = wnorm(q['pos'], q['ix'].reshape(-1, 3)).astype(p['nrm'].dtype); return q
+
+def shoulder_anatomy(body, amp=.8):
+    """neck-shoulder-chest structure after the reference: suprasternal notch, clavicles with their grooves, sternocleidomastoid cords, trapezius edge, acromion, separated deltoid with the delto-pectoral groove"""
+    P = body['pos']; N = body['nrm']; x = P[:, 0]; y = P[:, 1]; ax = np.abs(x); sg = np.sign(x)
+    fr = np.clip((N[:, 2] + .05) / .45, 0, 1); bk = np.clip((-N[:, 2] + .05) / .45, 0, 1); up = np.clip(N[:, 1] * 2.2, 0, 1); d = np.zeros(len(P))
+    d -= .0075 * _gauss(ax, .013) * _gauss(y - 1.512, .011) * fr                                                         # suprasternal notch
+    yc = 1.512 + .10 * ax; cl = _ss((ax - .014) / .012) * (1 - _ss((ax - .165) / .02))
+    d += .0022 * _gauss(y - yc, .0105) * cl * (fr + up * .4); d -= .0016 * _gauss(y - (yc - .019), .011) * cl * fr; d -= .0012 * _gauss(y - (yc + .021), .012) * cl * (fr + up * .5)   # clavicle + grooves
+    xc = .020 + (y - 1.522) * .33; sm_ = _ss((y - 1.516) / .012) * (1 - _ss((y - 1.583) / .014))
+    d += .0042 * _gauss(ax - xc, .0085) * sm_ * fr; d -= .0016 * _gauss(ax - xc - .019, .008) * sm_ * fr; d -= .0016 * _gauss(ax, .009) * sm_ * fr               # sternocleidomastoid cords + throat
+    yt = 1.596 - .34 * (ax - .05); d += .0018 * _gauss(y - yt, .014) * _ss((ax - .05) / .02) * (1 - _ss((ax - .17) / .02)) * np.clip(up + bk * .5, 0, 1)            # trapezius edge
+    d += .0090 * _gauss(ax - .225, .055) * _gauss(y - 1.505, .040) * (1 - bk * .4) * (N[:, 1] * 0 + 1)                    # deltoid mass
+    d -= .0016 * _gauss(ax - .158, .014) * _ss((y - 1.43) / .02) * (1 - _ss((y - 1.53) / .02)) * fr                      # delto-pectoral groove
+    d += .0018 * _gauss(ax - .182, .014) * _gauss(y - 1.557, .012) * up                                                  # acromion
+    d += .0015 * _gauss(ax - .06, .035) * _gauss(y - 1.43, .035) * bk                                                     # upper-back trapezius / rhomboid plate
+    out = dict(body); out['pos'] = P + N * (d * amp)[:, None]; out['nrm'] = wnorm(out['pos'], body['ix'].reshape(-1, 3)); return out
+
+def skin_uv(body):
+    """bake form shading into the skin: the body has no unwrap, so each vertex points at a column of a small gradient atlas (u = cavity/curvature occlusion, v = blush) - cavities (armpits, groin, between ribs, collar hollows, finger gaps) go warm and deep,
+    ridges catch light, elbows/knees/knuckles/fingertips/nipples/shoulders blush. Weld-aware, so UV seams cannot show."""
+    import scipy.sparse as sps
+    P = body['pos'].astype(np.float64); N = body['nrm'].astype(np.float64); F = body['ix'].reshape(-1, 3); n = len(P)
+    _, wid = np.unique(np.round(P, 5), axis=0, return_inverse=True); wid = wid.reshape(-1); nw = wid.max() + 1
+    E = np.r_[F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]]; E = wid[E]; E = E[E[:, 0] != E[:, 1]]; E = np.r_[E, E[:, ::-1]]
+    A = sps.coo_matrix((np.ones(len(E)), (E[:, 0], E[:, 1])), shape=(nw, nw)).tocsr(); A.data[:] = 1; Dn = sps.diags(1 / np.maximum(np.asarray(A.sum(1)).reshape(-1), 1)) @ A
+    cnt = np.bincount(wid, minlength=nw)[:, None]; Pw = np.zeros((nw, 3)); np.add.at(Pw, wid, P); Pw /= cnt; Nw = np.zeros((nw, 3)); np.add.at(Nw, wid, N); Nw /= np.maximum(np.linalg.norm(Nw, axis=1, keepdims=True), 1e-9)
+    L = Dn @ Pw - Pw; h = np.asarray(np.sqrt(((Dn @ Pw - Pw) ** 2).sum(1))).reshape(-1) + 1e-6; h2 = np.asarray(Dn @ h).reshape(-1) ** 2 + 1e-8
+    cf = (L * Nw).sum(1) / h2
+    for _ in range(5): cf = Dn @ cf                                                                       # fine curvature (positive = concave)
+    Ps = Pw.copy()
+    for _ in range(18): Ps = Ps + .6 * (Dn @ Ps - Ps)
+    occ = ((Ps - Pw) * Nw).sum(1)                                                                                        # broad cavity depth (metres)
+    u = .62 - .07 * np.tanh(cf * .8) - .28 * np.clip(occ / .016, -.2, 1.0); u = np.clip(u, .06, .94)
+    x = Pw[:, 0]; y = Pw[:, 1]; z = Pw[:, 2]; ax = np.abs(x); fr = np.clip((Nw[:, 2] + .2) / .6, 0, 1); g = lambda a, s: np.exp(-.5 * (a / s) ** 2)
+    b = .45 * g(y - .50, .045) * g(ax - .085, .06) * fr + .55 * g(ax - .385, .035) * (y > 1.3) + .35 * g(ax - .21, .04) * g(y - 1.53, .04)       # knees, elbows, shoulders
+    b += .7 * np.clip((ax - .66) / .09, 0, 1) * (y > 1.2) + .6 * g(ax - .078, .016) * g(y - 1.395, .016) * fr + .5 * np.clip((.05 - y) / .04, 0, 1) * (y < .08)   # fingers, nipples, toes
+    b = np.clip(b, 0, 1)
+    out = dict(body); out['uv'] = np.stack([.03 + .94 * u[wid], .03 + .94 * b[wid]], 1).astype(body['uv'].dtype)
+    # the carved grooves (spine, scapula edge) are narrower than the mesh: their sliver faces caught the light as hairlines. Normals are relaxed over the welded surface so the shading stays continuous
+    P = out['pos'].astype(float); F = out['ix'].reshape(-1, 3); k = np.round(P * 2e4).astype(np.int64); _, inv = np.unique(k, axis=0, return_inverse=True); inv = inv.ravel(); m = inv.max() + 1
+    Fv = inv[F]; ea = np.r_[Fv[:, 0], Fv[:, 1], Fv[:, 2], Fv[:, 1], Fv[:, 2], Fv[:, 0]]; eb = np.r_[Fv[:, 1], Fv[:, 2], Fv[:, 0], Fv[:, 0], Fv[:, 1], Fv[:, 2]]
+    N = np.zeros((m, 3)); np.add.at(N, inv, out['nrm'].astype(float)); N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-9); cn = np.maximum(np.bincount(ea, minlength=m), 1)[:, None]
+    for _ in range(4):
+        S2 = np.zeros((m, 3)); np.add.at(S2, ea, N[eb]); N = .4 * N + .6 * S2 / cn; N /= np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-9)
+    out['nrm'] = N[inv].astype(body['nrm'].dtype)
+    first = np.full(m, -1, np.int64); first[inv[::-1]] = np.arange(len(inv))[::-1]; src = first[inv]          # vertices doubled on the seam had different bone weights and tore apart as soon as the body moved: they now share their first twin's weights
+    out['jj'] = out['jj'][src]; out['ww'] = out['ww'][src]; return out
+
+def skin_atlas(c0, w=128, h=64):
+    c0 = np.array(c0, float)[:3]; u = np.linspace(0, 1, w)[None, :, None]; v = np.linspace(0, 1, h)[:, None, None]
+    dark = c0 * np.array([.86, .72, .68]); light = np.minimum(255, c0 * np.array([1.02, 1.04, 1.05])); rosy = np.array([1.0, .86, .84])
+    col = np.where(u < .5, dark + (c0 - dark) * (u / .5), c0 + (light - c0) * ((u - .5) / .5)); col = col * (1 + (rosy - 1) * v)
+    return Image.fromarray(np.clip(col, 0, 255).astype(np.uint8), 'RGB').convert('RGBA')
+
+def slim_arms(body, upper=.84, fore=.90, x0=.19):
+    """slimmer arms: each arm cross-section is drawn in toward its own centre line (the shoulder cap and the hand are left alone)"""
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
+    P = body['pos'].copy(); ax = np.abs(P[:, 0]); out = dict(body)
+    for sg in (-1, 1):
+        for a in np.arange(x0 - .02, .72, .02):
+            mk = (np.sign(P[:, 0]) == sg) & (ax >= a) & (ax < a + .02) & (P[:, 1] > 1.3)
+            if mk.sum() < 4: continue
+            k = (upper + (fore - upper) * sm((a - .35) / .2)); k = 1 - (1 - k) * sm((a - x0) / .08) * (1 - sm((a - .58) / .1))
+            cc = P[mk][:, 1:].mean(0); P[mk, 1:] = cc + (P[mk][:, 1:] - cc) * k
+    out['pos'] = P; out['nrm'] = wnorm(P, body['ix'].reshape(-1, 3)); return out
+
+def shoulder_slope(body):
+    """one long, even slope from the side of the neck to the acromion (the reference): the old surface climbed to a trapezius mound and then dropped off a cliff to a flat shelf at the arm, which read as a hunch.
+    The top envelope is measured on the mesh itself and the shoulder girdle is lifted to a designed profile; the neck column and the arm are untouched."""
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
+    P = body['pos'].copy(); ax = np.abs(P[:, 0]); y = P[:, 1]
+    tx = np.array([.05, .08, .10, .12, .14, .16, .18, .20, .22, .26, .30, .34, .40]); ty = np.array([1.606, 1.592, 1.583, 1.574, 1.566, 1.559, 1.553, 1.548, 1.543, 1.534, 1.526, 1.520, 1.518])
+    bins = np.arange(0, .46, .015); env = np.zeros(len(bins) - 1)
+    for i in range(len(env)):
+        k = (ax >= bins[i]) & (ax < bins[i + 1]) & (y > 1.45) & (P[:, 2] > -.25); env[i] = P[k][:, 1].max() if k.any() else 9
+    mid = (bins[:-1] + bins[1:]) / 2; lift = np.clip(np.interp(mid, tx, ty) - env, 0, .05) * (mid > .075) * (mid < .40)
+    for _ in range(3): lift[1:-1] = (lift[:-2] + 2 * lift[1:-1] + lift[2:]) / 4
+    dy = np.interp(ax, mid, lift) * sm((y - 1.44) / .07) * (1 - sm((ax - .36) / .06)) * sm((ax - .07) / .03)
+    P[:, 1] += dy; out = dict(body); out['pos'] = P; out['nrm'] = wnorm(P, body['ix'].reshape(-1, 3)); return out
+
+def trapezius(body, rise=.004):
+    """the trapezius climbs to the base of the neck (reference: neck short, shoulder line a steep, even slope), shoulders rounded and evenly widened"""
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1))
+    P = body['pos'].copy(); ax = np.abs(P[:, 0]); y = P[:, 1]
+    g = np.exp(-.5 * ((ax - .115) / .055) ** 2) * sm((y - 1.50) / .05) * (1 - sm((y - 1.60) / .03)) * (1 - sm((ax - .17) / .06))
+    P[:, 1] += rise * g
+    import scipy.sparse as sps
+    F = body['ix'].reshape(-1, 3); E = np.r_[F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]]; E = np.r_[E, E[:, ::-1]]; n = len(P)
+    A = sps.coo_matrix((np.ones(len(E)), (E[:, 0], E[:, 1])), shape=(n, n)).tocsr(); A.data[:] = 1; Dn = sps.diags(1 / np.maximum(np.asarray(A.sum(1)).reshape(-1), 1)) @ A
+    wm = .6 * sm((y - 1.44) / .04) * (1 - sm((ax - .24) / .05)) * (1 - sm((y - 1.575) / .02) * (ax < .075))      # smooth the shoulder girdle; the neck column itself is left exactly as it was
+    for _ in range(10): P = P + wm[:, None] * (Dn @ P - P)
+    out = dict(body); out['pos'] = P; out['nrm'] = wnorm(P, body['ix'].reshape(-1, 3)); return out
 
 def tuck_body(body, garments, depth=.030, near=.05, inside=.005, passes=2, fade=True):
     """wherever the body surface pokes through (or sits closer than `inside` to) a garment surface, press it inward along its normal"""
@@ -224,7 +414,7 @@ def tuck_body(body, garments, depth=.030, near=.05, inside=.005, passes=2, fade=
     F = body['ix'].reshape(-1, 3); n = len(P); a = np.r_[F[:, 0], F[:, 1], F[:, 2], F[:, 1], F[:, 2], F[:, 0]]; b = np.r_[F[:, 1], F[:, 2], F[:, 0], F[:, 0], F[:, 1], F[:, 2]]; cnt = np.maximum(np.bincount(a, minlength=n), 1)
     for _ in range(10):
         acc = np.zeros(n); np.add.at(acc, a, push[b]); push = np.maximum(.4 * push + .6 * acc / cnt, 0) * 1.0 if False else (.4 * push + .6 * acc / cnt)
-    push = np.minimum(push, depth) * (np.clip((P[:, 1] - .24) / .14, 0, 1) if fade else 1)          # never below the ankle: bare feet and ankles stay exactly as modelled
+    push = np.minimum(push, depth) * (np.clip((P[:, 1] - .24) / .14, 0, 1) if fade else 1) * (1 - np.clip((np.abs(P[:, 0]) - .17) / .04, 0, 1) * np.clip((P[:, 1] - 1.25) / .05, 0, 1))      # arms are not tucked (only shrunk afterwards): no braided arm          # never below the ankle: bare feet and ankles stay exactly as modelled
     out = dict(body); out['pos'] = P - body['nrm'] * push[:, None]; out['nrm'] = wnorm(out['pos'], body['ix'].reshape(-1, 3)); return out
 
 def inflate_garments(garments, body, margin=.0035, near=.06):

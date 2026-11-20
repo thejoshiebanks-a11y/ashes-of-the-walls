@@ -36,13 +36,13 @@
   T.FACES = ['Calm', 'Fierce', 'Gentle', 'Bright', 'Sly', 'Soft'].map((n, i) => ({ id: 'Face' + i, name: n }));
   T.HAIRCOL = [C('Black', 24, 21, 22), C('Dark brown', 58, 42, 32), C('Brown', 92, 66, 48), C('Chestnut', 116, 80, 56), C('Auburn', 128, 64, 46), C('Ginger', 168, 94, 52), C('Blond', 200, 170, 112), C('Ash blond', 180, 166, 138), C('Silver', 190, 192, 204), C('Crimson', 150, 30, 40), C('Midnight', 30, 38, 84), { name: 'Original', c: null, css: 'linear-gradient(135deg,#c93030 33%,#3a3a3a 33% 66%,#4ec9a0 66%)' }];   // 'Original' keeps the colour the model was painted with
   T.EYES = [C('Black', 22, 18, 18), C('Dark brown', 82, 50, 30), C('Hazel', 132, 102, 42), C('Green', 62, 138, 82), C('Blue', 72, 112, 188), C('Grey', 134, 142, 154), C('Amber', 198, 140, 42)];
-  T.SKIN = [C('Natural', 255, 255, 255), C('Warm', 250, 232, 214), C('Olive', 224, 205, 176), C('Tan', 200, 178, 152), C('Golden', 176, 150, 122), C('Brown', 150, 126, 108), C('Deep', 106, 90, 80)];   // multipliers on the teen's own skin, kept close to neutral so the hue stays natural
+  T.SKIN = [C('Natural', 255, 255, 255), C('Warm', 250, 232, 214), C('Olive', 224, 205, 176), C('Tan', 200, 178, 152), C('Golden', 176, 150, 122), C('Brown', 150, 126, 108), C('Deep', 106, 90, 80), C('Sun', 238, 203, 176)];   // multipliers on the teen's own skin, kept close to neutral so the hue stays natural
   T.DYE = [{ name: 'Original', c: null, css: 'linear-gradient(135deg,#8d7a5a 50%,#4b3f2c 50%)' }, C('Cream', 232, 220, 190), C('Brown', 118, 82, 52), C('Charcoal', 64, 64, 70), C('Forest', 52, 98, 58), C('Navy', 48, 66, 130), C('Crimson', 160, 40, 44), C('Ochre', 200, 150, 50), C('Plum', 110, 56, 120), C('Slate', 100, 116, 130), C('Bone', 240, 236, 226)];
   T.BODYTYPES = [{ name: 'Slight', h: .35, b: .2 }, { name: 'Average', h: .5, b: .5 }, { name: 'Sturdy', h: .46, b: .85 }, { name: 'Tall', h: .85, b: .4 }];
   T.VOICES = [{ id: 'gentle', name: 'Gentle' }, { id: 'steady', name: 'Steady' }, { id: 'bold', name: 'Bold' }, { id: 'sharp', name: 'Sharp' }];
   T.CRESTS = ['tower', 'flame', 'key', 'rose', 'anvil', 'feather'];
   T.CRESTNAMES = ['The Wall', 'The Ember', 'The Key', 'The Rose', 'The Anvil', 'The Feather'];
-  T.DEF = { v: 3, base: 0, face: 0, outfit: 0, hair: 0, hairCol: 0, shade: .5, eyes: 0, skin: 0, top: 0, pants: 0, boots: 0, accent: 0, gear: 0, cloak: 1, crest: 0, showCrest: 1, height: .5, build: .5, head: .5, bodyType: 1 };
+  T.DEF = { v: 3, base: 0, face: 0, outfit: 0, hair: 0, hairCol: 0, shade: .5, eyes: 0, skin: 7, top: 0, pants: 0, boots: 0, accent: 0, gear: 0, cloak: 1, crest: 0, showCrest: 1, height: .5, build: .5, head: .5, bodyType: 1 };
 
   /* ---------- sizes ---------- */
   const DOOR_OVER_LEVI = 0.70, DOOR_DIVISOR = 2;           // the player is (door height / 2). The door is read from the reference screenshot (~0.70 x Levi).
@@ -132,7 +132,7 @@
 
   /* ---------- variation ---------- */
   T.rng = seed => { let x = (seed == null ? Math.random() * 4294967296 : seed) >>> 0; return () => { x = (x + 0x6D2B79F5) >>> 0; let t = x; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
-  const WCOL = [24, 22, 18, 10, 8, 8, 6, 4, 3, 3, 3, 8], WEYE = [14, 28, 18, 10, 14, 10, 6], WSKIN = [10, 18, 22, 18, 14, 10, 8];
+  const WCOL = [24, 22, 18, 10, 8, 8, 6, 4, 3, 3, 3, 8], WEYE = [14, 28, 18, 10, 14, 10, 6], WSKIN = [10, 18, 22, 18, 14, 10, 8, 20];
   const wpick = (w, r) => { const tot = w.reduce((s, x) => s + x, 0); let q = r() * tot; for (let i = 0; i < w.length; i++) { q -= w[i]; if (q < 0) return i; } return w.length - 1; };
   T.random = function (seed) {
     const r = T.rng(seed), n = (m) => Math.floor(r() * m), L = Object.assign({}, T.DEF);

@@ -17,22 +17,22 @@
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t, ease = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
   const easeOut = x => 1 - Math.pow(1 - clamp(x, 0, 1), 3), fract = x => x - Math.floor(x);
   /* the timeline, seconds */
-  const TM = { flick1: 1.1, flick2: 2.4, call: 3.3, strike: 4.7, fallLen: 2.0, land: 6.7, jdEnd: 8.14, standEnd: 11.51, flash2: 12.55, walk: 11.95, walkLen: 3.3, close: 15.25, ui: 15.7, end: 16.6 };
+  const TM = { flick1: 0.9, flick2: 1.9, call: 2.5, strike: 3.3, fallLen: 0.5, land: 3.8, jdEnd: 4.7, standEnd: 7.4, flash2: 6.9, walk: 7.9, walkLen: 3.2, close: 10.6, ui: 8.6, end: 11.9 };
   TM.stand = TM.jdEnd; K.TM = TM;
   /* camera keyframes. dist and h are in 'hs' units (1 hs = 1/1.649 of the character's height, the creator's own unit); az is added to the stage yaw */
-  const KF = [                                                                                  // a slow crane up into the storm (the lens looks up through the clouds), tips down with the single bolt and follows him to the ground, then a slow push-in for the reveal and a pull back to the studio framing
+  const KF = [                                                                                  // a slow crane up into the storm (the lens looks up through the clouds), then a hard whip down with the single bolt: the lens drops with him and slams in on the impact, settles low for the slow stand, pushes in for the reveal and pulls back to the studio framing
     { t: 0.00, dist: 20, h: 6,  el: -0.50, fov: 0.92, az: 0.35 },
-    { t: 2.00, dist: 20, h: 12, el: -0.66, fov: 0.90, az: 0.35 },
-    { t: 4.20, dist: 20, h: 20, el: -0.84, fov: 0.90, az: 0.35 },
-    { t: 4.70, dist: 20, h: 22, el: -0.84, fov: 0.90, az: 0.35 },
-    { t: 5.70, dist: 18, h: 7,  el: -0.30, fov: 0.86, az: 0.35 },
-    { t: 6.70, dist: 12, h: 1.5, el: -0.05, fov: 0.78, az: 0.33 },
-    { t: 7.40, dist: 9.6, h: 1.05, el: -0.07, fov: 0.74, az: 0.30 },
-    { t: 9.20, dist: 8.8, h: 1.0, el: -0.07, fov: 0.72, az: 0.30 },
-    { t: 11.5, dist: 8.4, h: 1.05, el: -0.04, fov: 0.72, az: 0.30 },
-    { t: 13.2, dist: 7.0, h: 1.1, el: -0.03, fov: 0.70, az: 0.30 },
-    { t: 14.6, dist: 4.7, h: 1.3, el: -0.02, fov: 0.58, az: 0.28 },
-    { t: 16.6, dist: 3.3, h: 1.2, el: -0.03, fov: 0.80, az: 0.26 }];
+    { t: 1.60, dist: 20, h: 12, el: -0.66, fov: 0.90, az: 0.35 },
+    { t: 3.00, dist: 20, h: 20, el: -0.84, fov: 0.90, az: 0.35 },
+    { t: 3.30, dist: 20, h: 22, el: -0.84, fov: 0.90, az: 0.35 },
+    { t: 3.55, dist: 15, h: 9,  el: -0.40, fov: 0.84, az: 0.34 },
+    { t: 3.80, dist: 9.0, h: 1.2, el: -0.10, fov: 0.74, az: 0.32 },
+    { t: 4.60, dist: 8.2, h: 1.0, el: -0.07, fov: 0.72, az: 0.30 },
+    { t: 6.30, dist: 8.6, h: 1.0, el: -0.07, fov: 0.72, az: 0.30 },
+    { t: 7.90, dist: 8.4, h: 1.05, el: -0.04, fov: 0.72, az: 0.30 },
+    { t: 9.40, dist: 6.6, h: 1.1, el: -0.03, fov: 0.70, az: 0.30 },
+    { t: 10.6, dist: 4.7, h: 1.3, el: -0.02, fov: 0.58, az: 0.28 },
+    { t: 11.9, dist: 3.3, h: 1.2, el: -0.03, fov: 0.80, az: 0.26 }];
   const PR = ['dist', 'h', 'el', 'fov', 'az'];
   /* a cubic Hermite through the keys with finite-difference tangents: no stop-start at the keys, a soft ease at both ends */
   const kf = t => {
@@ -106,7 +106,7 @@
     function cameraAt(t, dt) {
       const k = kf(t), cx = charXZ(t); let ty = st.gy + k.h * hs;
       if (t > TM.strike - 0.3 && t < TM.land + 1.0) {                                           // tilt down with the falling character, then settle on the crouch
-        const w = ease((t - (TM.strike - 0.2)) / 0.6) * (1 - ease((t - (TM.land - 0.3)) / 1.0)); ty = lerp(ty, st.gy + flyAt(Math.min(t, TM.land)) + 0.5 * U + 0.3 * hs, w);
+        const w = ease((t - (TM.strike - 0.1)) / 0.25) * (1 - ease((t - (TM.land - 0.1)) / 0.7)); ty = lerp(ty, st.gy + flyAt(Math.min(t, TM.land)) + 0.5 * U + 0.3 * hs, w);
       }
       const az = st.yaw + k.az, ce = Math.cos(k.el), dirv = [Math.sin(az) * ce, Math.sin(k.el), Math.cos(az) * ce];
       const tgt0 = [cx[0], ty, cx[1]]; let dist = k.dist * hs;
@@ -160,26 +160,26 @@
         if (t >= TM.land && !flags.land) { flags.land = 1; a.fly = 0; }
         if (t >= TM.land && t < TM.jdEnd) a.clipT = 1.6 + 0.8 * ease((t - TM.land) / (TM.jdEnd - TM.land));
         if (t >= TM.jdEnd && !flags.rise) { flags.rise = 1; a.clipT = null; a.fade = 0.7; a.forceClip = ['M:Crouch To Stand', 0.78]; }
-        if (t >= TM.standEnd && !flags.tall) { flags.tall = 1; a.fade = 0.9; a.forceClip = ['M:Idle', 1]; }
-        if (t >= TM.walk && !flags.walk) { flags.walk = 1; const sp = (2.4 * U) / TM.walkLen, ls = sp / (U * 0.47); a.fade = 0.6; a.forceClip = ['M:Walking', clamp(ls / 1.6, 0.55, 1.5)]; }
+        if (t >= TM.standEnd && !flags.tall) { flags.tall = 1; a.fade = 0.7; a.forceClip = ["M:Idle", 1]; }
+        if (t >= TM.walk && !flags.walk) { flags.walk = 1; const sp = (2.4 * U) / TM.walkLen, ls = sp / (U * 0.47); a.fade = 0.5; a.forceClip = ['M:Walking', clamp(ls / 1.6, 0.55, 1.5)]; }
         if (t >= TM.walk && t < TM.walk + TM.walkLen) { const xz = charXZ(t); a.x = xz[0]; a.z = xz[1]; }
         if (t >= TM.walk + TM.walkLen && !flags.idle) { flags.idle = 1; a.x = st.x; a.z = st.z; a.fade = 0.6; a.forceClip = ['M:Idle', 1]; }
         /* the silhouette: black until the fog has thinned, a lightning flash shows him for an instant, then the sun breaks and the skin comes up */
         const pulse = t > TM.flash2 && t < TM.flash2 + 0.3 ? 0.55 * (1 - ease((t - TM.flash2) / 0.3)) : 0;
-        ST.sil = t < TM.land - 0.05 ? 1 : clamp(1 - ease((t - 13.1) / 1.6) - pulse, 0, 1);
+        ST.sil = t < TM.land - 0.05 ? 1 : clamp(1 - ease((t - 6.9) / 1.6) - pulse, 0, 1);
       }
       /* beats */
       if (t >= TM.flick1 && !flags.f1) { flags.f1 = 1; ST.sheet = { t0: t, k: 0.5 }; thunder(0.35, false); }
       if (t >= TM.flick2 && !flags.f2) { flags.f2 = 1; ST.sheet = { t0: t, k: 0.75 }; thunder(0.5, false); }
       if (t >= TM.call && !flags.call) { flags.call = 1; thunder(0.3, false); ST.shake = 0.25; }   // distant rolling thunder only
       if (t >= TM.strike && !flags.s) { flags.s = 1; ST.tStrike = t; const sp = skyPoint(rB, 80); bolts.push({ b: makeBolt(rB, sp, ground(), { depth: 8, jag: 0.17, forks: 9 }), t0: t, kind: 'big', w: 1, follow: true, end: ground() }); ST.shake = 1.4; thunder(1, true); env.flash && env.flash(1.2); }
-      if (t >= TM.land && !flags.l) { flags.l = 1; ST.tLand = t; hold = 0.09; ST.shake = 3.1; thunder(0.9, true); try { AU.blade && AU.blade(); AU.boom && AU.boom(0.9); AU.rumble && AU.rumble(2.2, 0.6); } catch (e) { } env.flash && env.flash(2); spawnBurst(); spawnArcs(); }
-      for (const [tt, l, k] of [[7.0, 0.4, 0.55], [7.9, 0.55, 0.7], [9.3, 0.45, 0.5], [10.6, 0.6, 0.8]]) if (t >= tt && !flags['af' + tt]) { flags['af' + tt] = 1; ST.sheet = { t0: t, k }; thunder(l, false); }
+      if (t >= TM.land && !flags.l) { flags.l = 1; ST.tLand = t; hold = 0.12; ST.shake = 4.2; thunder(0.9, true); try { AU.blade && AU.blade(); AU.boom && AU.boom(0.9); AU.rumble && AU.rumble(2.2, 0.6); } catch (e) { } env.flash && env.flash(2); spawnBurst(); spawnArcs(); }
+      for (const [tt, l, k] of [[4.3, 0.4, 0.55], [5.0, 0.55, 0.7], [5.9, 0.45, 0.5], [7.4, 0.6, 0.8]]) if (t >= tt && !flags['af' + tt]) { flags['af' + tt] = 1; ST.sheet = { t0: t, k }; thunder(l, false); }
       if (t >= TM.flash2 && !flags.f3) { flags.f3 = 1; ST.sheet = { t0: t, k: 0.95 }; thunder(0.55, false); }
       if (t >= TM.ui && !flags.ui) { flags.ui = 1; env.showUI && env.showUI(); }
       ST.shake *= Math.exp(-dt * 3.6);
       /* storm light for the 3D scene */
-      const dark = t < TM.land ? 0.62 * ease(t / 3.8) : 0.62 * (1 - ease((t - 9.0) / 5.6)), bi = ST.boltLevel(t);
+      const dark = t < TM.land ? 0.62 * ease(t / 3.0) : 0.62 * (1 - ease((t - 5.0) / 4.6)), bi = ST.boltLevel(t);
       const sh = ST.sheet ? ST.sheet.k * Math.max(0, 1 - (t - ST.sheet.t0) / 0.42) * (0.65 + 0.35 * Math.sin((t - ST.sheet.t0) * 55)) : 0;
       const lan = ST.tLand >= 0 && t - ST.tLand < 0.9 ? 1 - ease((t - ST.tLand) / 0.9) : 0;
       storm.dark = dark; storm.flash = clamp(Math.max(bi * 0.95, sh * 0.8, lan), 0, 1);
@@ -268,10 +268,10 @@
       if (ST.tLand >= 0) { const s = ST.rt - (ST.rtLand = ST.rtLand || ST.rt); if (s < 0.5) { const k = 1 - s / 0.5; ctx.fillStyle = 'rgba(255,246,215,' + (0.96 * k * k * k * k).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); if (s < 0.05) { ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; } } }
       if (t > TM.flash2 && t < TM.flash2 + 0.25) { ctx.fillStyle = 'rgba(255,236,180,' + (0.5 * (1 - (t - TM.flash2) / 0.25)).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
       /* the sun breaking through at the reveal: a warm wash from the upper left */
-      if (t > 13.0) { const k = ease((t - 13.0) / 1.8) * (1 - ease((t - 15.6) / 0.9)); if (k > 0.01) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(W * 0.2, -H * 0.1, 0, W * 0.2, -H * 0.1, H * 1.4); g.addColorStop(0, 'rgba(255,205,120,' + (0.35 * k).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,170,80,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; } }
+      if (t > 7.0) { const k = ease((t - 7.0) / 1.8) * (1 - ease((t - 10.5) / 0.9)); if (k > 0.01) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(W * 0.2, -H * 0.1, 0, W * 0.2, -H * 0.1, H * 1.4); g.addColorStop(0, 'rgba(255,205,120,' + (0.35 * k).toFixed(3) + ')'); g.addColorStop(1, 'rgba(255,170,80,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; } }
       /* vignette, letterbox, fade-in, location card */
       { const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(6,4,8,.5)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
-      { const bar = H * 0.085 * ease(t / 0.9) * (1 - ease((t - 15.7) / 0.8)); if (bar > 0.5) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar); } }
+      { const bar = H * 0.085 * ease(t / 0.9) * (1 - ease((t - 11.0) / 0.8)); if (bar > 0.5) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bar); ctx.fillRect(0, H - bar, W, bar); } }
       if (t < 1.1) { ctx.fillStyle = 'rgba(0,0,0,' + (1 - ease(t / 1.1)).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
       if (t > 1.0 && t < 3.4 && ctx.fillText) { const k = ease((t - 1.0) / 0.7) * (1 - ease((t - 2.8) / 0.6)); if (k > 0.01) { ctx.globalAlpha = k; ctx.fillStyle = 'rgba(255,236,200,.92)'; ctx.font = '600 ' + Math.round(H * 0.052) + 'px Cinzel, Georgia, serif'; ctx.textAlign = 'left'; ctx.fillText('SHIGANSHINA DISTRICT', W * 0.07, H * 0.84); ctx.font = '500 ' + Math.round(H * 0.03) + 'px Cinzel, Georgia, serif'; ctx.fillStyle = 'rgba(255,214,150,.8)'; ctx.fillText('WALL MARIA · AN EVENING OF STORM', W * 0.07, H * 0.84 + H * 0.05); ctx.globalAlpha = 1; } }
       ctx.restore();

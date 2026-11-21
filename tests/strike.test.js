@@ -23,7 +23,7 @@ t('the camera starts very wide, tracks the fall down, and ends on the studio fra
 t('ONE lightning strike only: a single bolt, one hard stroke, and the camera cranes up first then tracks the faller down', () => {
   const a = { key: 'boy', baseScale: .33, x: 0, z: 0, hidden: false, tintFn: null }, st = K.create({ actor: () => a, stage: { x: 0, z: 0, gy: 0, yaw: 0 }, audio: {}, bodyHeight: () => 1.9486, showUI() { }, done() { } }), c2 = ctx(); let maxB = 0, ty = [];
   for (let i = 0; i < 60 * 9; i++) { const c = st.update(1 / 60); st.draw(c2, 667, 375); maxB = Math.max(maxB, st.boltCount()); if (i % 30 === 0) ty.push(c.target[1]); }
-  assert.strictEqual(maxB, 1, 'exactly one bolt'); assert(ty[4] > ty[0] + .5, 'the target rises (crane up) before the strike'); assert(ty[ty.length - 1] < ty[8], 'then it comes down with the faller');
+  assert.strictEqual(maxB, 1, 'exactly one bolt'); assert(ty[4] > ty[0] + .5, 'the target rises (crane up) before the strike'); assert(ty[8] < ty[6] - .5, 'then it comes down with the faller');
   const k = K.kf(2); assert(k.el < K.kf(0).el, 'tilts further up into the clouds'); });
 t('the storm lights the 3D scene (engine hook) and clears afterwards', () => { const g = fs.readFileSync(R + '/js/game.js', 'utf8'); assert(/window\.__storm/.test(g)); const { st } = run(); assert(!globalThis.__storm, 'storm released'); });
 t('the bolt follows the faller and ground impact has debris, rings and fog', () => { const a = { key: 'boy', baseScale: .33, x: 0, z: 0, hidden: false, tintFn: null }; const calls = {}; const c = new Proxy({}, { get: (o, k) => k === 'createLinearGradient' || k === 'createRadialGradient' ? () => ({ addColorStop() { } }) : (...x) => { calls[k] = (calls[k] || 0) + 1; }, set: () => true });

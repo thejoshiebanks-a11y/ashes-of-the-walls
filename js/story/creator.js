@@ -200,8 +200,8 @@
     /* default character -> built-up reveal: clay mannequin, then skin and eyes, then hair, then clothes */
     const revT = []; function endReveal() { if (!T.reveal) return; T.reveal = null; revT.forEach(clearTimeout); revT.length = 0; sync(); }
     function startReveal() { T.reveal = { st: 0 }; sync(); [[1500, 1, .9], [2700, 2, 1], [3900, 3, 1.5]].forEach(([ms, st, fx]) => revT.push(setTimeout(() => { if (!T.reveal || destroyed) return; if (st >= 3) T.reveal = null; else T.reveal = { st }; sync(); equipFx(fx); AU.menuTick && AU.menuTick(); }, ms))); }
-    function set(k, v, fx) { endReveal(); L[k] = v; sync(); info(); paint(); if (fx !== false) { equipFx(fx === 'big' ? 1.5 : 1); AU.menuTick && AU.menuTick(); } }
-    function setMany(obj, fx) { endReveal(); const nb = obj.base !== undefined && obj.base !== L.base; Object.assign(L, obj); sync(); info(); if (nb) renderTab(); paint(); if (fx !== false) { equipFx(1.6); AU.menuTick && AU.menuTick(); } }
+    function set(k, v, fx) { endReveal(); L[k] = v; sync(); info(); if (k === 'outfit' && tab === 'clothing') { const st = panelBody.scrollTop; renderTab(); panelBody.scrollTop = st; } paint(); if (fx !== false) { equipFx(fx === 'big' ? 1.5 : 1); AU.menuTick && AU.menuTick(); } }
+    function setMany(obj, fx) { endReveal(); const nb = obj.base !== undefined && obj.base !== L.base; Object.assign(L, obj); sync(); info(); if (nb || (obj.outfit !== undefined && tab === 'clothing')) renderTab(); paint(); if (fx !== false) { equipFx(1.6); AU.menuTick && AU.menuTick(); } }
 
     /* ================= option widgets ================= */
     const sec = (title, ...kids) => el('section', 'tc-sec', title ? el('h4', '', title) : null, ...kids);
@@ -266,7 +266,7 @@
       clothing() {
         const dye = (k, label) => el('div', 'tc-row tc-swrow', el('label', '', label), sw(k, T.DYE));
         return [sec('OUTFIT', grid('outfit', T.outfitsFor(L.base | 0).map(x => ({ name: x.o.name, img: thumb('outfit', x.i), i: x.i, locked: x.o.locked && !T.isUnlocked(x.o), note: x.o.note })), 'tc-g4 outfits tall')),
-          (T.OUTFITS[L.outfit].id === 'Under' ? sec('COLOURS', dye('pants', 'BOXERS')) : T.OUTFITS[L.outfit].dye ? sec('COLOURS', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')) : sec('COLOURS', el('p', 'tc-note', 'Armour and the Scout uniform keep their issued colours. Underclothes and village clothes can be recoloured.'))),
+          (T.OUTFITS[L.outfit].id === 'Under' ? sec('COLOURS', el('div', 'tc-row tc-swrow', el('label', '', 'BOXERS'), sw('under', T.BOXCOL))) : T.OUTFITS[L.outfit].dye ? sec('COLOURS', dye('top', 'TOP'), dye('pants', 'TROUSERS'), dye('boots', 'BOOTS'), dye('accent', 'BELT & TRIM')) : sec('COLOURS', el('p', 'tc-note', 'Armour and the Scout uniform keep their issued colours. Underclothes and village clothes can be recoloured.'))),
           sec('WEAR', chips('wear', cfg.wear || ['Clean', 'Lived-in', 'Weathered'])), sec('', el('div', 'tc-togs', toggle('cloak', 'Show Cloak / Hood')))]; },
       gear() { return [sec('MANEUVER GEAR', grid('gear', [{ name: 'None', img: thumb('gear', 0) }, { name: 'ODM gear', img: thumb('gear', 1), locked: !T.gearUnlocked(), note: T.GEARLOCK.note }], 'tc-g4 tall')), sec('', el('p', 'tc-note', 'ODM gear unlocks after you finish training.'))]; },
       emblem() { return [sec('CREST', grid('crest', T.CRESTS.map((c, i) => { const n = el('span', 'tc-crestcard'); n.append(crestSvg(i, 'tc-crest-card')); return { name: T.CRESTNAMES[i], node: n }; }), 'tc-g5')), sec('', el('div', 'tc-togs', toggle('showCrest', 'Show on registry card')))]; },

@@ -144,6 +144,21 @@ def keep_neck(bd, orig):
     w = sm((np.abs(O[:, 1]) - 1.47) / .05) * (1 - sm((np.abs(O[:, 0]) - .075) / .05)); P = P * (1 - w[:, None]) + O * w[:, None]
     bd = dict(bd); bd['pos'] = P.astype(bd['pos'].dtype); bd['nrm'] = C.wnorm(P, bd['ix'].reshape(-1, 3)).astype(bd['nrm'].dtype); return bd
 
+def smooth_neck(b):
+    """The body's neck was a steep cone that met the vertical head-piece tube at a hard angle: a visible ring where 'the neck was attached'. Taubin (shrink-free) Laplacian smoothing of the funnel band (y 1.565-1.625), weld-aware and fading to zero at both edges, turns the cone into a concave trumpet that arrives vertical, so the surfaces flow into each other."""
+    import scipy.sparse as sps
+    P = b['pos'].astype(np.float64); F = b['ix'].reshape(-1, 3); n = len(P)
+    _, wid = np.unique(np.round(P, 5), axis=0, return_inverse=True); wid = wid.reshape(-1); nw = wid.max() + 1
+    E = wid[np.r_[F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]]]; E = E[E[:, 0] != E[:, 1]]; E = np.r_[E, E[:, ::-1]]
+    A = sps.coo_matrix((np.ones(len(E)), (E[:, 0], E[:, 1])), shape=(nw, nw)).tocsr(); A.data[:] = 1; D = sps.diags(1 / np.maximum(np.asarray(A.sum(1)).reshape(-1), 1)) @ A
+    cnt = np.bincount(wid, minlength=nw)[:, None]; Pw = np.zeros((nw, 3)); np.add.at(Pw, wid, P); Pw /= cnt
+    sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1)); y = Pw[:, 1]
+    w = sm((y - 1.560) / .02) * (1 - sm((y - 1.610) / .02)); w = w[:, None]
+    Q = Pw.copy()
+    for _ in range(40):
+        Q = Q + .55 * w * (D @ Q - Q); Q = Q + (-.58) * w * (D @ Q - Q)
+    P2 = Q[wid]; b = dict(b); b['pos'] = P2.astype(b['pos'].dtype); b['nrm'] = C.wnorm(P2, b['ix'].reshape(-1, 3)).astype(b['nrm'].dtype); return b
+
 def snapneck(q, body):
     """the head piece's neck tube must never stand proud of the body's neck: below y 1.615 its half-width is held 3 mm inside the body's own neck (fading out above), so the tube's lower rim is
     hidden inside the body and the two surfaces simply cross -- no wings, no collar ledge"""
@@ -205,6 +220,22 @@ def build(key, src, common, wpl, out_root):
     parts, w2 = warp_all(parts, w2)
     assemble(key, [(p, T) for p in parts], w2, os.path.join(out_root, key))
 
+def hip_trim(p):
+    """A boy's hips are as wide as his waist: the donor trousers flare to a 38 cm hip band (a female silhouette). Bring the hip band in to the body's own width (+1.8 cm cloth), smoothly, and take a little off the belt/vest hem so the belt line stays continuous."""
+    P = p['pos'].copy(); y = P[:, 1]
+    if p['mat'] in ('Outfit_Peasant_Legs', 'Outfit_Ranger_Legs'):
+        cap = np.interp(y, [.84, .90, .96, 1.04, 1.10, 1.16], [9, .160, .156, .155, .150, .150])
+        hw = np.zeros(len(P))
+        for i, yy in enumerate(np.unique(np.round(y, 2))):
+            pass
+        ys = np.arange(.80, 1.20, .01); H = np.array([np.abs(P[(y >= v - .035) & (y < v + .035), 0]).max() if ((y >= v - .035) & (y < v + .035)).any() else 0 for v in ys]); hw = np.interp(y, ys, H)
+        sc = np.clip(cap / np.maximum(hw, 1e-6), .80, 1.0); sc = np.where(y < .84, 1.0, sc)
+        P[:, 0] *= sc
+    elif p['mat'] == 'Outfit_Peasant_Body':
+        t = np.clip((1.14 - y) / .07, 0, 1); P[:, 0] *= 1 - .075 * t * t * (3 - 2 * t)
+    p['pos'] = P; return p
+
+
 def common_parts():
     pr, wpo, tx0 = BB.read_pack(os.path.join(OLD, 'boy'), 'boy')
     lv, wpl, ltx, fu, wpf, ftx = C.donors(); T = {}
@@ -216,8 +247,10 @@ def common_parts():
     ar = ranger_lining(ar, body, T); ar = ranger_sleeves(ar, body, T)
     # armour textures live in the boy pack's texture table: pull them in under unique ids
     gar = [p for p in sc + ca + ar if p['mat'] in ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_FeetBoots')]
+    for p in gar: hip_trim(p)
     body_pre = C.trapezius(C.relief(body, amp=float(os.environ.get('RELIEF', '2.2')))); body = C.shoulder_anatomy(C.limbs(body_pre));       # the sculpted anatomy is for the bare body; the pressed-in skin under clothes keeps the smooth shape so ridges never poke through cloth
-    body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=.013, passes=2, fade=False); C.reweight(sc + ca + ar, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
+    body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=float(os.environ.get("INSIDE","0.02")), passes=2, fade=False); C.reweight(sc + ca + ar, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
+    body = smooth_neck(body); body_d = smooth_neck(body_d)
     T[902] = C.skin_atlas(sk); body = C.skin_uv(body); body_d = C.skin_uv(body_d)
     return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar, T=T), wpl
 

@@ -95,6 +95,7 @@
 #tc .tc-range::-webkit-slider-thumb { -webkit-appearance: none; width: calc(var(--u) * 2.4); height: calc(var(--u) * 2.4); min-width: 11px; min-height: 11px; border-radius: 50%; background: #f4efe3; margin-top: calc(var(--u) * -1); box-shadow: 0 0 0 2px rgba(0, 0, 0, .5), 0 0 8px rgba(255, 255, 255, .5); }
 #tc .tc-range::-moz-range-thumb { width: calc(var(--u) * 2.4); height: calc(var(--u) * 2.4); border: 0; border-radius: 50%; background: #f4efe3; }
 #tc .tc-swrow { grid-template-columns: minmax(calc(var(--u) * 10), 25%) 1fr; }
+#tc .tc-swrow label { min-width: 0; overflow-wrap: anywhere; line-height: 1.15; }       /* a long label wraps inside its own column instead of running under the colour swatches */
 #tc .tc-sw { display: flex; flex-wrap: wrap; gap: calc(var(--pad) * .55); }
 #tc .tc-s { width: calc(var(--u) * 4.6); height: calc(var(--u) * 4.6); min-width: 13px; min-height: 13px; padding: 2px; border: 1px solid rgba(255, 255, 255, .18); background: #0b0c10; transition: transform .15s, border-color .15s, box-shadow .2s; }
 #tc .tc-s i { display: block; width: 100%; height: 100%; } #tc .tc-s:hover { transform: scale(1.12); border-color: #fff; }

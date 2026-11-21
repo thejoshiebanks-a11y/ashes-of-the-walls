@@ -213,7 +213,7 @@ def swap_sleeves(p, body, scale=.90, off=.007, x0=.20, xs=.14, ylow=1.40, xend=.
         for a in np.arange(x0, .60, .025):
             mk = lim & (np.sign(AP[:, 0]) == sg) & (np.abs(AP[:, 0]) >= a) & (np.abs(AP[:, 0]) < a + .025)
             if mk.sum() > 3: cc = AP[mk][:, 1:].mean(0); AP[mk, 1:] = cc + (AP[mk][:, 1:] - cc) * (1 - (1 - scale) * (lambda t: t * t * (3 - 2 * t))(min(max((a - .20) / .12, 0), 1)))
-    arm['pos'] = AP + arm['nrm'] * (off + .006 * (1 - np.clip((np.abs(AP[:, 0]) - .14) / .15, 0, 1)))[:, None]; arm['uv'] = np.tile(uvs, (len(AP), 1)).astype(arm['uv'].dtype)
+    arm['pos'] = AP + arm['nrm'] * (off + .006 * (1 - np.clip((np.abs(AP[:, 0]) - .14) / .15, 0, 1)) + .006 * np.exp(-((np.abs(AP[:, 0]) - .40) / .09) ** 2))[:, None]; arm['uv'] = np.tile(uvs, (len(AP), 1)).astype(arm['uv'].dtype)      # + a small lift over the elbow so the bone never shows through a bent arm
     cl = np.abs(arm['pos'][:, 0]) > xend - .04; arm['pos'][cl, 0] = np.sign(arm['pos'][cl, 0]) * (xend - .04)      # every rim vertex lands on one plane: a clean cuff ring
     n0 = len(top['pos'])
     for k in ('pos', 'nrm', 'uv', 'jj', 'ww'): top[k] = np.concatenate([top[k], arm[k]])
@@ -221,6 +221,16 @@ def swap_sleeves(p, body, scale=.90, off=.007, x0=.20, xs=.14, ylow=1.40, xend=.
     for k in ('tex', 'srctex'):
         if k in p: top[k] = p[k]
     return top
+
+def relax_hands(body, kn=.745, tip=.855, yc=1.545, tmax=34.0):
+    """the donor hand is a flat board with the fingers stretched out in one plane: the fingers get a relaxed natural curl toward the palm (progressive from the knuckles, the thumb stays free), so a hanging hand reads as a hand and not as a paddle"""
+    P = body['pos'].copy(); ax = np.abs(P[:, 0]); d = ax - kn; m = (d > 0) & (P[:, 1] > 1.40) & (ax < tip + .02)
+    zr = (P[:, 2] - .035) / .11                                   # 0 = thumb side edge .. 1 = little-finger side
+    th = np.deg2rad(tmax) * np.clip(d / (tip - kn), 0, 1.1) ** 1.25 * (.55 + .45 * np.clip(zr, 0, 1))      # the little finger curls more, as in a resting hand
+    dy = P[:, 1] - yc; cth, sth = np.cos(th), np.sin(th)
+    nd = d * cth + dy * sth; ny = -d * sth + dy * cth
+    P[m, 0] = np.sign(P[m, 0]) * (kn + nd[m]); P[m, 1] = yc + ny[m]
+    out = dict(body); out['pos'] = P.astype(body['pos'].dtype); out['nrm'] = wnorm(P, body['ix'].reshape(-1, 3)).astype(body['nrm'].dtype); return out
 
 def arm_tube(body, uvs, tpl, xa, xb, scale=.90, off=.007, x0=.20):
     """a smooth sleeve / cuff grown from our own arm surface between |x|=xa..xb (same method as swap_sleeves); cloth uv fixed to one swatch, template prim tpl supplies mat and textures"""

@@ -41,6 +41,21 @@ def with_tex(prims, tx, off, T):
         out.append(q)
     return out
 
+def strip_collar(q, d, T):
+    """two of the donor hairstyles carry the donor's white head-and-neck dummy inside the hair: the neck part stuck out under the chin as a black collar (the dummy takes the hair colour). Faces below the jaw that are skin-white in the hair map, and anything hanging in front of the throat, are removed; the scalp cap above the jaw stays"""
+    F = q['ix'].reshape(-1, 3); c = q['pos'][F].mean(1)
+    bad = (c[:, 1] < d[1] - .057) & (np.abs(c[:, 0] - d[0]) < .11) & (c[:, 2] > d[2] + .009)
+    t = q.get('srctex')
+    if t is not None and t in T:
+        im = np.asarray(T[t].convert('RGBA'), float) / 255; h, w = im.shape[:2]; uv = q['uv']
+        l = (im[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)][:, :3] @ np.array([.299, .587, .114]))[F].mean(1)
+        bad |= (c[:, 1] < d[1] - .028) & (l > .7)
+    if not bad.any(): return q
+    k = C.sub(q, ~bad, q['mat'])
+    for key in q:
+        if key not in k: k[key] = q[key]
+    return k
+
 def hair_norm(parts, T):
     """the game dyes hair as tint x (luma*1.6+.05): a hair map whose own brightness is dark (or a flat untextured hair) would swallow every colour.
     Re-base every hair map to a mid-grey luma (keeping its strand/highlight structure and alpha) so each style takes the whole dye range."""
@@ -177,10 +192,10 @@ def build(key, src, common, wpl, out_root):
             parts.append(q)
     # --- hair library (boy pack carries B0 C0 D0 K0 L0 Y0 + backs; plus the two new models)
     hp = [p for p in src['boy']['prims'] if p['mat'].startswith('Hair_')]
-    for p in with_tex(hp, src['boy']['tx'], 20000, T): q = dict(p); q['pos'] = q['pos'] + (d_tgt - src['boy']['wp'][17]); parts.append(q)
+    for p in with_tex(hp, src['boy']['tx'], 20000, T): q = dict(p); q['pos'] = q['pos'] + (d_tgt - src['boy']['wp'][17]); parts.append(strip_collar(q, d_tgt, T))
     for nk in NEWM:
         hn = [p for p in src[nk]['prims'] if p['mat'].startswith('Hair_')]
-        for p in with_tex(hn, src[nk]['tx'], OFF[nk] + 8000, T): q = dict(p); q['pos'] = q['pos'] + (d_tgt - src[nk]['wp'][17]); parts.append(q)
+        for p in with_tex(hn, src[nk]['tx'], OFF[nk] + 8000, T): q = dict(p); q['pos'] = q['pos'] + (d_tgt - src[nk]['wp'][17]); parts.append(strip_collar(q, d_tgt, T))
     # --- shared garments
     for p in common['garments']:
         q = dict(p); parts.append(q)
@@ -194,7 +209,7 @@ def common_parts():
     pr, wpo, tx0 = BB.read_pack(os.path.join(OLD, 'boy'), 'boy')
     lv, wpl, ltx, fu, wpf, ftx = C.donors(); T = {}
     sk = mean_skin(tx0[0]); T[900] = Image.new('RGBA', (8, 8), tuple(int(v) for v in sk) + (255,))
-    body = C.new_body(sk); body_c = C.slim_arms(C.shoulder_slope(body)); body = C.subdivide(body, lambda c: (c[:, 1] > 1.38) & (np.abs(c[:, 0]) < .30)); body = C.subdivide(body, lambda c: (c[:, 1] > 1.46) & (np.abs(c[:, 0]) < .27)); body = C.slim_arms(C.shoulder_slope(body)); body_c = C.subdivide(body_c, lambda c: (c[:, 1] > 1.46) & (np.abs(c[:, 0]) < .20)); body_c = C.slim_arms(C.shoulder_slope(body_c)); sc = C.scout(T, body); ca = C.casual(T, body); ar = C.armour(pr, T, body, wpo, wpl)
+    body = C.relax_hands(C.new_body(sk)); body_c = C.slim_arms(C.shoulder_slope(body)); body = C.subdivide(body, lambda c: (c[:, 1] > 1.38) & (np.abs(c[:, 0]) < .30)); body = C.subdivide(body, lambda c: (c[:, 1] > 1.46) & (np.abs(c[:, 0]) < .27)); body = C.slim_arms(C.shoulder_slope(body)); body_c = C.subdivide(body_c, lambda c: (c[:, 1] > 1.46) & (np.abs(c[:, 0]) < .20)); body_c = C.slim_arms(C.shoulder_slope(body_c)); sc = C.scout(T, body); ca = C.casual(T, body); ar = C.armour(pr, T, body, wpo, wpl)
     bdf = shrink_dressed(body, wpl); sc = [C.swap_sleeves(p, body, scale=.90, off=.007, x0=.20, xs=.14, ylow=1.40) if p['mat'] == 'Outfit_Scout_Body' else p for p in sc]; ar = fit_sleeves(ar, bdf)
     for p in ar:
         if p.get('srctex') is not None: T[30000 + p['srctex']] = tx0[p['srctex']]; p['srctex'] = 30000 + p['srctex']

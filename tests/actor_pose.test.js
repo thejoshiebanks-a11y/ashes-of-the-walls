@@ -8,7 +8,7 @@ function grab(startRe){ // balanced-brace extraction of a top-level function/cla
   throw new Error('unbalanced '+startRe)}
 const line=re=>{const m=re.exec(src); if(!m) throw new Error('no line '+re); const e=src.indexOf('\n',m.index); return src.slice(m.index,e<0?src.length:e)};
 const code=[line(/const dot=/), line(/const cross=/), line(/const m4=/), grab(/function arc\(/), grab(/function modelMat\(/), grab(/function relModel\(/), grab(/function groundFix\(M,mm/), grab(/function newPose\(/), grab(/function clipPose\(/),
-  grab(/function blendPose\(/), line(/const clipLen=/), grab(/function toDirs\(/), grab(/function mirrorPose\(/), grab(/class Anim\{/), grab(/async function loadAnims\(/), grab(/async function loadModel\(/),
+  grab(/function blendPose\(/), line(/const clipLen=/), line(/const ssm=/), grab(/function pitchKeep\(/), grab(/function uprightFix\(/), grab(/function toDirs\(/), grab(/function mirrorPose\(/), grab(/class Anim\{/), grab(/async function loadAnims\(/), grab(/async function loadModel\(/),
   line(/const b64u8=/), 'const MD={};let AN=null,gp={u:{},a:{}};const ZMASK=new Float32Array(128);'].join('\n');
 const gl=new Proxy({},{get:(t,k)=>k==='TEXTURE_2D'||typeof k==='symbol'?1:(...a)=>({})});
 const g=JSON.parse(fs.readFileSync(R+'/data/models.json','utf8')); const npc=JSON.parse(fs.readFileSync(R+'/data/npc_models.json','utf8'));

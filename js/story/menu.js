@@ -195,7 +195,7 @@
   function wrist(M, G) {
     if (!M._wr) { const i = M.id('Bip001 L Hand'); M._wr = { i, rest: i >= 0 ? M.loc.slice(i * 16, i * 16 + 16) : null }; }
     const W = M._wr; if (W.i < 0) return; const C = CFG.wrist || { roll: -1.5, ra: 0, flex: -.12, fa: 2 }, L = M.loc, o = W.i * 16; for (let k = 0; k < 16; k++) L[o + k] = W.rest[k];
-    if (G) { rotL(L, o, C.ra, C.roll * G.r); rotL(L, o, C.fa, C.flex * G.x * G.r + .025 * Math.sin(G.t * .9) * G.r); }
+    if (G) { const w = G.w === undefined ? G.r : G.w; rotL(L, o, C.ra, C.roll * w); rotL(L, o, C.fa, C.flex * G.x * w + .025 * Math.sin(G.t * .9) * w); }
   }
   /* living idle: breathing, a slow weight shift, the head drifting along the skyline, the arms hanging loose (added on top of the baked idle clip) */
   function idlePose(pz, a, M) {
@@ -235,7 +235,7 @@
       T('L Forearm', pF, mix(V(ol * (.34 + .1 * scan2), .27 + sw * 2, .9), V(-ol * .10, .93, .16), Fc));
       add('Spine1', ol * .02 * pU, 0, .012 * pU); add('Spine2', ol * .03 * pU, 0, .015 * pU); add('Neck', ol * .03 * pH, 0, 0); add('Head', ol * .055 * pH, .025 * pH, .045 * pH);
     }
-    D.fing = { p: Math.min(1, win(cp < 0 ? -1 : cp, 2.6, 4.4, 9.2, 10.8)), s: 0, x: 1 - Fc, r: pU, t }; D.gz = idlePose.gz = (idlePose.gz || 0) + (Math.min(1, pU) - (idlePose.gz || 0)) * .03;
+    D.fing = { p: Math.min(1, win(cp < 0 ? -1 : cp, 2.6, 4.4, 9.2, 10.8)), s: 0, x: 1 - Fc, r: pU, w: cp < 0 ? 0 : win(cp, 3.4, 6.2, 7.6, 9.4), t };       // w: the wrist only turns once the arm is up and the forearm has opened (it used to roll during the lift, which read as a broken wrist) D.gz = idlePose.gz = (idlePose.gz || 0) + (Math.min(1, pU) - (idlePose.gz || 0)) * .03;
     if (M) { fingers(M, t, br, D.fing); wrist(M, D.fing); }
     if (D.jean) { D.jean.vg = CFG.jean.y + br * .0035; D.jean.yaw = CFG.jean.yaw + (CFG.jean.turn || 0) + sh * .018; }
   }
@@ -282,7 +282,7 @@
     const st = doc.querySelector('.op-studio'); st.querySelectorAll('.op-pres,.op-legal,.op-gate').forEach(n => n.remove()); st.hidden = false; st.className = 'op-studio logo q'; void st.offsetWidth;
     let skip = false; const sk = () => { skip = true; AU.unlock(); }; st.addEventListener('pointerdown', sk); doc.addEventListener('keydown', sk, { once: true });
     try { AU.ready && AU.ready() && AU.logoSting && AU.logoSting(); } catch (e) { } st.classList.add('go'); for (let i = 0; i < 40 && !(skip && i > 8); i++) await sleep(100);                           // ~4 s, tap skips after 0.8 s
-    const cover = el('div', 'mn-cover'); UI.R.insertBefore(cover, UI.fade); D.cover = cover; void cover.offsetWidth; cover.classList.add('in');       // solid black from here until the title is fully placed: no glimpse of the scene
+    const cover = el('div', 'mn-cover'); UI.R.insertBefore(cover, UI.fade); D.cover = cover; cover.style.transition = 'none'; cover.style.zIndex = '8'; void cover.offsetWidth; cover.classList.add('in');       // opaque at once and UNDER the logo: the logo fades out onto black, never onto the scene       // solid black from here until the title is fully placed: no glimpse of the scene
     st.classList.add('out'); const pre = H.prepMenu(); await sleep(800); st.hidden = true; st.remove(); await pre;
     await M.enter({ stage: 'title' });
   };
@@ -295,7 +295,7 @@
     root.ODM.hour = CFG.hour; if (D.jean) { D.jean.x = CFG.jean.x; D.jean.z = CFG.jean.z; D.jean.vg = CFG.jean.y; } setStage(o.stage || 'title'); if (D.stage === 'menu') { D.blend = D.t0 - 5000; root_.classList.add('go', 'menu-in'); }
     if (!fxRaf) { lastFx = 0; fxRaf = requestAnimationFrame(fxLoop); } if (!padRaf) padRaf = requestAnimationFrame(pollPad);
     UI.fade.classList.remove('on'); await sleep(60); root_.classList.add('show'); fit();
-    if (D.cover) { const c = D.cover; D.cover = null; void c.offsetWidth; c.classList.remove('in'); c.classList.add('out'); setTimeout(() => c.remove(), 2000); }
+    if (D.cover) { const c = D.cover; D.cover = null; c.style.transition = ''; c.style.zIndex = ''; void c.offsetWidth; c.classList.remove('in'); c.classList.add('out'); setTimeout(() => c.remove(), 2000); }
     if (D.stage === 'title' && AU.ready && AU.ready()) { startAudio(false); setTimeout(() => AU.boom && AU.boom(.5), 1400); setTimeout(() => AU.bell && AU.bell(98), 4000); }
     if (D.stage === 'menu') { AU.wind(0.07); AU.music('title'); await sleep(900); D.items[D.sel] && D.items[D.sel].focus?.({ preventScroll: true }); }
   };

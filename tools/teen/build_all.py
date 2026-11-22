@@ -206,7 +206,7 @@ def neck_bridge(q, body, yn=YN):
     tri = np.array(tri); fn = np.cross(np.r_[P, new][tri[:, 1]] - np.r_[P, new][tri[:, 0]], np.r_[P, new][tri[:, 2]] - np.r_[P, new][tri[:, 0]]); out = np.r_[P, new][tri].mean(1) - np.array([c[0], 1.58, c[1]]) * np.array([1, 0, 1]) + np.array([0, .08, 0])
     flip = (fn * out).sum(1) < 0; tri[flip] = tri[flip][:, ::-1]
     d = dict(q); d['pos'] = np.r_[P, new]; d['nrm'] = np.r_[q['nrm'], body['nrm'][ni]].astype(q['nrm'].dtype); d['uv'] = np.r_[q['uv'], q['uv'][bv]]
-    d['jj'] = np.r_[q['jj'], q['jj'][bv]]; d['ww'] = np.r_[q['ww'], q['ww'][bv]]; d['ix'] = np.r_[q['ix'], tri.reshape(-1)].astype(q['ix'].dtype); return d
+    d['jj'] = np.r_[q['jj'], body['jj'][ni]]; d['ww'] = np.r_[q['ww'], body['ww'][ni]]; d['ix'] = np.r_[q['ix'], tri.reshape(-1)].astype(q['ix'].dtype); return d   # the strip's lower ring is skinned exactly like the funnel it lies on (so it can never come away from it when the head pitches or turns); its upper ring keeps the tube's own weights; d['ix'] = np.r_[q['ix'], tri.reshape(-1)].astype(q['ix'].dtype); return d
 
 def snapneck(q, body):
     """the head piece's neck tube must never stand proud of the body's neck: below y 1.615 its half-width is held 3 mm inside the body's own neck (fading out above), so the tube's lower rim is

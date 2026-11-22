@@ -1,4 +1,8 @@
 # Changelog
+## 0.9.27 (on top of 0.9.26)
+- **Run no longer sways left and right.** The captured Standard_Run swung the pelvis about 37 degrees side to side and rolled it about 19 degrees, with the spine leaning sideways on every step. Those swings are now cut to about a third (yaw 11, roll 5 degrees) and the spine's sideways lean to 40 percent, so the body stays steady and faces forward while the legs and arms keep their captured motion.
+- **Forward lean eased from about 31 to about 17 degrees** (your reference range is 5-15; the reference run is a hard sprint so a little extra is kept). Torso, neck and collar bones tilt up with the pelvis; legs and arms are untouched.
+- The Standard_Walk gets a mild version of the same sway calming (swing kept at 70 percent). Done offline with tools/anim/damp_sway.py, so nothing changes at runtime.
 ## 0.9.26 (goes on top of 0.9.25 + 0.9.25b + 0.9.25c)
 - **Walk and run replaced by your reference Mixamo clips.** Standard_Walk and Standard_Run are converted into the engine (M:Standard_Walk / M:Standard_Run) and are now THE walk and run for every creator character and for the creator's opening walk-in. They play exactly as captured: none of my earlier posture edits are applied to them (no extra lean, knee or arm changes), so posture, arm pump, knee drive and stride are the reference's own.
 - Playback speed is matched to the clip's measured foot speed (walk 1.55, run 3.85 leg-lengths per second) so feet do not slide; the body keeps the captured vertical bounce while feet are still kept out of the ground.

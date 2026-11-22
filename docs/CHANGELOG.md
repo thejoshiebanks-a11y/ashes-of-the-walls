@@ -1,4 +1,10 @@
 # Changelog
+## 0.9.22
+- **Hair and head.** Hair lag is now at most 2 cm, low-pass filtered and can never be pushed down into the scalp (it was up to 7.5 cm and kicked by every footfall, so it went in and out of the head). The head rides smoothly while running: stride bob is filtered out, the springs are critically damped and the turn-lead is reduced at speed.
+- **Walk/run.** The walking and running mocap loops are now exactly left/right symmetric (each frame is averaged with the mirrored frame half a cycle later; tested), which removes the one-leg-bends-more / side lean. Playback rate is now ground speed divided by the clip's measured stance-foot speed (walk 1.9, run 4.75 leg-lengths per second), so feet no longer skate and the legs no longer spin. Sprint pace lowered (3.1 -> 2.1) and the full stick no longer sprints: slight push to 80 % of the circle walks (slow to brisk), a full push runs.
+- **HUD.** The bottom-right cluster now follows what you are doing: everyday life (no gear) shows a big JUMP and a hold-to-RUN button; gear on shows HOOK L/R, GAS, BRAKE, JUMP, DODGE, BLADE; blades drawn or a titan near shows the full reference layout with a pulsing ATTACK and LOCK ON. Buttons slide and fade between layouts; gas/blade/supply widgets are hidden in everyday life.
+- **Neck.** The head piece's neck rim is also kept inside the body's neck in depth (a sky-coloured wedge behind the nape). A faint seam line at the front neck base is still visible in close-ups.
+- Not verified on a phone or in the full 3D scene.
 ## 0.9.21
 - **Opening is now fast and thunderous.** One bolt, a ~0.5 s fall (was 2 s) with a hit-stop and a harder landing shake; the camera cranes up through the storm, whips down with the bolt and slams in on the impact. Total opening is ~12 s (was 16.6 s): landing, slow stand-up, then the walk-in while the UI fades in.
 - **The walk-in is a real walk again.** Cause found: the 0.9.20 posture correction treated the cinematic walker as standing still and flattened his legs, so he slid. Posture correction is now speed-aware for scripted actors and no longer touches non-locomotion clips (crouch, jump-down, etc.).

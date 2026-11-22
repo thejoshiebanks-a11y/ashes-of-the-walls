@@ -46,7 +46,7 @@ t('creator reveal: clay mannequin first, everything at the end', () => { T.revea
 t('children NPCs are half their old height and the hero matches them', () => { const j = JSON.parse(fs.readFileSync(R + '/data/story/npcs.json', 'utf8')); assert(j && Object.keys(j).length > 0); });
 t('locomotion: stride-matched clip choice, rate stays in range, speed map hits the pace table; sprint is genuinely fast', () => {
   const L = T.loco, leg = 0.65 * 0.47; for (const sp of [0.4, 0.85, 1.6, 3.1]) { const r = L.pick(sp, leg); assert(r && r[1] >= 0.5 && r[1] <= 2.0, sp + ' ' + JSON.stringify(r)); }
-  assert(L.pick(3.1, leg)[0] === 'L:Run Mixamo' && L.pick(0.4, leg)[0] === 'L:Standard Walk'); assert(L.PACE.sprint / 0.65 > 4.5, 'sprint is over 4.5 body-heights per second');
+  assert(L.pick(3.1, leg)[0] === 'L:Run Mixamo' && L.pick(0.4, leg)[0] === 'L:Standard Walk'); assert(L.PACE.sprint / 0.65 > 3 && L.PACE.sprint / 0.65 < 4.5, 'sprint is brisk but human (3-4.5 body-heights per second)');
   assert(Math.abs(L.speedMap(0.8) - L.PACE.walk) < 1e-9 && Math.abs(L.speedMap(2.5) - L.PACE.jog) < 1e-9 && Math.abs(L.speedMap(4.9) - L.PACE.sprint) < 1e-9);
   let prev = -1; for (let v = 0; v <= 5; v += 0.1) { const m = L.speedMap(v); assert(m >= prev); prev = m; } });
 

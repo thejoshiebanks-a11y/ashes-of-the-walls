@@ -149,7 +149,7 @@
   T.code = L => { const k = T.norm(L); return ['base', 'face', 'outfit', 'hair', 'hairCol', 'eyes', 'skin', 'top', 'pants', 'boots', 'accent'].map(x => k[x].toString(36)).join('') + '-' + [k.shade, k.height, k.build, k.head].map(x => Math.round(clamp01(x) * 35).toString(36)).join(''); };
 
   /* ---------- locomotion: stride-matched gait, run clip, camera scale (needs tools/apply_game_patches.js once) ---------- */
-  const LOCO = T.loco = { LEG: 0.42, CAM_K: 0.5, CAM_H: -0.04, PACE: { walk: 0.55, jog: 1.45, sprint: 3.1 } };
+  const LOCO = T.loco = { LEG: 0.42, CAM_K: 0.5, CAM_H: -0.04, PACE: { walk: 0.55, jog: 1.45, sprint: 2.1 } };
   // stance-foot speed of each clip in leg-lengths per second at rate 1 (measured from the clip data with tools/anim/stride.py)
   LOCO.GAITS = [{ clip: 'L:Standard Walk', s: 1.25, lo: 0.6, hi: 1.6, upTo: 1.9 }, { clip: 'L:Jog Forward', s: 2.0, lo: 0.8, hi: 1.6, upTo: 3.0 }, { clip: 'L:Run Mixamo', s: 5.3, lo: 0.5, hi: 2.0, upTo: 99 }];
   LOCO.pick = (sp, leg) => {                           // -> [clip, playback rate] so the planted foot moves with the ground
@@ -164,7 +164,7 @@
       if (teen && has('M:Idle')) {                         // everyday life for every creator character: the upright motion-captured set (stride-matched to the body)
         if (!(sp > 0.25)) return a.idle ? null : [(a.mood === 'calm' && has('M:Breathing Idle')) ? 'M:Breathing Idle' : 'M:Idle', 1];
         if (!a.scale) return null; const ls = sp / (a.scale * T.bodyHeight(a.key) * 0.47);
-        return ls < 2.7 ? ['M:Walking', Math.max(0.55, Math.min(1.5, ls / 1.6))] : ['M:Running', Math.max(0.7, Math.min(1.9, ls / 3.5))]; }
+        return ls < 2.6 ? ['M:Walking', Math.max(0.4, Math.min(1.35, ls / 1.9))] : ['M:Running', Math.max(0.62, Math.min(1.3, ls / 4.75))]; }   // rates = ground speed / the clip's measured stance-foot speed (walk 1.9, run 4.75 leg-lengths per second), so the planted foot never skates and the legs never spin
       if (!(sp > 0.25) || !root.__actors) return null;
       const bh = T.BASES.some(b => b.key === a.key) ? T.bodyHeight(a.key) : (root.__actors.bodyHeight(a.key) || 1.75); if (!a.scale) return null;
       const r = LOCO.pick(sp, a.scale * bh * 0.47); return r && (r[0] !== 'L:Run Mixamo' || (root.__AN && root.__AN.meta.clips[r[0]])) ? r : (r ? ['L:Jog Forward', Math.min(1.5, r[1] * 2.6)] : null); };

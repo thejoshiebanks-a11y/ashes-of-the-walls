@@ -168,6 +168,11 @@ def snapneck(q, body):
         s = B[(np.abs(B[:, 1] - y) < .006) & (np.abs(B[:, 0]) < .1)]; hw.append(np.abs(s[:, 0]).max() if len(s) > 3 else np.nan)
     hw = np.array(hw); ok = ~np.isnan(hw); hwy = np.interp(P[:, 1], ys[ok], hw[ok]); f = np.clip((1.618 - P[:, 1]) / .008, 0, 1); f = f * f * (3 - 2 * f)
     lim = np.minimum(np.abs(P[:, 0]), np.maximum(hwy - .006, .02)); P[:, 0] = np.sign(P[:, 0]) * (np.abs(P[:, 0]) * (1 - f) + lim * f)
+    zlo = []; zhi = []
+    for y in ys:                                                                                      # depth: the tube's back/front rim must also sit inside the body's neck, or a wedge of sky shows behind the nape
+        s_ = B[(np.abs(B[:, 1] - y) < .006) & (np.abs(B[:, 0]) < .06)]; zlo.append(s_[:, 2].min() if len(s_) > 3 else np.nan); zhi.append(s_[:, 2].max() if len(s_) > 3 else np.nan)
+    zlo = np.array(zlo); zhi = np.array(zhi); ok2 = ~np.isnan(zlo); zl = np.interp(P[:, 1], ys[ok2], zlo[ok2]) + .006; zh = np.interp(P[:, 1], ys[ok2], zhi[ok2]) - .006
+    P[:, 2] = P[:, 2] * (1 - f) + np.clip(P[:, 2], zl, np.maximum(zh, zl + .02)) * f
     q = dict(q); q['pos'] = P; q['nrm'] = C.wnorm(P, q['ix'].reshape(-1, 3)).astype(q['nrm'].dtype); return q
 
 def warp_all(parts, w2):

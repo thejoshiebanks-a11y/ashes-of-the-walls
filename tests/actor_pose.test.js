@@ -7,7 +7,7 @@ function grab(startRe){ // balanced-brace extraction of a top-level function/cla
     if(c==='"'||c==="'"||c==='`'){q=c;continue} if(c==='{')d++; else if(c==='}'){d--; if(d===0) return src.slice(m.index,k+1)}}
   throw new Error('unbalanced '+startRe)}
 const line=re=>{const m=re.exec(src); if(!m) throw new Error('no line '+re); const e=src.indexOf('\n',m.index); return src.slice(m.index,e<0?src.length:e)};
-const code=[line(/const dot=/), line(/const cross=/), line(/const m4=/), grab(/function arc\(/), grab(/function modelMat\(/), grab(/function relModel\(/), grab(/function groundFix\(M,mm/), grab(/function newPose\(/), grab(/function clipPose\(/),
+const code=[line(/const dot=/), line(/const cross=/), line(/const m4=/), grab(/function arc\(/), grab(/function modelMat\(/), grab(/function relModel\(/), grab(/function groundFix\(M,mm/), grab(/function newPose\(/), grab(/function clipPose0\(/), grab(/function mirrorPose\(/), grab(/function blendPose\(/), line(/let SYMB=null/), grab(/function clipPose\(/),
   grab(/function blendPose\(/), line(/const clipLen=/), line(/const ssm=/), grab(/function pitchKeep\(/), grab(/function uprightFix\(/), grab(/function toDirs\(/), grab(/function mirrorPose\(/), grab(/class Anim\{/), grab(/async function loadAnims\(/), grab(/async function loadModel\(/),
   line(/const b64u8=/), 'const MD={};let AN=null,gp={u:{},a:{}};const ZMASK=new Float32Array(128);'].join('\n');
 const gl=new Proxy({},{get:(t,k)=>k==='TEXTURE_2D'||typeof k==='symbol'?1:(...a)=>({})});
@@ -50,5 +50,6 @@ let pass=0,fail=0; const ok=(c,m)=>{if(c)pass++;else{fail++;console.log('FAIL',m
     ok(Math.abs(bot)<info.bodyHeight*0.12,`${key} ${clip} feet near ground (${bot.toFixed(3)})`); res[clip]=(top-bot).toFixed(2)}
   console.log(key.padEnd(11),'rest',hRest.toFixed(2),'posed',JSON.stringify(res));
  }
+ {const nm=A.getAN().meta.pairs.map(p=>p[0]),iL=nm.indexOf('Bip001 L Thigh')*3,iR=nm.indexOf('Bip001 R Thigh')*3;for(const cn of ['M:Walking','M:Running']){const o=A.newPose(),c=A.getAN().meta.clips[cn],T=(c.n-1)/30;let mx=0;for(let k=0;k<20;k++){const t=k*T/20;A.clipPose(cn,t,true,o);const d1=Array.from(o.d);A.clipPose(cn,t+T/2,true,o);const d2=Array.from(o.d);mx=Math.max(mx,Math.abs(d1[iL+1]-d2[iR+1]),Math.abs(d1[iL+2]-d2[iR+2]),Math.abs(d1[iL]+d2[iR]))}ok(mx<1e-3,`${cn} is left/right symmetric over the cycle (${mx.toFixed(4)})`)}}
  console.log(`actor pose tests: ${pass} passed, ${fail} failed`); process.exit(fail?1:0);
 })().catch(e=>{console.error('CRASH',e);process.exit(2)});

@@ -19,10 +19,9 @@
 /* ---- game HUD integration (body classes are set by main.js) ---- */
 body.sv-hidehud.odm #odm, body.sv-hidehud.odm #stick { display: none !important; }
 body.sv-s-dialogue #stick, body.sv-s-dialogue #odm .bt, body.sv-s-dialogue #odm .bg { visibility: hidden; }
-body.sv-story #odm .sd, body.sv-story #odm .menu, body.sv-story #odm .ms { display: none !important; }
-body.sv-noodm #odm .bt button:not([data-j]), body.sv-noodm #odm .bg, body.sv-noodm #odm .bars, body.sv-noodm #odm .bl,
+body.sv-story #odm .menu, body.sv-sandbox #odm .menu { display: none !important; }
+body.sv-story .sv-hudbtns, body.sv-sandbox .sv-hudbtns, body.sv-story .sv-track { display: none !important; }
 body.sv-noodm #odm .rt, body.sv-noodm #odm .rd, body.sv-noodm #odm .xl, body.sv-noodm #odm .xr, body.sv-noodm #odm .xd, body.sv-noodm #odm .tb { display: none !important; }
-body.sv-noodm #odm .lv { top: calc(var(--sv-safe-t) + 4.4vh); left: calc(var(--sv-safe-l) + 11vh); }
 
 /* ---- opening sequence ---- */
 .sv-intro { background: #0b1015; display: grid; place-items: center; }
@@ -298,4 +297,4 @@ body.sv-s-title .sv-ver, body.sv-s-title .sv-ticker { display: none !important; 
 .sv-day { position: absolute; left: 50%; bottom: calc(var(--sv-safe-b) + 22vh); transform: translateX(-50%); }
 body.sv-s-title #sv-root .sv-hudbtns { display: none; }
 
-body.sv-story #odm .pf, body.sv-story #odm .lv { display: none !important; }
+

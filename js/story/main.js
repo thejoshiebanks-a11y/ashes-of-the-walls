@@ -114,7 +114,7 @@
   const KIDS = [['eren', -1.25, 0.2], ['armin', 0.05, 1.05], ['mikasa', 1.2, 0.15]];
   async function ensureModels(keys) { try { await ACT.ensure(keys); } catch (e) { console.warn('[story] models unavailable, using markers only', e); } }
   async function spawnCast() {
-    const pl = S.state.player; ACT.clearAll();
+    const pl = S.state.player; ACT.clearAll(); root.__hudPortrait = pl && pl.body === 'teen' && pl.look ? 'assets/teen/ui/base_' + ((pl.look.base | 0) % 6) + '.webp' : null;
     const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); if (pl && pl.body === 'teen') { need.add('teen'); S.teen.want = [S.teen.keyFor(pl.look)]; } await ensureModels([...need]);
     tryA(() => {
       const me = G.pos(); ACT.spawnPlayer(pl, me.x, me.z, root.__st.wyaw, true);

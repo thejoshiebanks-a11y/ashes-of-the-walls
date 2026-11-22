@@ -73,6 +73,7 @@
     UI.tap.addEventListener('pointerdown', () => { if (!UI.dlg.hidden) UI.dialogue.tap(); });
   }
   UI._cb = n => UI.handlers && UI.handlers[n] && UI.handlers[n]();
+  window.__hudAct = n => UI._cb(n);          // the game's own HUD icons (pause, journal, map) call back into the story layer
 
   /* ---------- dialogue plate ---------- */
   let typer = null;

@@ -1,6 +1,8 @@
 # Changelog
 ## 0.9.25 (includes 0.9.22-0.9.24; apply on top of 0.9.21)
-- **Running posture (sprinter form).** Forward lean of about 12 degrees (pelvis to head, head looking ahead), knees drive forward instead of up, elbows bent about 90 degrees and pumping opposite to the legs with hands between chest and hip. Built up smoothly from a brisk walk; idle and walking are unchanged.
+- **Running posture (sprinter form).** Forward lean of about 15 degrees (pelvis to head, head looking ahead), knees drive forward instead of up, elbows bent about 90 degrees and pumping opposite to the legs with hands between chest and hip. Built up smoothly from a brisk walk; idle and walking are unchanged.
+- **Why the lean never showed in 0.9.25/b:** the form was keyed to a speed number the creator characters never reach (their real ground speed is tiny at child scale). It is now keyed to the run animation and eased in and out.
+- **Joystick (analog, like a console game).** Up to about 55% push you walk (slow to brisk); from about 58% you break into a run that reaches full speed by 65%; the ring glows green while running. RUN button stays removed.
 - **No RUN button.** Removed from the controls. Inside the joystick circle you walk (slow to brisk); push the stick all the way to the rim to run. The stick ring glows green while you are at full push.
 - **Civilian HUD.** With no gear: no kills/blades row, no gas gauge, no squad, no titan bar. Portrait, Lv, health, mission banner (moved under the health bar), minimap, clock, menu icons and a single big JUMP button remain.
 - **Neck, all six bases.** The bridge strip between neck and head now carries the body's skin weights on its lower edge, so the neck stays one smooth surface in every pose (idle, walking, running). lad, nin, beauty, blen and dragon rebuilt like boy.

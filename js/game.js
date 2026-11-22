@@ -69,7 +69,7 @@ function step(dt){if(lastWall)lastWall.t+=dt;
  const mf=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)-sv[1],ms=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+sv[0];const ml=Math.hypot(mf,ms),mn=ml>1?1/ml:1;
  const wish=[(fw[0]*mf+rt[0]*ms)*mn,0,(fw[2]*mf+rt[2]*ms)*mn],hooked=(hk[0].on&&hk[0].att)||(hk[1].on&&hk[1].att);
  const reel=K.Space||T.reel||hooked,out=K.ControlLeft||K.KeyC||T.out,gasOn=!window.__noOdm&&(((K.ShiftLeft||K.ShiftRight)&&!grounded)||T.gas)&&gas>0,brake=K.KeyX||T.brake;gasFx=!!gasOn;
- if(grounded&&!hooked){const sprint=K.ShiftLeft||K.ShiftRight,kb_=K.KeyW||K.KeyA||K.KeyS||K.KeyD,sp=ml<.04?0:sprint?P.sprint:kb_?P.jog:ml<.86?.3+.8*(ml-.04)/.82:1.1+1.4*((t_=>t_*t_*(3-2*t_))(Math.min(1,(ml-.86)/.12))),/* analog stick like a console game: everything inside the circle walks (slow to brisk), only a full push to the rim runs */wd=ml>1e-3?[wish[0]/(ml>1?1:ml)*1,0,wish[2]/(ml>1?1:ml)*1]:[0,0,0],tv=[wd[0]*(window.__spdMap?window.__spdMap(sp):sp),0,wd[2]*(window.__spdMap?window.__spdMap(sp):sp)],k=Math.min(1,dt*(ml>.05?7:9));
+ if(grounded&&!hooked){const sprint=K.ShiftLeft||K.ShiftRight,kb_=K.KeyW||K.KeyA||K.KeyS||K.KeyD,sp=ml<.04?0:sprint?P.sprint:kb_?P.jog:ml<.55?.45+.35*(ml-.04)/.51:ml<.65?.8+1.5*((t_=>t_*t_*(3-2*t_))((ml-.55)/.1)):2.3+.2*((t_=>t_*t_*(3-2*t_))(Math.min(1,(ml-.65)/.3))),/* analog stick like a console game: up to about half-way you walk (slow to brisk), a bit further and you break into a run that quickly reaches full speed */wd=ml>1e-3?[wish[0]/(ml>1?1:ml)*1,0,wish[2]/(ml>1?1:ml)*1]:[0,0,0],tv=[wd[0]*(window.__spdMap?window.__spdMap(sp):sp),0,wd[2]*(window.__spdMap?window.__spdMap(sp):sp)],k=Math.min(1,dt*(ml>.05?7:9));
   const hs=Math.hypot(v[0],v[2]);if(dodgeT>0){dodgeT-=dt}else if(hs>P.sprint+2){const f=Math.exp(-dt*1.4);v[0]*=f;v[2]*=f}else{v[0]+=(tv[0]-v[0])*k;v[2]+=(tv[2]-v[2])*k}
   if(K.Space&&!T.jumped){v[1]=P.jump;grounded=false}}
  else{v[1]-=P.g*dt;const s=hooked?P.steer*1.6:P.steer;v[0]+=wish[0]*s*dt;v[2]+=wish[2]*s*dt}
@@ -158,9 +158,9 @@ function uprightFix(D,sp,up){const idle=(1-ssm(.15,.45,sp))*up,th=(4-3*ssm(.5,3,
   for(const [v,sd] of [[L,1],[R,-1]]){if(idle>0){v[1]+=(ym-v[1])*idle;v[2]+=(zm-v[2])*idle;if(arm)v[0]+=(sd*xm-v[0])*idle}
    if(arm){const x=v[0],y=v[1];v[0]=x*c-sd*y*s;v[1]=sd*x*s+y*c}
    const l=Math.hypot(v[0],v[1],v[2])||1;v[0]/=l;v[1]/=l;v[2]/=l}}
- const wk=ssm(.2,1.4,sp),rn=ssm(1.3,2.5,sp),LN=.22,wS=up*Math.max(.9-.6*wk-.05*rn,.85*rn),tzS=.05*wk+LN*rn,wN=wS*.95,tzN=.06-.01*wk+.05*rn,wL=idle*.85;
+ const wk=ssm(.2,1.4,sp),rn=ssm(1.3,2.5,sp),LN=.26,wS=up*Math.max(.9-.6*wk-.05*rn,.85*rn),tzS=.05*wk+LN*rn,wN=wS*.95,tzN=.06-.01*wk+.05*rn,wL=idle*.85;
  for(const nm of ['Pelvis','Spine','Spine1','Spine2','Neck','Head']){const v=D['Bip001 '+nm];if(!v)continue;const nk=nm==='Neck'||nm==='Head',w=nk?wN:wS;v[2]=v[2]*(1-w)+(nk?tzN:tzS)*w;const l=Math.hypot(v[0],v[1],v[2])||1;v[0]/=l;v[1]/=l;v[2]/=l}
- if(rn>0){const FM=1;for(const sd of ['L','R']){const v=D['Bip001 '+sd+' Thigh'];if(!v)continue;const h=Math.hypot(v[1],v[2]),ph=Math.atan2(v[2],-v[1]),pn=FM*Math.tanh(ph/FM),k=rn*up,pf=ph+(pn-ph)*k;if(ph>0){v[2]=Math.sin(pf)*h;v[1]=-Math.cos(pf)*h}}}
+ if(rn>0){const FM=1.2;for(const sd of ['L','R']){const v=D['Bip001 '+sd+' Thigh'];if(!v)continue;const h=Math.hypot(v[1],v[2]),ph=Math.atan2(v[2],-v[1]),pn=ph>0?FM*Math.tanh(ph*1.2/FM):ph*1.3,k=rn*up,pf=ph+(pn-ph)*k;{v[2]=Math.sin(pf)*h;v[1]=-Math.cos(pf)*h}}}
  if(rn>0&&D['Bip001 L Thigh']&&D['Bip001 L UpperArm']){
   const tl=D['Bip001 L Thigh'],tr=D['Bip001 R Thigh'],pL=Math.atan2(tl[2],-tl[1]),pR=Math.atan2(tr[2],-tr[1]),AS=.95,FL=1.42,k=rn*up;
   for(const sd of ['L','R']){const ua=D['Bip001 '+sd+' UpperArm'],fa=D['Bip001 '+sd+' Forearm'];if(!ua||!fa)continue;const df=sd==='L'?pL-pR:pR-pL,a=Math.max(-.9,Math.min(.9,-AS*df)),b=a+FL,sx=sd==='L'?1:-1,ox=.1;
@@ -614,7 +614,7 @@ function drawActors(dt){
   if(!a.static){
    if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
    const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,a.fade||.25);a.an.rate=rt;if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
-   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;pz.sp=a.speed||(/Walk/.test(cn)?1.2:/Jog/.test(cn)?2.6:/Run|Sprint/.test(cn)?3.6:0);if(a.poseFn||a.talking||!/Idle|Walk|Jog|Run|Sprint|GAIT/.test(cn))pz.ns=1;if(a.poseFn)a.poseFn(pz,a,M);/* a.poseFn: edit the pose before it is drawn */
+   const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;{const tg=cn==='M:Running'?3.6:(a.speed||(/Walk/.test(cn)?1.2:/Jog/.test(cn)?2.6:/Run|Sprint/.test(cn)?3.6:0));/* the creator characters' real ground speed is tiny (child scale), so the run lean/arm form is keyed to the run clip and eased in and out instead of to that number */if(a._ps===undefined)a._ps=tg;a._ps+=(tg-a._ps)*Math.min(1,dt*7);pz.sp=a._ps}if(a.poseFn||a.talking||!/Idle|Walk|Jog|Run|Sprint|GAIT/.test(cn))pz.ns=1;if(a.poseFn)a.poseFn(pz,a,M);/* a.poseFn: edit the pose before it is drawn */
    if(a.talking){const t=a.ph=(a.ph||0)+dt;const g=Math.sin(t*2.3)*.5+.5;const r=AN.pi['Bip001 R Forearm'];if(r!==undefined&&a.talkGest!==false){const i=r*3;pz.d[i+1]+=g*.45;pz.d[i]-=g*.18}}
    const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;
    if(hs!==1&&hi>=0){sv=M.loc.slice(hi*16,hi*16+12);for(let k=0;k<12;k++)if(k%4<3)M.loc[hi*16+k]*=hs}
@@ -790,7 +790,7 @@ body[data-hm=battle] #odm .bt .atk{animation:atkp 1.6s ease-in-out infinite}@key
  for(const id of['mOrbit','mWalk','rail'])document.getElementById(id).addEventListener('click',()=>{if(on)setOn(false)},true);
  addEventListener('keydown',e=>{if(!on)return;K[e.code]=true;if(e.code==='KeyQ'&&!e.repeat){mash();if(hk[0].on)relHook(0);else if(!grab)fire(0)}if(e.code==='KeyE'&&!e.repeat){mash();if(hk[1].on)relHook(1);else if(!grab)fire(1)}if(e.code==='Space'&&!e.repeat){mash();if(!grounded&&lastWall&&lastWall.t<.3&&len(v)>4)wallKick()}if(e.code==='KeyF')slash();if(e.code==='KeyZ')dodge();if(e.code==='KeyB')bladeSwap();if(e.code==='KeyR')toggleLock();if(e.code==='KeyT')respawn();if(e.code==='Space')e.preventDefault();if(/^Digit|^Tab/.test(e.code))setOn(false)},true);
  addEventListener('keyup',e=>{K[e.code]=false});
- const stk=document.getElementById('stick');let sp=null;const sm=e=>{const r=stk.getBoundingClientRect();let x=(e.clientX-r.left-r.width/2)/(r.width/2),y=(e.clientY-r.top-r.height/2)/(r.height/2);const l=Math.hypot(x,y);if(l>1){x/=l;y/=l}sv=[x,y];stk.classList.toggle('run',l>.97)};
+ const stk=document.getElementById('stick');let sp=null;const sm=e=>{const r=stk.getBoundingClientRect();let x=(e.clientX-r.left-r.width/2)/(r.width/2),y=(e.clientY-r.top-r.height/2)/(r.height/2);const l=Math.hypot(x,y);if(l>1){x/=l;y/=l}sv=[x,y];stk.classList.toggle('run',l>.62)};
  stk.addEventListener('pointerdown',e=>{sp=e.pointerId;sm(e)});stk.addEventListener('pointermove',e=>{if(e.pointerId===sp)sm(e)});const se=e=>{if(e.pointerId===sp){sp=null;sv=[0,0];stk.classList.remove('run')}};stk.addEventListener('pointerup',se);stk.addEventListener('pointercancel',se)}
 function toggleLock(){if(lockOn){lockOn=false;msg='LOCK OFF';msgT=.8;return}if(titan&&!titan.dead){lockOn=true;msg='LOCKED ON';msgT=.9}else{msg='NO TARGET';msgT=1}}
 function lockStep(dt){if(!lockOn)return;if(!titan||titan.dead){lockOn=false;return}const nq=SPH.find(q=>q.nape);if(!nq)return;const tx=nq.c[0]-cam.pos[0],ty=nq.c[1]-cam.pos[1],tz=nq.c[2]-cam.pos[2],hd=Math.hypot(tx,tz);if(hd>110){lockOn=false;return}

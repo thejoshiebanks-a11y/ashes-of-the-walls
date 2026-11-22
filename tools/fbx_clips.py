@@ -91,12 +91,12 @@ def run(path, prefix, pairs, ystand=None):
             d = W[byname[MAP[c]]][:3, 3] - W[byname[MAP[p]]][:3, 3]; d = d / (np.linalg.norm(d) + 1e-9); D[f, pi * 3:pi * 3 + 3] = qrel.T @ d
     return n, D, Q, Y, y0
 if __name__ == '__main__':
-    ap = argparse.ArgumentParser(); ap.add_argument('files', nargs='+'); ap.add_argument('--prefix', default='M:'); ap.add_argument('--root', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')); ap.add_argument('--dry', action='store_true')
+    ap = argparse.ArgumentParser(); ap.add_argument('files', nargs='+'); ap.add_argument('--prefix', default='M:'); ap.add_argument('--root', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')); ap.add_argument('--dry', action='store_true'); ap.add_argument('--ystand', type=float, default=None)
     a = ap.parse_args(); R = a.root
     mj = json.load(open(R + '/data/models.json')); pairs = mj['anims']['meta']['pairs']
     pk = os.path.join(R, 'assets/models.pack'); b = open(pk, 'rb').read(); hl = struct.unpack('<I', b[:4])[0]; hdr = json.loads(b[4:4 + hl]); base = 4 + hl
     files = {k: b[base + o:base + o + l] for k, (o, l) in hdr.items()}; old = bytearray(zlib.decompress(files['anims.bin'])); added = {}
-    ys = run([f for f in a.files if os.path.basename(f).startswith('Idle')][0], a.prefix, pairs)[4]      # standing pelvis height = the plain Idle
+    ys = a.ystand or run([f for f in a.files if os.path.basename(f).startswith('Idle')][0], a.prefix, pairs)[4]      # standing pelvis height = the plain Idle
     for fp in a.files:
         n, D, Q, Y, _ = run(fp, a.prefix, pairs, ys); name = os.path.splitext(os.path.basename(fp))[0]
         print(name, n, 'frames  pelvis-up-dir y at f0:', np.round(D[0, 24:27], 3), ' L thigh->calf:', np.round(D[0, 12:15], 3), ' Y range', Y.min().round(3), Y.max().round(3))

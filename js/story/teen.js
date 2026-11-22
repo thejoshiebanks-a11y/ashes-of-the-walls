@@ -164,6 +164,7 @@
       if (teen && has('M:Idle')) {                         // everyday life for every creator character: the upright motion-captured set (stride-matched to the body)
         if (!(sp > 0.25)) return a.idle ? null : [(a.mood === 'calm' && has('M:Breathing Idle')) ? 'M:Breathing Idle' : 'M:Idle', 1];
         if (!a.scale) return null; const ls = sp / (a.scale * T.bodyHeight(a.key) * 0.47);
+        if (has('M:Standard_Walk') && has('M:Standard_Run')) return ls < 2.6 ? ['M:Standard_Walk', Math.max(0.4, Math.min(1.35, ls / 1.55))] : ['M:Standard_Run', Math.max(0.7, Math.min(1.35, ls / 3.85))];   // the reference Mixamo Standard Walk / Standard Run, played as captured; rate = ground speed / the clip's measured stance-foot speed (walk 1.55, run 3.85 leg-lengths/s)
         return ls < 2.6 ? ['M:Walking', Math.max(0.4, Math.min(1.35, ls / 1.9))] : ['M:Running', Math.max(0.62, Math.min(1.3, ls / 4.75))]; }   // rates = ground speed / the clip's measured stance-foot speed (walk 1.9, run 4.75 leg-lengths per second), so the planted foot never skates and the legs never spin
       if (!(sp > 0.25) || !root.__actors) return null;
       const bh = T.BASES.some(b => b.key === a.key) ? T.bodyHeight(a.key) : (root.__actors.bodyHeight(a.key) || 1.75); if (!a.scale) return null;

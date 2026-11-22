@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.26 (goes on top of 0.9.25 + 0.9.25b + 0.9.25c)
+- **Walk and run replaced by your reference Mixamo clips.** Standard_Walk and Standard_Run are converted into the engine (M:Standard_Walk / M:Standard_Run) and are now THE walk and run for every creator character and for the creator's opening walk-in. They play exactly as captured: none of my earlier posture edits are applied to them (no extra lean, knee or arm changes), so posture, arm pump, knee drive and stride are the reference's own.
+- Playback speed is matched to the clip's measured foot speed (walk 1.55, run 3.85 leg-lengths per second) so feet do not slide; the body keeps the captured vertical bounce while feet are still kept out of the ground.
+- Joystick mapping from 0.9.25c is unchanged (walk to ~55% push, run from ~58%).
+- The old M:Walking / M:Running clips stay in the file as a fallback only.
 ## 0.9.25 (includes 0.9.22-0.9.24; apply on top of 0.9.21)
 - **Running posture (sprinter form).** Forward lean of about 15 degrees (pelvis to head, head looking ahead), knees drive forward instead of up, elbows bent about 90 degrees and pumping opposite to the legs with hands between chest and hip. Built up smoothly from a brisk walk; idle and walking are unchanged.
 - **Why the lean never showed in 0.9.25/b:** the form was keyed to a speed number the creator characters never reach (their real ground speed is tiny at child scale). It is now keyed to the run animation and eased in and out.

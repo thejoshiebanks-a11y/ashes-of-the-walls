@@ -161,7 +161,7 @@
         if (t >= TM.land && t < TM.jdEnd) a.clipT = 1.6 + 0.8 * ease((t - TM.land) / (TM.jdEnd - TM.land));
         if (t >= TM.jdEnd && !flags.rise) { flags.rise = 1; a.clipT = null; a.fade = 0.7; a.forceClip = ['M:Crouch To Stand', 0.78]; }
         if (t >= TM.standEnd && !flags.tall) { flags.tall = 1; a.fade = 0.7; a.forceClip = ["M:Idle", 1]; }
-        if (t >= TM.walk && !flags.walk) { flags.walk = 1; const sp = (2.4 * U) / TM.walkLen, ls = sp / (U * 0.47); a.fade = 0.5; a.forceClip = ['M:Walking', clamp(ls / 1.6, 0.55, 1.5)]; }
+        if (t >= TM.walk && !flags.walk) { flags.walk = 1; const sp = (2.4 * U) / TM.walkLen, ls = sp / (U * 0.47); a.fade = 0.5; a.forceClip = ['M:Standard_Walk', clamp(ls / 1.55, 0.55, 1.5)]; }
         if (t >= TM.walk && t < TM.walk + TM.walkLen) { const xz = charXZ(t); a.x = xz[0]; a.z = xz[1]; }
         if (t >= TM.walk + TM.walkLen && !flags.idle) { flags.idle = 1; a.x = st.x; a.z = st.z; a.fade = 0.6; a.forceClip = ['M:Idle', 1]; }
         /* the silhouette: black until the fog has thinned, a lightning flash shows him for an instant, then the sun breaks and the skin comes up */

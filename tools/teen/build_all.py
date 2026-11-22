@@ -153,11 +153,60 @@ def smooth_neck(b):
     A = sps.coo_matrix((np.ones(len(E)), (E[:, 0], E[:, 1])), shape=(nw, nw)).tocsr(); A.data[:] = 1; D = sps.diags(1 / np.maximum(np.asarray(A.sum(1)).reshape(-1), 1)) @ A
     cnt = np.bincount(wid, minlength=nw)[:, None]; Pw = np.zeros((nw, 3)); np.add.at(Pw, wid, P); Pw /= cnt
     sm = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1)); y = Pw[:, 1]
-    w = sm((y - 1.560) / .02) * (1 - sm((y - 1.610) / .02)); w = w[:, None]
+    y0 = float(os.environ.get('NB0', '1.560')); w = sm((y - y0) / .02) * (1 - sm((y - 1.610) / .02)); w = w[:, None]
     Q = Pw.copy()
     for _ in range(40):
         Q = Q + .55 * w * (D @ Q - Q); Q = Q + (-.58) * w * (D @ Q - Q)
     P2 = Q[wid]; b = dict(b); b['pos'] = P2.astype(b['pos'].dtype); b['nrm'] = C.wnorm(P2, b['ix'].reshape(-1, 3)).astype(b['nrm'].dtype); return b
+
+YN = 1.575                                                    # height where the body's neck funnel hands over to the head piece's neck tube
+def cutneck(b, yn=YN):
+    """the funnel above yn is removed (its top edge was ragged and stood proud of the tube); neck_bridge() lofts the tube down onto the funnel surface at yn instead"""
+    F = b['ix'].reshape(-1, 3); Pc = b['pos'][F].mean(1)
+    return C.sub(b, ~((Pc[:, 1] > yn + float(os.environ.get('CUTUP', '.014'))) & (np.abs(Pc[:, 0]) < float(os.environ.get('CUTX', '.10')))))
+
+def neck_bridge(q, body, yn=YN):
+    """A bridge strip loft: the tube's open lower ring is joined to a ring lying ON the body's funnel at yn (same angle, taken from the funnel surface), so the neck is one continuous surface from the shoulders to the head (no ledge, no sawtooth, no overlap)"""
+    F = q['ix'].reshape(-1, 3); ec = {}
+    for f in F:
+        for a, b_ in ((f[0], f[1]), (f[1], f[2]), (f[2], f[0])): k = (min(a, b_), max(a, b_)); ec[k] = ec.get(k, 0) + 1
+    Pq = q['pos']; _, wid = np.unique(np.round(Pq, 5), axis=0, return_inverse=True); wid = wid.reshape(-1); adj = {}
+    for (a, b_), n in ec.items():
+        if n == 1: adj.setdefault(wid[a], set()).add(wid[b_]); adj.setdefault(wid[b_], set()).add(wid[a])
+    if not adj: return q
+    low = min(adj, key=lambda w_: Pq[np.where(wid == w_)[0][0], 1]); seen = {low}; st_ = [low]                        # the ring is the boundary loop that holds the lowest boundary vertex (the head piece also has open seams up its sides: those are not part of it)
+    while st_:
+        for w2 in adj[st_.pop()]:
+            if w2 not in seen: seen.add(w2); st_.append(w2)
+    bv = sorted({v for (a, b_), n in ec.items() if n == 1 for v in (a, b_) if wid[v] in seen and Pq[v, 1] < Pq[[np.where(wid == low)[0][0]], 1][0] + .016})
+    if len(bv) < 8: return q
+    P = q['pos']; c = P[bv][:, [0, 2]].mean(0); th = np.arctan2(P[bv, 2] - c[1], P[bv, 0] - c[0]); o = np.argsort(th); bv = np.array(bv)[o]; th = th[o]
+    UV = q['uv'].astype(np.float64); i = 0                                                                  # a UV seam doubles the ring's vertices at one place: order each coincident pair so the texture coordinate never jumps across a strip quad
+    while i < len(bv) - 1:
+        if np.linalg.norm(P[bv[i]] - P[bv[i + 1]]) < 1e-6:
+            pr = UV[bv[i - 1]] if i > 0 else UV[bv[-1]]; nx = UV[bv[i + 2]] if i + 2 < len(bv) else UV[bv[0]]
+            c0 = np.abs(UV[bv[i]] - pr).sum() + np.abs(UV[bv[i + 1]] - nx).sum(); c1 = np.abs(UV[bv[i + 1]] - pr).sum() + np.abs(UV[bv[i]] - nx).sum()
+            if c1 < c0: bv[i], bv[i + 1] = bv[i + 1], bv[i]
+            i += 2
+        else: i += 1
+    B = body['pos']; m = (np.abs(B[:, 1] - yn) < .005) & (np.abs(B[:, 0]) < float(os.environ.get('CUTX', '.10')) + .005); S_ = B[m]; ts = np.arctan2(S_[:, 2] - c[1], S_[:, 0] - c[0]); rs = np.hypot(S_[:, 2] - c[1], S_[:, 0] - c[0])
+    nb = 72; ed = np.linspace(-np.pi, np.pi, nb + 1); rb = np.full(nb, np.nan)
+    for k in range(nb):
+        s_ = (ts >= ed[k]) & (ts < ed[k + 1])
+        if s_.any(): rb[k] = rs[s_].max()
+    ok = ~np.isnan(rb); tc = (ed[:-1] + ed[1:]) / 2; rr = np.interp(th, np.r_[tc[ok] - 2 * np.pi, tc[ok], tc[ok] + 2 * np.pi], np.r_[rb[ok], rb[ok], rb[ok]]) - .0015
+    rr = np.maximum(rr, np.hypot(P[bv, 2] - c[1], P[bv, 0] - c[0]) + .004)
+    new = np.stack([c[0] + rr * np.cos(th), np.full(len(th), yn), c[1] + rr * np.sin(th)], 1)
+    kd = __import__('scipy.spatial', fromlist=['cKDTree']).cKDTree(B); _, ni = kd.query(new)
+    n0 = len(P); n = len(bv); idx = np.arange(n0, n0 + n)
+    tri = []
+    for i in range(n):
+        a, b_ = bv[i], bv[(i + 1) % n]; c_, d_ = idx[(i + 1) % n], idx[i]
+        tri += [[a, b_, c_], [a, c_, d_]]
+    tri = np.array(tri); fn = np.cross(np.r_[P, new][tri[:, 1]] - np.r_[P, new][tri[:, 0]], np.r_[P, new][tri[:, 2]] - np.r_[P, new][tri[:, 0]]); out = np.r_[P, new][tri].mean(1) - np.array([c[0], 1.58, c[1]]) * np.array([1, 0, 1]) + np.array([0, .08, 0])
+    flip = (fn * out).sum(1) < 0; tri[flip] = tri[flip][:, ::-1]
+    d = dict(q); d['pos'] = np.r_[P, new]; d['nrm'] = np.r_[q['nrm'], body['nrm'][ni]].astype(q['nrm'].dtype); d['uv'] = np.r_[q['uv'], q['uv'][bv]]
+    d['jj'] = np.r_[q['jj'], q['jj'][bv]]; d['ww'] = np.r_[q['ww'], q['ww'][bv]]; d['ix'] = np.r_[q['ix'], tri.reshape(-1)].astype(q['ix'].dtype); return d
 
 def snapneck(q, body):
     """the head piece's neck tube must never stand proud of the body's neck: below y 1.615 its half-width is held 3 mm inside the body's own neck (fading out above), so the tube's lower rim is
@@ -167,13 +216,22 @@ def snapneck(q, body):
     for y in ys:
         s = B[(np.abs(B[:, 1] - y) < .006) & (np.abs(B[:, 0]) < .1)]; hw.append(np.abs(s[:, 0]).max() if len(s) > 3 else np.nan)
     hw = np.array(hw); ok = ~np.isnan(hw); hwy = np.interp(P[:, 1], ys[ok], hw[ok]); f = np.clip((1.618 - P[:, 1]) / .008, 0, 1); f = f * f * (3 - 2 * f)
-    lim = np.minimum(np.abs(P[:, 0]), np.maximum(hwy - .006, .02)); P[:, 0] = np.sign(P[:, 0]) * (np.abs(P[:, 0]) * (1 - f) + lim * f)
+    lim = np.minimum(np.abs(P[:, 0]), np.maximum(hwy - float(os.environ.get('HIN', '.001')), .02)); P[:, 0] = np.sign(P[:, 0]) * (np.abs(P[:, 0]) * (1 - f) + lim * f)
+    if os.environ.get('DBGNECK'):
+        for y in np.arange(1.55, 1.70, .01):
+            f_ = lambda A: (lambda t: (np.abs(t[:, 0]).max(), t[:, 2].min(), t[:, 2].max(), len(t)) if len(t) else None)(A[(np.abs(A[:, 1] - y) < .005) & (np.abs(A[:, 0]) < .12)])
+            print('y %.2f body' % y, f_(B), 'tube', f_(q['pos']))
     zlo = []; zhi = []
     for y in ys:                                                                                      # depth: the tube's back/front rim must also sit inside the body's neck, or a wedge of sky shows behind the nape
         s_ = B[(np.abs(B[:, 1] - y) < .006) & (np.abs(B[:, 0]) < .06)]; zlo.append(s_[:, 2].min() if len(s_) > 3 else np.nan); zhi.append(s_[:, 2].max() if len(s_) > 3 else np.nan)
-    zlo = np.array(zlo); zhi = np.array(zhi); ok2 = ~np.isnan(zlo); zl = np.interp(P[:, 1], ys[ok2], zlo[ok2]) + .006; zh = np.interp(P[:, 1], ys[ok2], zhi[ok2]) - .006
+    zlo = np.array(zlo); zhi = np.array(zhi); ok2 = ~np.isnan(zlo); zl = np.interp(P[:, 1], ys[ok2], zlo[ok2]) + float(os.environ.get('HIN', '.001')); zh = np.interp(P[:, 1], ys[ok2], zhi[ok2]) - float(os.environ.get('HIN', '.001'))
     P[:, 2] = P[:, 2] * (1 - f) + np.clip(P[:, 2], zl, np.maximum(zh, zl + .02)) * f
-    q = dict(q); q['pos'] = P; q['nrm'] = C.wnorm(P, q['ix'].reshape(-1, 3)).astype(q['nrm'].dtype); return q
+    q = dict(q); q['pos'] = P; N = C.wnorm(P, q['ix'].reshape(-1, 3))
+    # shading weld: where the tube crosses the body's neck its normals are taken from the body's surface (nearest body vertex), fading out up the neck, so there is no lighting crease at the join
+    from scipy.spatial import cKDTree
+    m = (B[:, 1] > 1.50) & (B[:, 1] < 1.72) & (np.abs(B[:, 0]) < .12); Bn = body['nrm'][m].astype(np.float64); kd = cKDTree(B[m]); _, ni = kd.query(P)
+    g = np.clip((1.645 - P[:, 1]) / .035, 0, 1); g = (g * g * (3 - 2 * g))[:, None]; N2 = N * (1 - g) + Bn[ni] * g; N2 /= np.maximum(np.linalg.norm(N2, axis=1, keepdims=True), 1e-9)
+    q['nrm'] = N2.astype(q['nrm'].dtype); return q
 
 def warp_all(parts, w2):
     out = []
@@ -194,7 +252,7 @@ def build(key, src, common, wpl, out_root):
     bd = shrink_dressed(common['body_d'], wpl); bd = C.sub(bd, ~(bd['pos'][bd['ix'].reshape(-1, 3)][:, :, 1].max(1) < .98)); bd['srctex'] = 902; bd['mat'] = 'Skin_BodyD'; parts.append(bd)      # every outfit covers the legs completely, so this skin (pressed in under the clothes, used whenever an outfit is worn; the bare body is used with the boxers) starts at the hips and nothing can show through trousers or boots. Same skin, pressed in under the clothes: used whenever an outfit is worn (the bare body is used with the boxers)
     # --- head piece (native)
     for p in with_tex(s['head'], s['tx'], OFF[key], T):
-        q = dict(p); q['pos'] = q['pos'] + (d_tgt - wp[17]); q = snapneck(q, body) if (q['mat'] == 'Skin_Body' and len(q['pos']) < 2000) else q
+        q = dict(p); q['pos'] = q['pos'] + (d_tgt - wp[17]); q = neck_bridge(snapneck(q, body), body) if (q['mat'] == 'Skin_Body' and len(q['pos']) < 2000) else q
         if q['mat'] == 'Skin_Body' and len(q['pos']) < 2000: q = dict(q); q['mat'] = 'Skin_Neck'
         parts.append(q)
     # --- six faces: Face k = native face of BASES[k]
@@ -255,7 +313,7 @@ def common_parts():
     for p in gar: hip_trim(p)
     body_pre = C.trapezius(C.relief(body, amp=float(os.environ.get('RELIEF', '2.2')))); body = C.shoulder_anatomy(C.limbs(body_pre));       # the sculpted anatomy is for the bare body; the pressed-in skin under clothes keeps the smooth shape so ridges never poke through cloth
     body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=float(os.environ.get("INSIDE","0.02")), passes=2, fade=False); C.reweight(sc + ca + ar, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
-    body = smooth_neck(body); body_d = smooth_neck(body_d)
+    body = cutneck(smooth_neck(body)); body_d = cutneck(smooth_neck(body_d))
     T[902] = C.skin_atlas(sk); body = C.skin_uv(body); body_d = C.skin_uv(body_d)
     return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar, T=T), wpl
 

@@ -16,3 +16,5 @@ Creator characters (v0.9.12). The new anime body, outfits and animations were as
 - Base anime body: "anime_male_base_body" supplied by the project owner (licence to be confirmed); re-proportioned, smoothed and re-skinned.
 - Ninja (Kage) and for_blender (Aoi) heads, faces and hair: from the boy base models supplied by the project owner (licences to be confirmed). A third supplied model (mahes_anime) is not used.
 - Everyday animations (Idle, Breathing Idle, Walking, Running, Jump, Jumping Down, Crouch To Stand, Right Turn, Talking, Telling A Secret): the character animation pack supplied by the project owner; retargeted by tools/fbx_clips.py.
+
+- Dragon-guard vest and Shinobi garb outfits: adapted from "Anime Boy Dragon Guider" (https://sketchfab.com/3d-models/anime-boy-dragon-guider-b1f29fe70fd74844866c4d82868caf6d) and "Anime Boy Ninja Character - Fully Rigged" (https://sketchfab.com/3d-models/anime-boy-ninja-character-fully-rigged-2bca956058144a339b28c218c38b6e9b) by infinitymanpk, CC-BY 4.0.

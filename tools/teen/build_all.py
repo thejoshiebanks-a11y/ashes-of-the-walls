@@ -250,6 +250,9 @@ def build(key, src, common, wpl, out_root):
     # --- body in this base's skin colour
     T[900] = Image.new('RGBA', (8, 8), tuple(int(v) for v in bt) + (255,)); body = dict(common['body']); body['srctex'] = 902; parts.append(body)
     bd = shrink_dressed(common['body_d'], wpl); bd = C.sub(bd, ~(bd['pos'][bd['ix'].reshape(-1, 3)][:, :, 1].max(1) < .98)); bd['srctex'] = 902; bd['mat'] = 'Skin_BodyD'; parts.append(bd)      # every outfit covers the legs completely, so this skin (pressed in under the clothes, used whenever an outfit is worn; the bare body is used with the boxers) starts at the hips and nothing can show through trousers or boots. Same skin, pressed in under the clothes: used whenever an outfit is worn (the bare body is used with the boxers)
+    # lower legs for the outfits that leave them uncovered (cropped trousers, shorts): the bare legs, drawn in under cloth (like the dressed skin) and blending to the true bare leg from the knee down, so shoes and bare shins match the body exactly
+    bare = common['body']; shr = shrink_dressed(bare, wpl); smc = lambda t: (lambda c: c * c * (3 - 2 * c))(np.clip(t, 0, 1)); Pb = bare['pos']; wblend = smc((Pb[:, 1] - .30) / .30)[:, None]
+    bl = dict(bare); bl['pos'] = Pb + (shr['pos'] - Pb) * wblend; bl['nrm'] = C.wnorm(bl['pos'], bl['ix'].reshape(-1, 3)).astype(bare['nrm'].dtype); bl = C.sub(bl, bl['pos'][bl['ix'].reshape(-1, 3)][:, :, 1].max(1) < .56); bl['srctex'] = 902; bl['mat'] = 'Skin_BodyL'; parts.append(bl)
     # --- head piece (native)
     for p in with_tex(s['head'], s['tx'], OFF[key], T):
         q = dict(p); q['pos'] = q['pos'] + (d_tgt - wp[17]); q = neck_bridge(snapneck(q, body), body) if (q['mat'] == 'Skin_Body' and len(q['pos']) < 2000) else q
@@ -308,14 +311,16 @@ def common_parts():
     for p in ar:
         if p.get('srctex') is not None: T[30000 + p['srctex']] = tx0[p['srctex']]; p['srctex'] = 30000 + p['srctex']
     ar = ranger_lining(ar, body, T); ar = ranger_sleeves(ar, body, T)
+    import outfits_new as NO; nw = NO.new_outfits(T, body, wpl) if os.environ.get('NEWOUT', '1') == '1' else []
     # armour textures live in the boy pack's texture table: pull them in under unique ids
-    gar = [p for p in sc + ca + ar if p['mat'] in ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_FeetBoots')]
+    gar = [p for p in sc + ca + ar + nw if p['mat'] in ('Outfit_Scout_Body', 'Outfit_Scout_Boots', 'Outfit_Peasant_Body', 'Outfit_Peasant_Legs', 'Outfit_Peasant_Feet', 'Outfit_Ranger_Body', 'Outfit_Ranger_Legs', 'Outfit_Ranger_FeetBoots') or p['mat'] in C.TIGHT]
+    gar += [p for p in nw if p not in gar]
     for p in gar: hip_trim(p)
     body_pre = C.trapezius(C.relief(body, amp=float(os.environ.get('RELIEF', '2.2')))); body = C.shoulder_anatomy(C.limbs(body_pre));       # the sculpted anatomy is for the bare body; the pressed-in skin under clothes keeps the smooth shape so ridges never poke through cloth
-    body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=float(os.environ.get("INSIDE","0.02")), passes=2, fade=False); C.reweight(sc + ca + ar, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
+    body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=float(os.environ.get("INSIDE","0.02")), passes=2, fade=False); C.reweight(sc + ca + ar + nw, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
     body = cutneck(smooth_neck(body)); body_d = cutneck(smooth_neck(body_d))
     T[902] = C.skin_atlas(sk); body = C.skin_uv(body); body_d = C.skin_uv(body_d)
-    return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar, T=T), wpl
+    return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar + nw, T=T), wpl
 
 if __name__ == '__main__':
     out = sys.argv[1]; keys = sys.argv[2:] or BASES

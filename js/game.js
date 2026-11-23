@@ -602,7 +602,15 @@ function drawActors(dt){
   const M=MD[a.key];if(!M||a.hidden)continue;
   if(a.isPlayer){const sp=Math.hypot(v[0],v[2]);a.x=H[0];a.z=H[2];a.gy=H[1]-HH;
     if(sp>.4){const ty=Math.atan2(v[0],v[2]);let d=ty-a.yaw;while(d>Math.PI)d-=6.2832;while(d<-Math.PI)d+=6.2832;a.yaw+=d*Math.min(1,dt*9)}
-    a.speed=grounded?sp:0;if(!grounded&&!swimming)a.pose='fall';else if(a.pose==='fall')a.pose=null}
+    a.speed=grounded?sp:0;
+    /* creator characters jump with the reference Jump clip: the stored frames are scrubbed by the real flight time (crouch is skipped, launch 21 -> contact 39), then the landing absorbs on frames 39-53; the feet stay pinned to the real ground the whole time, so nobody lands and walks on air */
+    {const JC=a.live&&AN.meta.clips['M:Jump'],air=!grounded&&!swimming&&!grab&&cling<=0&&!hk[0].on&&!hk[1].on;a._air=(!grounded&&!swimming)?(a._air||0)+dt:0;
+     if(JC){if(air&&a.jS!==1&&a.jS!==3&&a._air<=dt*1.5&&v[1]>2.5){a.jS=1;a.jA=0;a.jV=v[1]}
+      if(a.jS===1){if(air){a.jA+=dt;const tot=2*a.jV/P.g;if(a.jA>tot+.5)a.jS=3;else{a.forceClip=['M:Jump',0];a.clipBlend=1;a.fade=.1;a.clipT=(21+18*Math.min(1,a.jA/tot))/30}}else if(grounded){a.jS=2;a.jL=0}else a.jS=0}
+      if(a.jS===2){a.jL+=dt;if(a.jL>.42||(sp>1.5&&a.jL>.2)||air)a.jS=0;else{a.forceClip=['M:Jump',0];a.clipBlend=1;a.fade=.1;a.clipT=(39+14*a.jL/.42)/30}}
+      if(grounded&&a.jS===3)a.jS=0;
+      if(!a.jS&&a.forceClip&&a.forceClip[0]==='M:Jump'){a.forceClip=null;a.clipT=null;a.clipBlend=0;a.fade=undefined}}
+     if(!grounded&&!swimming&&(!a.live||(a._air>.2&&a.jS!==1)))a.pose='fall';else if(a.pose==='fall')a.pose=null}}
   else{
    if(a.path&&a.path.length&&!a.talking){const w=a.path[a.pi%a.path.length];
     if(a.wait>0){a.wait-=dt;a.speed=0}else{const dx=w[0]-a.x,dz=w[1]-a.z,d=Math.hypot(dx,dz);
@@ -613,7 +621,7 @@ function drawActors(dt){
   if(Math.hypot(a.x-H[0],a.z-H[2])>170&&!a.isPlayer)continue;
   if(!a.static){
    if(!a.an){a.an=new Anim();a.ph=Math.random()*5}
-   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,a.fade||.25);a.an.rate=rt;if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
+   const [cn,rt]=actorClip(a,a.speed||0);a.an.play(cn,true,rt,a.fade||.25);a.an.rate=rt;if(a.clipT!=null){a.an.t=a.clipT;a.an.rate=0;if(!a.clipBlend)a.an.f=1}/* a.clipT: scrub a clip by time (opening cutscene) */
    const pz=a.an.get(dt,()=>{});if(!pz)continue;pz.k=1;{const tg=cn==='M:Running'?3.6:(a.speed||(/Walk/.test(cn)?1.2:/Jog/.test(cn)?2.6:/Run|Sprint/.test(cn)?3.6:0));/* the creator characters' real ground speed is tiny (child scale), so the run lean/arm form is keyed to the run clip and eased in and out instead of to that number */if(a._ps===undefined)a._ps=tg;a._ps+=(tg-a._ps)*Math.min(1,dt*7);pz.sp=a._ps}if(a.poseFn||a.talking||/^M:Standard_/.test(cn)||!/Idle|Walk|Jog|Run|Sprint|GAIT/.test(cn))pz.ns=1;/* M:Standard_Walk / M:Standard_Run are the reference Mixamo clips: played exactly as captured */if(a.poseFn)a.poseFn(pz,a,M);/* a.poseFn: edit the pose before it is drawn */
    if(a.talking){const t=a.ph=(a.ph||0)+dt;const g=Math.sin(t*2.3)*.5+.5;const r=AN.pi['Bip001 R Forearm'];if(r!==undefined&&a.talkGest!==false){const i=r*3;pz.d[i+1]+=g*.45;pz.d[i]-=g*.18}}
    const hs=a.headScale||1,hi=M.hi===undefined?(M.hi=M.id('Bip001 Head')):M.hi;let sv=null;

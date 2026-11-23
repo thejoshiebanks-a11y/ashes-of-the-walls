@@ -22,7 +22,9 @@
     { id: 'Under', name: 'Underclothes', locked: false, dye: true },
     { id: 'Peasant', name: 'Village clothes', locked: false, dye: true },
     { id: 'Ranger', name: 'Traveller armour', locked: true, flag: 'ranger_unlocked', note: 'Unlocks during missions' },
-    { id: 'Scout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions' }];
+    { id: 'Scout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions' },
+    { id: 'Dragon', name: 'Dragon-guard vest', locked: false, dye: true, legs: true },
+    { id: 'Ninja', name: 'Shinobi garb', locked: false, dye: true, legs: true }];
   T.GEARLOCK = { flag: 'odm_unlocked', note: 'Unlocks after you finish training' };
   T.gearUnlocked = () => !!(S.flag && S.flag(T.GEARLOCK.flag));
   T.HAIR = [{ id: 'B0', name: 'Short fringe', f: 'B0', k: 'B0Back' }, { id: 'D0', name: 'Spiked crop', f: 'D0', k: 'D0Back' },
@@ -92,7 +94,7 @@
   T.preloadAll = () => { };          // bases load when picked: six packs at once is too much texture memory for a phone
 
   /* ---------- look -> actor ---------- */
-  const SLOT = { top: ['Body', 'Tops'], pants: ['Legs', 'Bottoms'], boots: ['Feet', 'FeetBoots', 'Boots', 'Shoes'], accent: ['AccPauldron', 'BodyBelt1', 'BodyBelt2', 'HeadHood', 'Cloak', 'Hands', 'Collar'] };
+  const SLOT = { top: ['Body', 'Tops', 'Lining'], pants: ['Legs', 'Bottoms'], boots: ['Feet', 'FeetBoots', 'Boots', 'Shoes'], accent: ['AccPauldron', 'BodyBelt1', 'BodyBelt2', 'HeadHood', 'Cloak', 'Hands', 'Collar', 'Sash'] };
   const slotOf = m => { const part = m.replace(/^Outfit_[A-Za-z]+_/, ''); for (const k in SLOT) if (SLOT[k].includes(part)) return k; return null; };
   const shadeMul = s => 0.62 + clamp01(s) * 0.76;          // hair shade slider: 0.62 (darker) .. 1.38 (lighter)
   const mulc = (c, m) => [Math.min(1, c[0] * m), Math.min(1, c[1] * m), Math.min(1, c[2] * m)];
@@ -106,6 +108,7 @@
       if (m === 'Skin_Neck') return false;
       if (m === 'Skin_Body') return rv >= 3 && outfit !== clayOutfit;      // bare body with the boxers; a body pressed in under the cloth for every other outfit
       if (m === 'Skin_BodyD') return !(rv >= 3 && outfit !== clayOutfit);
+      if (m === 'Skin_BodyL') return !(rv >= 3 && O.legs);                  // bare shins for the outfits whose trousers stop at the calf
       const f = FACEP.exec(m); if (f) return +f[1] !== k.face || (/^(Iris|EyeHL)$/.test(f[2]) && rv < 1);
       if (m.startsWith('Hair_')) { if (rv < 2 || hood) return true; if (H.bald) return true; return m !== 'Hair_' + H.f && m !== 'Hair_' + H.k; }
       if (m.startsWith('Gear_')) return !(gearOn && rv >= 3);
@@ -118,7 +121,7 @@
     const dyes = O.dye ? { top: T.DYE[k.top].c, pants: T.DYE[k.pants].c, boots: T.DYE[k.boots].c, accent: T.DYE[k.accent].c } : {};   // colours recolour the casual outfits only, never armour or the uniform
     const CLAY = [.78, .76, .73, .92];
     a.tintFn = m => {
-      if (m === 'Skin_Body' || m === 'Skin_BodyD' || m === 'Skin_Neck' || /^Face\d_Skin$/.test(m)) return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
+      if (m === 'Skin_Body' || m === 'Skin_BodyD' || m === 'Skin_BodyL' || m === 'Skin_Neck' || /^Face\d_Skin$/.test(m)) return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
       if (/^Face\d_Iris$/.test(m)) return [ec[0], ec[1], ec[2], .82];
       if (m.startsWith('Hair_')) return hc ? [hc[0], hc[1], hc[2], .93] : (wm < 1 ? [wm, wm, wm, 0] : null);
       if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; if (m === 'Outfit_Under_Bottoms') { const bc = T.BOXCOL[k.under].c; return bc ? [bc[0] * wm, bc[1] * wm, bc[2] * wm, .5] : [.34 * wm, .34 * wm, .36 * wm, 0]; }   // plain black boxers (dark charcoal cotton in the pack itself) until a colour is picked

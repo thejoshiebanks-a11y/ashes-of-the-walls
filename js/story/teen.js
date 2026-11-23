@@ -17,25 +17,36 @@
     { key: 'beauty', name: 'Haru', note: 'Gentle eyes · soft side-swept', face: 2, hair: 'Y0' },
     { key: 'lad', name: 'Midori', note: 'Bright eyes · wavy layers', face: 3, hair: 'L0' },
     { key: 'nin', name: 'Kage', note: 'Sly eyes · long tail fringe', face: 4, hair: 'N0' },
-    { key: 'blen', name: 'Aoi', note: 'Soft eyes · layered crop', face: 5, hair: 'F0' }];
+    { key: 'blen', name: 'Aoi', note: 'Soft eyes · layered crop', face: 5, hair: 'F0' },
+    { key: 'girl', g: 'f', name: 'Sakura', note: 'Soft eyes · side-swept bob', face: 0, hair: 'FA0' },
+    { key: 'girl', g: 'f', name: 'Hana', note: 'Bright eyes · long fringe', face: 1, hair: 'FB0' },
+    { key: 'girl', g: 'f', name: 'Yuki', note: 'Calm eyes · long flowing hair', face: 2, hair: 'FC0' },
+    { key: 'girl', g: 'f', name: 'Rin', note: 'Soft eyes · short crop', face: 0, hair: 'FD0' },
+    { key: 'girl', g: 'f', name: 'Mio', note: 'Bright eyes · bob and hairband', face: 1, hair: 'FE0' }];
+  T.isFemale = L => (T.BASES[(L && L.base) | 0] || {}).g === 'f';
   T.OUTFITS = [                                          // medieval only. Casual outfits are dyeable; armour and the uniform are earned in the story
     { id: 'Under', name: 'Underclothes', locked: false, dye: true },
-    { id: 'Peasant', name: 'Village clothes', locked: false, dye: true },
-    { id: 'Ranger', name: 'Traveller armour', locked: true, flag: 'ranger_unlocked', note: 'Unlocks during missions' },
-    { id: 'Scout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions' },
-    { id: 'Dragon', name: 'Dragon-guard vest', locked: false, dye: true, legs: true },
-    { id: 'Ninja', name: 'Shinobi garb', locked: false, dye: true, legs: true }];
+    { id: 'Peasant', name: 'Village clothes', locked: false, dye: true, g: 'm' },
+    { id: 'Ranger', name: 'Traveller armour', locked: true, flag: 'ranger_unlocked', note: 'Unlocks during missions', g: 'm' },
+    { id: 'Scout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions', g: 'm' },
+    { id: 'Dragon', name: 'Dragon-guard vest', locked: false, dye: true, legs: true, g: 'm' },
+    { id: 'Ninja', name: 'Shinobi garb', locked: false, dye: true, legs: true, g: 'm' },
+    { id: 'Gown', name: 'Noble gown', locked: false, dye: true, g: 'f' },
+    { id: 'Adventurer', name: 'Wayfarer corset', locked: false, dye: true, g: 'f' }];
   T.GEARLOCK = { flag: 'odm_unlocked', note: 'Unlocks after you finish training' };
   T.gearUnlocked = () => !!(S.flag && S.flag(T.GEARLOCK.flag));
   T.HAIR = [{ id: 'B0', name: 'Short fringe', f: 'B0', k: 'B0Back' }, { id: 'D0', name: 'Spiked crop', f: 'D0', k: 'D0Back' },
     { id: 'Y0', name: 'Side-swept', f: 'Y0', k: 'Y0Back' }, { id: 'L0', name: 'Wavy layers', f: 'L0', k: 'L0Back' },
     { id: 'C0', name: 'Shaggy', f: 'C0' }, { id: 'N0', name: 'Long fringe', f: 'N0', k: 'N0Back' },
-    { id: 'F0', name: 'Layered crop', f: 'F0', k: 'F0Back' }, { id: 'Bald', name: 'Shaved', bald: true }];
+    { id: 'F0', name: 'Layered crop', f: 'F0', k: 'F0Back' }, { id: 'Bald', name: 'Shaved', bald: true },
+    { id: 'FA0', name: 'Side-swept bob', f: 'FA0', k: 'FA0Back', g: 'f' }, { id: 'FB0', name: 'Long fringe', f: 'FB0', k: 'FB0Back', g: 'f' }, { id: 'FC0', name: 'Flowing locks', f: 'FC0', k: 'FC0Back', g: 'f' },
+    { id: 'FD0', name: 'Short crop', f: 'FD0', k: 'FD0Back', g: 'f' }, { id: 'FE0', name: 'Bob and band', f: 'FE0', k: 'FE0Back', g: 'f' }];
   T.baseOf = L => T.BASES[(L && L.base) | 0] || T.BASES[0];
-  T.hairsFor = () => T.HAIR.map((h, i) => ({ h, i }));
-  T.outfitsFor = () => T.OUTFITS.map((o, i) => ({ o, i }));
+  T.hairsFor = b => { const f = (T.BASES[b | 0] || T.BASES[0]).g === 'f'; return T.HAIR.map((h, i) => ({ h, i })).filter(x => x.h.bald || (x.h.g === 'f') === f); };
+  T.outfitsFor = b => { const g = (T.BASES[b | 0] || T.BASES[0]).g || 'm'; return T.OUTFITS.map((o, i) => ({ o, i })).filter(x => !x.o.g || x.o.g === g); };
   T.baseHair = b => Math.max(0, T.HAIR.findIndex(h => h.f === (T.BASES[b | 0] || T.BASES[0]).hair));
   T.FACES = ['Calm', 'Fierce', 'Gentle', 'Bright', 'Sly', 'Soft'].map((n, i) => ({ id: 'Face' + i, name: n }));
+  T.facesFor = b => (T.BASES[b | 0] || T.BASES[0]).g === 'f' ? T.FACES.slice(0, 3).map((f, i) => ({ id: f.id, name: ['Soft', 'Bright', 'Calm'][i], i })) : T.FACES.map((f, i) => ({ id: f.id, name: f.name, i }));
   T.HAIRCOL = [C('Black', 24, 21, 22), C('Dark brown', 58, 42, 32), C('Brown', 92, 66, 48), C('Chestnut', 116, 80, 56), C('Auburn', 128, 64, 46), C('Ginger', 168, 94, 52), C('Blond', 200, 170, 112), C('Ash blond', 180, 166, 138), C('Silver', 190, 192, 204), C('Crimson', 150, 30, 40), C('Midnight', 30, 38, 84), { name: 'Original', c: null, css: 'linear-gradient(135deg,#c93030 33%,#3a3a3a 33% 66%,#4ec9a0 66%)' }];   // 'Original' keeps the colour the model was painted with
   T.EYES = [C('Black', 22, 18, 18), C('Dark brown', 82, 50, 30), C('Hazel', 132, 102, 42), C('Green', 62, 138, 82), C('Blue', 72, 112, 188), C('Grey', 134, 142, 154), C('Amber', 198, 140, 42)];
   T.SKIN = [C('Natural', 255, 255, 255), C('Warm', 250, 232, 214), C('Olive', 224, 205, 176), C('Tan', 200, 178, 152), C('Golden', 176, 150, 122), C('Brown', 150, 126, 108), C('Deep', 106, 90, 80), C('Sun', 238, 203, 176)];   // multipliers on the teen's own skin, kept close to neutral so the hue stays natural
@@ -52,7 +63,7 @@
   T.baseMeters = () => 0.65;                      // = the children NPCs (half their former height); see docs/CHARACTER_CREATOR.md
   const clamp01 = v => Math.max(0, Math.min(1, v == null ? .5 : v));
   T.heightFactor = L => 0.92 + clamp01(L.height) * 0.16;   // 0.92 .. 1.08 of the base height
-  T.heightCm = L => Math.round(158 * T.heightFactor(L));    // registry height: 158 cm is the base boy
+  T.heightCm = L => Math.round((T.isFemale(L) ? 151 : 158) * T.heightFactor(L));    // registry height: 158 cm is the base boy
   T.wide = L => 0.9 + clamp01(L.build) * 0.22;
   T.headScale = L => 0.93 + clamp01(L.head) * 0.14;
   T.buildName = L => { const b = clamp01(L.build); return b < .3 ? 'Slight' : b < .62 ? 'Average' : b < .85 ? 'Sturdy' : 'Heavy-set'; };
@@ -66,6 +77,9 @@
       const oo = ['Under', 'Peasant', 'Peasant', 'Ranger', 'Scout'][k.outfit | 0]; k.outfit = Math.max(0, T.OUTFITS.findIndex(o => o.id === oo)); k.v = 3; }
     if (!T.BASES[k.base]) k.base = 0;
     if (!T.FACES[k.face]) k.face = 0; if (!T.HAIR[k.hair]) k.hair = 0; if (!T.OUTFITS[k.outfit]) k.outfit = 0; if (!T.BOXCOL[k.under]) k.under = 0;
+    { const g = (T.BASES[k.base].g) || 'm'; if (g === 'f' && k.face > 2) k.face = 0;
+      if (!T.hairsFor(k.base).some(x => x.i === k.hair)) k.hair = T.baseHair(k.base);
+      if (!T.outfitsFor(k.base).some(x => x.i === k.outfit)) k.outfit = 0; }
     return k; };
 
   /* ---------- loading (each base is its own pack in assets/<key>/, fetched on demand) ---------- */
@@ -124,7 +138,7 @@
       if (m === 'Skin_Body' || m === 'Skin_BodyD' || m === 'Skin_BodyL' || m === 'Skin_Neck' || /^Face\d_Skin$/.test(m)) return rv < 1 ? CLAY : (k.skin ? [sk[0], sk[1], sk[2], 0] : null);
       if (/^Face\d_Iris$/.test(m)) return [ec[0], ec[1], ec[2], .82];
       if (m.startsWith('Hair_')) return hc ? [hc[0], hc[1], hc[2], .93] : (wm < 1 ? [wm, wm, wm, 0] : null);
-      if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; if (m === 'Outfit_Under_Bottoms') { const bc = T.BOXCOL[k.under].c; return bc ? [bc[0] * wm, bc[1] * wm, bc[2] * wm, .5] : [.34 * wm, .34 * wm, .36 * wm, 0]; }   // plain black boxers (dark charcoal cotton in the pack itself) until a colour is picked
+      if (m.startsWith('Outfit_')) { if (rv < 3) return CLAY; if (m === 'Outfit_Under_Bottoms' || m === 'Outfit_Under_Tops') { const bc = T.BOXCOL[k.under].c; return bc ? [bc[0] * wm, bc[1] * wm, bc[2] * wm, .5] : [.34 * wm, .34 * wm, .36 * wm, 0]; }   // plain black boxers (dark charcoal cotton in the pack itself) until a colour is picked
  const d = dyes[slotOf(m)]; return d ? [d[0] * wm, d[1] * wm, d[2] * wm, .5] : (wm < 1 ? [wm, wm, wm, 0] : null); }
       return null; };
     const meters = T.meters(k);
@@ -142,7 +156,7 @@
     const r = T.rng(seed), n = (m) => Math.floor(r() * m), L = Object.assign({}, T.DEF);
     L.base = n(T.BASES.length);
     const ho = T.hairsFor(L.base), oo = T.outfitsFor(L.base).filter(x => !x.o.locked);
-    L.hair = r() < .04 ? ho.length - 1 : ho[n(ho.length - 1)].i; L.outfit = oo[n(oo.length)].i; L.face = n(T.FACES.length);
+    { const nb = ho.filter(x => !x.h.bald); L.hair = r() < .04 ? ho.find(x => x.h.bald).i : nb[n(nb.length)].i; } L.outfit = oo[n(oo.length)].i; L.face = n(T.facesFor(L.base).length);
     L.hairCol = wpick(WCOL, r); L.shade = .25 + r() * .5; L.eyes = wpick(WEYE, r); L.skin = wpick(WSKIN, r);
     L.top = r() < .45 ? 0 : 1 + n(T.DYE.length - 1); L.pants = r() < .5 ? 0 : 1 + n(T.DYE.length - 1); L.boots = r() < .6 ? 0 : 1 + n(T.DYE.length - 1); L.accent = r() < .5 ? 0 : 1 + n(T.DYE.length - 1);
     L.height = r(); L.build = r(); L.head = .2 + r() * .6; L.crest = n(T.CRESTS.length); L.bodyType = n(T.BODYTYPES.length); L.cloak = r() < .5 ? 1 : 0;

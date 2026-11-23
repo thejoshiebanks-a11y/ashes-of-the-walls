@@ -1,0 +1,186 @@
+{
+ "key": "girl",
+ "bodyHeight": 1.9486433267593384,
+ "bodyYmin": -0.0035507009324036963,
+ "joints": 24,
+ "prims": 44,
+ "tex": 41,
+ "verts": 92343,
+ "height": 2.0320140755056912,
+ "ymin": -0.0035507009324036963,
+ "unit": 1.0,
+ "bin_kb": 1909,
+ "pelvis": [
+  1.8316320717809468e-17,
+  1.088344719750862,
+  0.004249308001042137
+ ],
+ "head": [
+  1.873286093560968e-10,
+  1.6565551757812,
+  -0.029362855904105464
+ ],
+ "hip": 1.088344719750862,
+ "prim_stats": {
+  "Skin_Body": [
+   6233,
+   10254
+  ],
+  "Skin_BodyD": [
+   6233,
+   10254
+  ],
+  "Face0_Mouth": [
+   1073,
+   1696
+  ],
+  "Face0_Iris": [
+   212,
+   368
+  ],
+  "Face0_EyeHL": [
+   200,
+   309
+  ],
+  "Face0_Skin": [
+   2266,
+   3896
+  ],
+  "Face0_EyeWhite": [
+   290,
+   528
+  ],
+  "Face0_Brow": [
+   52,
+   56
+  ],
+  "Face0_Eyeline": [
+   112,
+   136
+  ],
+  "Face1_Mouth": [
+   783,
+   1156
+  ],
+  "Face1_Iris": [
+   158,
+   260
+  ],
+  "Face1_EyeHL": [
+   130,
+   128
+  ],
+  "Face1_Skin": [
+   1967,
+   3390
+  ],
+  "Face1_EyeWhite": [
+   290,
+   528
+  ],
+  "Face1_Brow": [
+   54,
+   62
+  ],
+  "Face1_Eyeline": [
+   94,
+   112
+  ],
+  "Face2_Mouth": [
+   1053,
+   1696
+  ],
+  "Face2_Iris": [
+   212,
+   368
+  ],
+  "Face2_EyeHL": [
+   26,
+   20
+  ],
+  "Face2_Skin": [
+   2266,
+   3892
+  ],
+  "Face2_EyeWhite": [
+   290,
+   528
+  ],
+  "Face2_Brow": [
+   50,
+   44
+  ],
+  "Face2_Eyeline": [
+   118,
+   150
+  ],
+  "Hair_FA0Back": [
+   1035,
+   1896
+  ],
+  "Hair_FA0": [
+   10615,
+   12346
+  ],
+  "Hair_FB0Back": [
+   824,
+   1474
+  ],
+  "Hair_FB0": [
+   13933,
+   14854
+  ],
+  "Hair_FC0": [
+   19691,
+   24650
+  ],
+  "Hair_FC0Back": [
+   1035,
+   1896
+  ],
+  "Hair_FD0": [
+   5636,
+   7410
+  ],
+  "Hair_FE0": [
+   7485,
+   9926
+  ],
+  "Outfit_Under_Bottoms": [
+   542,
+   848
+  ],
+  "Outfit_Under_Tops": [
+   297,
+   405
+  ],
+  "Outfit_Gown_Shoes": [
+   436,
+   506
+  ],
+  "Outfit_Gown_Collar": [
+   77,
+   70
+  ],
+  "Outfit_Gown_Tops": [
+   657,
+   1112
+  ],
+  "Outfit_Adventurer_Bottoms": [
+   2310,
+   3212
+  ],
+  "Outfit_Adventurer_Shoes": [
+   654,
+   1000
+  ],
+  "Outfit_Adventurer_Tops": [
+   2327,
+   3454
+  ],
+  "Outfit_Adventurer_Lining": [
+   491,
+   798
+  ]
+ }
+}

@@ -1,9 +1,15 @@
 # Changelog
+## 0.9.29 (on top of 0.9.28)
+- **Female section is open.** The creator's MALE/FEMALE buttons now work. Five young-woman bases share one slim anime body, with three faces, five hairstyles (bob, long with headband, long with fringe and ahoge, bobbed fringe, bun with headband), black underwear by default, and two medieval-fitting outfits: a white off-shoulder Gown and a layered Adventurer outfit (leather vest, skirt, boots). Faces, hairs and outfits are filtered by gender; saved male characters are untouched. The opening walk-in before the creator stays male-only.
+- Hair crown: donor hairstyles leave gaps in the strands, so a thin hair-coloured cap now covers the crown and the donor face skin is trimmed above the hairline (no skin patches on top of the head).
+- New creator thumbnails for the female bases, faces, hairs and outfits, and for the Dragon and Shinobi outfits that had none in 0.9.28.
+- Credits added for the female donor models (infinitymanpk, McKaneCL, dequeijospizza, BELAZ).
+- Known limits: only two female outfits (not a full wardrobe); the Gown skirt is rigid, so legs may poke through at very long strides; nothing is verified on a phone or in the full 3D scene, only in offline renders and tests.
 ## 0.9.28 (on top of 0.9.27)
 - **Two new male outfits, built from your two models:** Dragon-guard vest (black long-sleeved top under a red embroidered vest, black cropped trousers with red trim, red-and-black shoes) and Shinobi garb (indigo tunic with white wrist wraps, short loose trousers, sandals). Both are fitted to the slim body on all six bases, are dyeable, and appear after the existing outfits in the wardrobe (so saved characters keep their outfit).
 - Trousers that stop at the calf now show clean bare shins above the shoes (new Skin_BodyL layer, shown only for these two outfits). Cloth textures had transparent gaps that showed the skin through; they are filled with cloth colour. The crotch panel of loose trousers follows the pelvis instead of being cut away.
 - **Jump rebuilt on your reference Jump.fbx** (M:Jump): the captured frames are scrubbed by the real flight time (launch to contact), the landing absorbs on the captured landing frames and then hands back to walk or run at once; feet stay pinned to the real ground, so nobody lands and walks on air. A step off a ledge still uses the falling pose; a tiny terrain bump no longer flickers the fall pose (it waits 0.2 s).
-- Female section: NOT in this update (see delivery note).
+- Female section: see 0.9.29.
 ## 0.9.27 (on top of 0.9.26)
 - **Run no longer sways left and right.** The captured Standard_Run swung the pelvis about 37 degrees side to side and rolled it about 19 degrees, with the spine leaning sideways on every step. Those swings are now cut to about a third (yaw 11, roll 5 degrees) and the spine's sideways lean to 40 percent, so the body stays steady and faces forward while the legs and arms keep their captured motion.
 - **Forward lean eased from about 31 to about 17 degrees** (your reference range is 5-15; the reference run is a hard sprint so a little extra is kept). Torso, neck and collar bones tilt up with the pelvis; legs and arms are untouched.

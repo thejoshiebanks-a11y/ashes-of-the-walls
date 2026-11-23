@@ -25,6 +25,8 @@ CC = dict(zip(SHORT, ['CC_Base_Pelvis', 'CC_Base_L_Thigh', 'CC_Base_L_Calf', 'CC
                       'CC_Base_L_Clavicle', 'CC_Base_L_Upperarm', 'CC_Base_L_Forearm', 'CC_Base_L_Hand', 'CC_Base_NeckTwist01', 'CC_Base_Head', None, None, 'CC_Base_R_Clavicle', 'CC_Base_R_Upperarm', 'CC_Base_R_Forearm', 'CC_Base_R_Hand']))
 HEAD_Y = 1.6565551757812   # head joint height of the original anime boy: every base is scaled to it so the animation set behaves identically
 
+RPM = dict(zip(SHORT, ['Hips', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'Spine', 'Spine1', 'Spine2',
+                       'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'Neck', 'Head', None, None, 'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand']))
 MODELS = {
     'dragon': ('anime_boy_dragon_guider.glb', VRM, 'vrm', 'D0'),
     'beauty': ('anime_model_beuatiful_boy_rigged/scene.gltf', MIX, 'y', 'Y0'),
@@ -32,7 +34,7 @@ MODELS = {
     'young': ('young_boy.glb', VRM, 'vrm', 'K0'),
     'ash': ('character_boy_2_fbx/scene.gltf', CC, 'cc', 'C0'),
 }
-MATS = [('HairBack', 'HairBack'), ('Hair_00_HAIR', 'Hair'), ('Body_00_SKIN', 'Skin_Body'), ('Face_00_SKIN', 'Skin_Face'), ('EyeWhite', 'EyeWhite'), ('EyeIris', 'Iris'), ('EyeHighlight', 'EyeHL'),
+MATS = [('Wolf3D_Avatar', 'Skin_Body'), ('Wolf3D_Body', 'Skin_Body'), ('Wolf3D_Skin', 'Skin_Face'), ('Wolf3D_Hair', 'Hair'), ('M_Hair_60', 'Hair'), ('Wolf3D_Eye', 'Iris'), ('Wolf3D_Teeth', 'Mouth'), ('Wolf3D_Outfit_Top', 'Tops'), ('Wolf3D_Outfit_Bottom', 'Bottoms'), ('Wolf3D_Outfit_Footwear', 'Shoes'), ('HairBack', 'HairBack'), ('Hair_00_HAIR', 'Hair'), ('Body_00_SKIN', 'Skin_Body'), ('Face_00_SKIN', 'Skin_Face'), ('EyeWhite', 'EyeWhite'), ('EyeIris', 'Iris'), ('EyeHighlight', 'EyeHL'),
         ('FaceBrow', 'Brow'), ('FaceEyeline', 'Eyeline'), ('FaceEyelash', 'Eyeline'), ('FaceMouth', 'Mouth'), ('Tops', 'Tops'), ('Bottoms', 'Bottoms'), ('Shoes', 'Shoes'), ('Onepiece', 'Collar')]
 
 def strip(n): return re.sub(r'_\d+$', '', n)
@@ -44,6 +46,7 @@ def smooth_normals(P, F):
 def xf_fn(mode):
     if mode == 'vrm': return lambda P: P * np.array([-1., 1., -1.])
     if mode == 'cc': return lambda P: np.stack([P[:, 0], P[:, 2], -P[:, 1]], 1) * 0.01
+    if mode == 'ycm': return lambda P: P * 0.01
     return lambda P: P
 
 def tex_image(g, mi, cap):
@@ -76,7 +79,7 @@ def convert(path, table, mode, cap=512):
     wp = np.zeros((24, 3))
     for oi, s in enumerate(SHORT):
         v = table.get(s)
-        if v and v in first: wp[oi] = g.world(jn[first[v]], par)[:3, 3] if mode == 'cc' else xf(P0[first[v]][None])[0]   # (the CC export has blank inverse-bind matrices on some joints)
+        if v and v in first: wp[oi] = g.world(jn[first[v]], par)[:3, 3] if mode in ('cc', 'ycm') else xf(P0[first[v]][None])[0]   # (the CC export has blank inverse-bind matrices on some joints)
     if not table['Spine2']: wp[11] = (wp[10] + wp[16]) / 2
     raw = []; texs = []; tmap = {}
     for mesh in j['meshes']:

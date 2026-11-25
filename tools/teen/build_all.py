@@ -337,6 +337,9 @@ def common_parts():
     body_pre = C.trapezius(C.relief(body, amp=float(os.environ.get('RELIEF', '2.2')))); body = C.shoulder_anatomy(C.limbs(body_pre));       # the sculpted anatomy is for the bare body; the pressed-in skin under clothes keeps the smooth shape so ridges never poke through cloth
     body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=float(os.environ.get("INSIDE","0.02")), passes=2, fade=False); C.reweight(sc + ca + ar + nw, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
     body = cutneck(smooth_neck(body)); body_d = under_sleeves(cutneck(smooth_neck(body_d)))
+    if os.environ.get('NEWOUT', '1') == '1' and NO.FAITH: NO.relining(nw, body_d)
+    if os.environ.get('DBGCUT'):
+        lo, hi = map(float, os.environ['DBGCUT'].split(',')); _c = body_d['pos'][body_d['ix'].reshape(-1, 3)].mean(1); body_d = C.sub(body_d, ~((np.abs(_c[:, 0]) >= lo) & (np.abs(_c[:, 0]) < hi) & (_c[:, 1] > 1.3)), body_d['mat'])
     T[902] = C.skin_atlas(sk); body = C.skin_uv(body); body_d = C.skin_uv(body_d)
     return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar + nw, T=T), wpl
 

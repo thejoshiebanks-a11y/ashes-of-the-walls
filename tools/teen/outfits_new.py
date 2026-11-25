@@ -5,6 +5,7 @@ from PIL import Image
 import build_bases as BB, compose as C
 
 A = os.environ.get('NEWOUT_DIR', '/mnt/user-data/attachments/1cc8b787-6a44-5c68-b863-72a90e02eb6d')
+FAITH = os.environ.get('FAITH', '1') == '1'
 DONORS = [
     # id, file, texture offset, {prim vertex count: part name}, sleeve end x (T-pose arm), sleeve thickness scale, cuff/wrap band (x lo, x hi, arm end x)
     ('Dragon', '4e1db34a-anime_boy_dragon_guider.glb', 60000, {386: 'Collar', 1614: 'Tops', 788: 'Bottoms', 468: 'Shoes'}, .77, 1.0, (.655, .735, .775)),
@@ -47,6 +48,29 @@ def slim_torso(p, body, margin=.024):
 def keep_x(p, lo, hi):
     F = p['ix'].reshape(-1, 3); c = np.abs(p['pos'][F].mean(1)[:, 0]); return C.sub(p, (c >= lo) & (c <= hi))
 
+def _lmask(body, xa=.52):
+    BF = body['ix'].reshape(-1, 3); bc = body['pos'][BF].mean(1).copy()
+    ax = np.abs(bc[:, 0]); armz = (bc[:, 1] > 1.38) & (bc[:, 1] < 1.62) & (ax < xa); 
+    m = (bc[:, 1] > 1.02) & (bc[:, 1] < 1.56) & (np.abs(bc[:, 0]) < .24) | (bc[:, 1] > 1.24) & (bc[:, 1] < 1.56) & (np.abs(bc[:, 0]) < .32)
+    m = (m | ((armz) | ((bc[:, 1] >= 1.62) & (bc[:, 1] < 1.72) & (np.abs(bc[:, 0]) > .11) & (np.abs(bc[:, 0]) < .40))))
+    return m
+
+
+def relining(garments, body_d):
+    """the lining is regrown from the FINAL dressed body (Skin_BodyD) so it always sits just outside it: no skin can show between lining and cloth"""
+    for g in garments:
+        if not g['mat'].endswith('_Lining'): continue
+        xe = float(os.environ.get('XE', .95 if 'Dragon' in g['mat'] else .56)); xc = float(os.environ.get('XC', .67 if 'Dragon' in g['mat'] else .52))
+        L = C.sub(body_d, _lmask(body_d, xc), g['mat']); L['pos'] = L['pos'] + L['nrm'] * .009
+        am = (L['pos'][:, 1] > 1.36) & (np.abs(L['pos'][:, 0]) > xe); L['pos'][am, 0] = np.sign(L['pos'][am, 0]) * xe      # long arm triangles are cut off where the sleeve ends
+        pass
+        L['uv'] = np.tile(g['uv'][0], (len(L['pos']), 1)).astype(g['uv'].dtype)
+        for k, v in g.items():
+            if k not in L: L[k] = v
+        L['srctex'] = g['srctex']; L['tex'] = g.get('tex', L.get('tex'))
+        g.clear(); g.update(L)
+
+
 def lining(p, body, T, tag):
     """the donor jackets have cut-outs (shoulders, back, side, chest) that would show bare skin; a thin layer grown from the torso in the jacket's own base colour sits under them"""
     im = np.asarray(T[p['srctex']].convert('RGB')).astype(float); h, w = im.shape[:2]; uv = p['uv']
@@ -56,7 +80,8 @@ def lining(p, body, T, tag):
     med = np.median(px[sel], axis=0)      # the body colour of the garment (not its black trim and not its highlights)
     uvs = uv[sel][np.argmin(np.abs(px[sel] - med).sum(1))]
     BF = body['ix'].reshape(-1, 3); bc = body['pos'][BF].mean(1); m = (bc[:, 1] > 1.02) & (bc[:, 1] < 1.56) & (np.abs(bc[:, 0]) < .24) | ((bc[:, 1] > 1.24) & (bc[:, 1] < 1.56) & (np.abs(bc[:, 0]) < .32))
-    L = C.sub(body, m, 'Outfit_%s_Lining' % tag); L['pos'] = L['pos'] + L['nrm'] * .006; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype); L['srctex'] = p['srctex']; L['tex'] = p.get('tex')
+    if FAITH: m = (m | (((bc[:, 1] > 1.38) & (bc[:, 1] < 1.62) & (np.abs(bc[:, 0]) < .52)) | ((bc[:, 1] >= 1.62) & (bc[:, 1] < 1.72) & (np.abs(bc[:, 0]) > .11) & (np.abs(bc[:, 0]) < .40)))) & ~((bc[:, 2] > 0) & (np.abs(bc[:, 0]) < .19) & (bc[:, 1] > 1.0) & (bc[:, 1] < 1.47))      # the jacket's own front (frog buttons, placket) stays uncovered
+    L = C.sub(body, m, 'Outfit_%s_Lining' % tag); L['pos'] = L['pos'] + L['nrm'] * (.006 + (.010 * np.clip((np.abs(L['pos'][:, 0]) - .15) / .10, 0, 1) * np.clip((L['pos'][:, 1] - 1.28) / .06, 0, 1) if FAITH else 0))[:, None]; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype); L['srctex'] = p['srctex']; L['tex'] = p.get('tex')
     L = smooth_edges(L, 'y', lambda Q: (Q[:, 1] > 1.50) & (Q[:, 1] < 1.62), win=7, reach=.02, arc='x')      # the upper edge of the lining is cut as a clean line under the collar/neckline
     return L
 
@@ -129,12 +154,16 @@ def new_outfits(T, body, wpl):
         for p in pr:
             if p['mat'].endswith('_Bottoms'):
                 p = p if os.environ.get('NOTRIM') else trim_hips(p, [(.84, 9), (.90, .160), (.96, .156), (1.04, .155), (1.10, .150), (1.16, .150)]); p = p if os.environ.get('NOSLIM') else slim_legs(p, body, margin=.011, keep=.15)
+            elif p['mat'].endswith('_Collar') and FAITH:
+                pass      # the donor's own collar and cuffs are kept exactly as modelled
             elif p['mat'].endswith('_Collar'):
                 if oid == 'Dragon' and tops_ref is not None:
                     Fc = p['ix'].reshape(-1, 3); cc = p['pos'][Fc].mean(1); mb = (cc[:, 1] < 1.585) & (np.abs(cc[:, 0]) < .17)
                     if mb.any():
                         bib = C.sub(p, mb, 'Outfit_Dragon_Bib'); bib['uv'] = np.tile(tops_ref['uv0'], (len(bib['pos']), 1)).astype(bib['uv'].dtype); bib['srctex'] = tops_ref['srctex']; bib['tex'] = tops_ref['tex']; res.append(bib); p = C.sub(p, ~mb, p['mat'])
                 p = keep_x(C.swap_sleeves(p, body, scale=ssc, off=.013, x0=.20, xs=.14, ylow=1.0, xend=band[2]), band[0], band[1])      # the donor's flared cuff / arm wrap, re-made as a snug band on our own arm
+            elif p['mat'].endswith('_Tops') and FAITH:
+                L_ = lining(p, body, T, oid); res.append(L_)      # the donor jacket is kept as modelled (flared sleeves, frog buttons, cuffs); a thin red lining only closes its shoulder/back cut-outs
             elif p['mat'].endswith('_Tops'):
                 p = C.swap_sleeves(p, body, scale=ssc, off=float(os.environ.get('SLOFF', '.012')), x0=.20, xs=.14, ylow=1.0, xend=sxe); p = slim_torso(p, body); L_ = lining(p, body, T, oid); res.append(L_); tops_ref = dict(uv0=L_['uv'][0], srctex=L_['srctex'], tex=L_['tex']); p = repaint_panels(p, T) if oid == 'Dragon' else p
             if p['mat'].endswith('_Bottoms'): p = smooth_edges(p, 'y', lambda Q: Q[:, 1] < .62, win=11, reach=.05)     # trouser hems

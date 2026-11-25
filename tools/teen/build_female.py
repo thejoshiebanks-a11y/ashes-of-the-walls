@@ -103,6 +103,14 @@ def scalp(hp, htx, body):
     for k in ('pos', 'nrm', 'jj', 'ww'): out[k] = np.concatenate([tgt[k], pos if k == 'pos' else cap[k]]).astype(tgt[k].dtype)
     out['uv'] = np.concatenate([tgt['uv'], np.c_[u, v]]).astype(tgt['uv'].dtype); out['ix'] = np.concatenate([tgt['ix'], ix]).astype(tgt['ix'].dtype)
     return [out if p is tgt else p for p in hp]
+def lap_off(p, base, iters=40, lam=.6):
+    """the cloth rides on the body but its offset field (not its position) is relaxed, so the strip follows the bust and waist yet loses the ripples and the ragged top edge"""
+    from scipy.sparse import coo_matrix
+    P = p['pos'].astype(np.float64); F = p['ix'].reshape(-1, 3); key = np.round(base * 1e4).astype(np.int64); _, inv = np.unique(key, axis=0, return_inverse=True); inv = inv.reshape(-1); Fv = inv[F]; n = inv.max() + 1
+    e = np.r_[Fv[:, [0, 1]], Fv[:, [1, 2]], Fv[:, [2, 0]]]; e = np.r_[e, e[:, ::-1]]; A = coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(n, n)).tocsr(); A.data[:] = 1; d = np.asarray(A.sum(1)).ravel()
+    D = np.zeros((n, 3)); D[inv] = P - base; D0 = D.copy()
+    for _ in range(iters): D += lam * ((A @ D) / np.maximum(d, 1)[:, None] - D)
+    p['pos'] = (base + D[inv]).astype(p['pos'].dtype); return p
 def under(body, T):
     F = body['ix'].reshape(-1, 3); c = body['pos'][F].mean(1); out = []
     tex = np.zeros((8, 8, 4), np.uint8); tex[..., :3] = (54, 54, 60); tex[..., 3] = 255; T[901] = Image.fromarray(tex, 'RGBA')
@@ -110,7 +118,7 @@ def under(body, T):
     p = C.clip_y(C.clip_y(C.sub(body, m, 'Outfit_Under_Bottoms'), .90, True), 1.135, False)
     n = -p['nrm']; ease = .006 + .004 * np.clip((p['pos'][:, 1] - 1.05) / .08, 0, 1); p['pos'] = p['pos'] + n * ease[:, None]; p['srctex'] = 901; out.append(p)
     m = (by.max(1) > 1.31) & (by.min(1) < 1.46) & (np.abs(c[:, 0]) < .24)
-    q = C.clip_y(C.clip_y(C.sub(body, m, 'Outfit_Under_Tops'), 1.31, True), 1.45, False); n = -q['nrm']; q['pos'] = q['pos'] + n * .013; q['srctex'] = 901; out.append(q)
+    q = C.clip_y(C.clip_y(C.sub(body, m, 'Outfit_Under_Tops'), 1.31, True), 1.45, False); n = -q['nrm']; b0 = q['pos'].astype(np.float64).copy(); q['pos'] = q['pos'] + n * .015; q['srctex'] = 901; q = lap_off(q, b0); import outfits_new as NO; q = NO.smooth_edges(q, 'y', lambda Q: Q[:, 1] > 1.42, win=11, reach=.03, arc='x'); out.append(q)
     for p in out: p['uv'] = np.zeros_like(p['uv']); p['nrm'] = BB.smooth_normals(p['pos'], p['ix'].reshape(-1, 3))
     return out
 def main(out):

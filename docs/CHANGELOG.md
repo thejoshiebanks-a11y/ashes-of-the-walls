@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.31 (on top of 0.9.30)
+- **Dragon and Ninja outfits now match the real models.** The earlier re-cutting (black sleeves, torn bib, keyhole neck) is gone. Each outfit now keeps its donor design: red brocade jacket with five frog-button closures, flared sleeves with black cuffs and white piping, black cropped trousers and shoes (Dragon); wrap-front jinbei with flared short sleeves, pocket, bandaged forearms and shorts (Ninja). A thin lining grown from the final body closes the shoulder, back and neck cut-outs, so no skin shows through. Rebuilt on all six male bases.
+- **Female underwear.** The bandeau top is rebuilt with a smooth surface and a clean, gently curved top edge (the jagged "drip" edge is gone), and the creator thumbnails are framed above it.
+- Thumbnails regenerated.
+- Known limits: a hair-thin crease can remain at the armpit seam of the Dragon/Ninja jackets in side view. The bald-head ridge in your earlier screenshot still could not be reproduced offline. Nothing has been verified on a phone or in the full 3D scene.
 ## 0.9.30 (on top of 0.9.29)
 - **Jump landing fixed.** The jump no longer plays its landing pose in mid-air: the flight frames follow your real vertical speed on the way up and the real time-to-floor on the way down, so the feet-contact pose is reached only when the feet reach the ground; frames never run backwards. New tests cover this.
 - **Female bodies and heads.** The missing belly strip is bridged with a continuous torso, the crown has a hair-coloured scalp shell fitted to each hairstyle, and the donor face skin above the hairline is trimmed, so no holes or skin patches show on the head or underwear (checked front/side/back on all five hairstyles).

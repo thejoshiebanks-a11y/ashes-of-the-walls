@@ -5,11 +5,11 @@
  "joints": 24,
  "prims": 90,
  "tex": 75,
- "verts": 268420,
+ "verts": 268521,
  "height": 2.034632105550798,
  "ymin": -0.04937199946411691,
  "unit": 1.0,
- "bin_kb": 6217,
+ "bin_kb": 6235,
  "pelvis": [
   -6.157831956666535e-08,
   1.0619320389784968,
@@ -27,8 +27,8 @@
    55430
   ],
   "Skin_BodyD": [
-   11552,
-   22898
+   11553,
+   22900
   ],
   "Skin_BodyL": [
    5024,
@@ -330,17 +330,17 @@
    1240,
    2136
   ],
-  "Outfit_Dragon_Collar": [
-   1978,
-   3726
-  ],
   "Outfit_Dragon_Lining": [
-   11443,
-   22358
+   11493,
+   22514
   ],
   "Outfit_Dragon_Tops": [
    9643,
    18675
+  ],
+  "Outfit_Dragon_Collar": [
+   1978,
+   3726
   ],
   "Outfit_Dragon_Bottoms": [
    788,
@@ -350,17 +350,17 @@
    468,
    570
   ],
-  "Outfit_Ninja_Bottoms": [
-   756,
-   1084
-  ],
   "Outfit_Ninja_Lining": [
-   11443,
-   22358
+   11493,
+   22514
   ],
   "Outfit_Ninja_Tops": [
    7940,
-   15403
+   15401
+  ],
+  "Outfit_Ninja_Bottoms": [
+   756,
+   1084
   ],
   "Outfit_Ninja_Sash": [
    45,

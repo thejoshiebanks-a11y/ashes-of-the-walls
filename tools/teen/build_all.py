@@ -302,6 +302,24 @@ def hip_trim(p):
     p['pos'] = P; return p
 
 
+def under_sleeves(b, k=.13, x0=.20, x1=.60):
+    """the skin worn under sleeves: the arm is drawn in radially by `k` (about 5 mm) between shoulder and wrist so the muscle relief never pokes through the cloth as specks; hands and the bare body are untouched"""
+    P = b['pos'].copy(); ax = np.abs(P[:, 0]); m = (ax > x0 - .02) & (ax < x1 + .04) & (P[:, 1] > 1.30) & (P[:, 1] < 1.70)
+    if not m.any(): return b
+    for sg in (1, -1):
+        sel = m & (P[:, 0] * sg > 0)
+        if not sel.any(): continue
+        xs = np.arange(x0 - .02, x1 + .04, .02); cy = np.full(len(xs), np.nan); cz = cy.copy()
+        for i, x in enumerate(xs):
+            q = P[sel & (np.abs(ax - x) < .015)]
+            if len(q) > 5: cy[i] = (q[:, 1].max() + q[:, 1].min()) / 2; cz[i] = (q[:, 2].max() + q[:, 2].min()) / 2
+        ok = ~np.isnan(cy)
+        if ok.sum() < 3: continue
+        yc = np.interp(ax[sel], xs[ok], cy[ok]); zc = np.interp(ax[sel], xs[ok], cz[ok])
+        f = np.clip((ax[sel] - (x0 - .02)) / .06, 0, 1) * np.clip((x1 + .04 - ax[sel]) / .06, 0, 1); f = f * f * (3 - 2 * f) * k
+        P[sel, 1] = yc + (P[sel, 1] - yc) * (1 - f); P[sel, 2] = zc + (P[sel, 2] - zc) * (1 - f)
+    q = dict(b); q['pos'] = P; return q
+
 def common_parts():
     pr, wpo, tx0 = BB.read_pack(os.path.join(OLD, 'boy'), 'boy')
     lv, wpl, ltx, fu, wpf, ftx = C.donors(); T = {}
@@ -318,7 +336,7 @@ def common_parts():
     for p in gar: hip_trim(p)
     body_pre = C.trapezius(C.relief(body, amp=float(os.environ.get('RELIEF', '2.2')))); body = C.shoulder_anatomy(C.limbs(body_pre));       # the sculpted anatomy is for the bare body; the pressed-in skin under clothes keeps the smooth shape so ridges never poke through cloth
     body_d = C.tuck_body(C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2')))), gar, depth=.045, inside=float(os.environ.get("INSIDE","0.02")), passes=2, fade=False); C.reweight(sc + ca + ar + nw, body); body_d = keep_neck(body_d, C.trapezius(C.relief(body_c, amp=float(os.environ.get('RELIEF', '2.2'))))); bx = C.boxers(body, T)
-    body = cutneck(smooth_neck(body)); body_d = cutneck(smooth_neck(body_d))
+    body = cutneck(smooth_neck(body)); body_d = under_sleeves(cutneck(smooth_neck(body_d)))
     T[902] = C.skin_atlas(sk); body = C.skin_uv(body); body_d = C.skin_uv(body_d)
     return dict(body=body, body_d=body_d, garments=[bx] + sc + ca + ar + nw, T=T), wpl
 

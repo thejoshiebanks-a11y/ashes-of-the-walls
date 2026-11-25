@@ -1,4 +1,10 @@
 # Changelog
+## 0.9.30 (on top of 0.9.29)
+- **Jump landing fixed.** The jump no longer plays its landing pose in mid-air: the flight frames follow your real vertical speed on the way up and the real time-to-floor on the way down, so the feet-contact pose is reached only when the feet reach the ground; frames never run backwards. New tests cover this.
+- **Female bodies and heads.** The missing belly strip is bridged with a continuous torso, the crown has a hair-coloured scalp shell fitted to each hairstyle, and the donor face skin above the hairline is trimmed, so no holes or skin patches show on the head or underwear (checked front/side/back on all five hairstyles).
+- **Dragon vest and Shinobi outfit.** The vest is lined in its own red and sits clear of the skin; the loose black bib and back flap were remade in the vest's red brocade; hems and cuffs are re-cut clean. Rebuilt on all six male bases.
+- Thumbnails regenerated for the female bases, faces, hairs, outfits and the two new male outfits.
+- Known limits: the bald male head looked smooth in every offline render, so the ridge in your screenshot could NOT be reproduced here; if it is still there, send a new screenshot. Nothing has been verified on a phone or in the full 3D scene, only in offline renders and the test suite.
 ## 0.9.29 (on top of 0.9.28)
 - **Female section is open.** The creator's MALE/FEMALE buttons now work. Five young-woman bases share one slim anime body, with three faces, five hairstyles (bob, long with headband, long with fringe and ahoge, bobbed fringe, bun with headband), black underwear by default, and two medieval-fitting outfits: a white off-shoulder Gown and a layered Adventurer outfit (leather vest, skirt, boots). Faces, hairs and outfits are filtered by gender; saved male characters are untouched. The opening walk-in before the creator stays male-only.
 - Hair crown: donor hairstyles leave gaps in the strands, so a thin hair-coloured cap now covers the crown and the donor face skin is trimmed above the hairline (no skin patches on top of the head).

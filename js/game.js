@@ -603,10 +603,10 @@ function drawActors(dt){
   if(a.isPlayer){const sp=Math.hypot(v[0],v[2]);a.x=H[0];a.z=H[2];a.gy=H[1]-HH;
     if(sp>.4){const ty=Math.atan2(v[0],v[2]);let d=ty-a.yaw;while(d>Math.PI)d-=6.2832;while(d<-Math.PI)d+=6.2832;a.yaw+=d*Math.min(1,dt*9)}
     a.speed=grounded?sp:0;
-    /* creator characters jump with the reference Jump clip: the stored frames are scrubbed by the real flight time (crouch is skipped, launch 21 -> contact 39), then the landing absorbs on frames 39-53; the feet stay pinned to the real ground the whole time, so nobody lands and walks on air */
+    /* creator characters jump with the reference Jump clip: the stored frames follow the real flight: launch 21 -> apex 30 by the rising speed, then the contact pose 39 is reached only at the real ground contact (time-to-floor from the live height and fall speed), so the feet never touch down in mid-air, then the landing absorbs on frames 39-53; the feet stay pinned to the real ground the whole time, so nobody lands and walks on air */
     {const JC=a.live&&AN.meta.clips['M:Jump'],air=!grounded&&!swimming&&!grab&&cling<=0&&!hk[0].on&&!hk[1].on;a._air=(!grounded&&!swimming)?(a._air||0)+dt:0;
      if(JC){if(air&&a.jS!==1&&a.jS!==3&&a._air<=dt*1.5&&v[1]>2.5){a.jS=1;a.jA=0;a.jV=v[1]}
-      if(a.jS===1){if(air){a.jA+=dt;const tot=2*a.jV/P.g;if(a.jA>tot+.5)a.jS=3;else{a.forceClip=['M:Jump',0];a.clipBlend=1;a.fade=.1;a.clipT=(21+18*Math.min(1,a.jA/tot))/30}}else if(grounded){a.jS=2;a.jL=0}else a.jS=0}
+      if(a.jS===1){if(air){a.jA+=dt;if(a.jA>8)a.jS=3;else{const vy=v[1],hh=Math.max(0,H[1]-HH-floorY());let f;if(vy>.3)f=21+9*Math.min(1,Math.max(0,1-vy/a.jV));else{const tr=(vy+Math.sqrt(vy*vy+2*P.g*hh))/P.g,u=Math.min(1,Math.max(0,1-tr/.34));f=30+9*Math.pow(u,1.25)}a.forceClip=['M:Jump',0];a.clipBlend=1;a.fade=.1;a.clipT=f/30}}else if(grounded){a.jS=2;a.jL=0}else a.jS=0}
       if(a.jS===2){a.jL+=dt;if(a.jL>.42||(sp>1.5&&a.jL>.2)||air)a.jS=0;else{a.forceClip=['M:Jump',0];a.clipBlend=1;a.fade=.1;a.clipT=(39+14*a.jL/.42)/30}}
       if(grounded&&a.jS===3)a.jS=0;
       if(!a.jS&&a.forceClip&&a.forceClip[0]==='M:Jump'){a.forceClip=null;a.clipT=null;a.clipBlend=0;a.fade=undefined}}

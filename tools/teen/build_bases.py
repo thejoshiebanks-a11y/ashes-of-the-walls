@@ -19,6 +19,8 @@ PARENTS = [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 13, 14, 11, 16, 17, 17,
 SHORT = [o[7:] for o in OUT]
 VRM = dict(zip(SHORT, ['J_Bip_C_Hips', 'J_Bip_L_UpperLeg', 'J_Bip_L_LowerLeg', 'J_Bip_L_Foot', 'J_Bip_L_ToeBase', 'J_Bip_R_UpperLeg', 'J_Bip_R_LowerLeg', 'J_Bip_R_Foot', 'J_Bip_R_ToeBase', 'J_Bip_C_Spine', 'J_Bip_C_Chest', 'J_Bip_C_UpperChest',
                        'J_Bip_L_Shoulder', 'J_Bip_L_UpperArm', 'J_Bip_L_LowerArm', 'J_Bip_L_Hand', 'J_Bip_C_Neck', 'J_Bip_C_Head', None, None, 'J_Bip_R_Shoulder', 'J_Bip_R_UpperArm', 'J_Bip_R_LowerArm', 'J_Bip_R_Hand']))
+MAIDT = dict(zip(SHORT, ['mixamorig:Hips', 'mixamorig:LeftUpLeg', 'mixamorig:LeftLeg', 'mixamorig:LeftFoot', 'mixamorig:LeftToeBase', 'mixamorig:RightUpLeg', 'mixamorig:RightLeg', 'mixamorig:RightFoot', 'mixamorig:RightToeBase', 'mixamorig:Spine', 'mixamorig:Spine1', 'mixamorig:Spine2',
+                         'mixamorig:LeftShoulder', 'mixamorig:LeftArm', 'mixamorig:LeftForeArm', 'mixamorig:LeftHand', 'mixamorig:Neck', 'mixamorig:Head', None, None, 'mixamorig:RightShoulder', 'mixamorig:RightArm', 'mixamorig:RightForeArm', 'mixamorig:RightHand']))
 MIX = dict(zip(SHORT, ['Hips', 'Left leg', 'Left knee', 'Left ankle', 'Left toe', 'Right leg', 'Right knee', 'Right ankle', 'Right toe', 'Spine', 'Chest', None,
                        'Left shoulder', 'Left arm', 'Left elbow', 'Left wrist', 'Neck', 'Head', None, None, 'Right shoulder', 'Right arm', 'Right elbow', 'Right wrist']))
 CC = dict(zip(SHORT, ['CC_Base_Pelvis', 'CC_Base_L_Thigh', 'CC_Base_L_Calf', 'CC_Base_L_Foot', 'CC_Base_L_ToeBase', 'CC_Base_R_Thigh', 'CC_Base_R_Calf', 'CC_Base_R_Foot', 'CC_Base_R_ToeBase', 'CC_Base_Waist', 'CC_Base_Spine01', 'CC_Base_Spine02',
@@ -35,7 +37,7 @@ MODELS = {
     'ash': ('character_boy_2_fbx/scene.gltf', CC, 'cc', 'C0'),
 }
 MATS = [('Wolf3D_Avatar', 'Skin_Body'), ('Wolf3D_Body', 'Skin_Body'), ('Wolf3D_Skin', 'Skin_Face'), ('Wolf3D_Hair', 'Hair'), ('M_Hair_60', 'Hair'), ('Wolf3D_Eye', 'Iris'), ('Wolf3D_Teeth', 'Mouth'), ('Wolf3D_Outfit_Top', 'Tops'), ('Wolf3D_Outfit_Bottom', 'Bottoms'), ('Wolf3D_Outfit_Footwear', 'Shoes'), ('HairBack', 'HairBack'), ('Hair_00_HAIR', 'Hair'), ('Body_00_SKIN', 'Skin_Body'), ('Face_00_SKIN', 'Skin_Face'), ('EyeWhite', 'EyeWhite'), ('EyeIris', 'Iris'), ('EyeHighlight', 'EyeHL'),
-        ('FaceBrow', 'Brow'), ('FaceEyeline', 'Eyeline'), ('FaceEyelash', 'Eyeline'), ('FaceMouth', 'Mouth'), ('Tops', 'Tops'), ('Bottoms', 'Bottoms'), ('Shoes', 'Shoes'), ('Onepiece', 'Collar')]
+        ('FaceBrow', 'Brow'), ('FaceEyeline', 'Eyeline'), ('FaceEyelash', 'Eyeline'), ('FaceMouth', 'Mouth'), ('Tops', 'Tops'), ('Bottoms', 'Bottoms'), ('Shoes', 'Shoes'), ('Onepiece', 'Collar'), ('CatEar', 'HairBack')]
 
 def strip(n): return re.sub(r'_\d+$', '', n)
 def smooth_normals(P, F):
@@ -47,6 +49,7 @@ def xf_fn(mode):
     if mode == 'vrm': return lambda P: P * np.array([-1., 1., -1.])
     if mode == 'cc': return lambda P: np.stack([P[:, 0], P[:, 2], -P[:, 1]], 1) * 0.01
     if mode == 'ycm': return lambda P: P * 0.01
+    if mode == 'zup': return lambda P: np.stack([-P[:, 1], P[:, 2], -P[:, 0]], 1)
     return lambda P: P
 
 def tex_image(g, mi, cap):
@@ -79,7 +82,7 @@ def convert(path, table, mode, cap=512):
     wp = np.zeros((24, 3))
     for oi, s in enumerate(SHORT):
         v = table.get(s)
-        if v and v in first: wp[oi] = g.world(jn[first[v]], par)[:3, 3] if mode in ('cc', 'ycm') else xf(P0[first[v]][None])[0]   # (the CC export has blank inverse-bind matrices on some joints)
+        if v and v in first: wp[oi] = g.world(jn[first[v]], par)[:3, 3] if mode in ('cc', 'ycm', 'wm') else xf(P0[first[v]][None])[0]   # (the CC export has blank inverse-bind matrices on some joints)
     if not table['Spine2']: wp[11] = (wp[10] + wp[16]) / 2
     raw = []; texs = []; tmap = {}
     for mesh in j['meshes']:

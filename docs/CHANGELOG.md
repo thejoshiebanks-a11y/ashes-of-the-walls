@@ -1,4 +1,12 @@
 # Changelog
+## 0.9.35 (on top of 0.9.34)
+- **Open heads fixed at the root.** The hairband styles looked "open" because the donor hair leaves a bare strip of forehead between the crown and the fringe. The scalp cap is now built from the shell that closes the head and fills exactly the gaps that sit between hair above and hair below (never the forehead under a fringe, never the eyes). Checked from the front, side, back and top on magenta (any hole shows magenta) for every hairstyle with every face.
+- **New outfit "Maid dress"** (women) from the "Anime Maid Character Model - VR Chat" by VR Avatars (CC-BY 4.0): puffed-sleeve dress with apron, wrist cuffs, thigh-high stockings cut from our own legs (welded, no seam), black leather boots. The dress rides on the dressed torso layer like the gown.
+- **Two new hairstyles:** "Straight hime cut" (maid model) and "Cat-ear bob and braids" (Cat Girl by VR Avatars, CC-BY 4.0, ears included). Both closed with the same scalp cap.
+- Converter: new Z-up mode and a Mixamo-name table so the maid model could be read; the Cat Girl outfit (tattoos, cut-outs) and both models' faces were left out on purpose (do not meet the medieval/no-tattoo standard; the three faces already cover women).
+- Catalogue: 16 hairstyles, 9 outfits (4 for women); thumbnails regenerated; credits added.
+- Known limits: verified offline on rendered views only, never on a phone or in the full 3D scene. The bald head is closed and symmetrical but a faint shading crease remains where the face mask meets the skull at the temples.
+
 ## 0.9.34 (on top of 0.9.33)
 - **New female hairstyle "Soft cropped bob"** from the "Galaxia anime girl" model (Tatenashi, CC-BY 4.0, credited in CREDITS.md and the in-game credits). Rendered on all three faces from 8 angles and from above on a magenta background: closed, no holes. Women now have 6 hairstyles plus shaved.
 - Looked at the other new models and left them out on purpose: Galaxia's face and clothes (a school uniform) and Annie's hair (open forehead with a hairband-like edge) did not meet the standard; hirakata kana, anime_girl_cuc, reze and the two plain "anime girl" models are modern clothes, flat-colour hair or have no skeleton.

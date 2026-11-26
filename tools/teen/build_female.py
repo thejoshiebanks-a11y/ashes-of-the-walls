@@ -11,8 +11,9 @@ SRC = [('dancer', 'anime_dancer_-_fully_rigged_3d_model.glb', BB.VRM, 'vrm'), ('
 RIGIFY = dict(zip(BB.SHORT, ['DEF-spine', 'DEF-thigh.L', 'DEF-shin.L', 'DEF-foot.L', 'DEF-toe.L', 'DEF-thigh.R', 'DEF-shin.R', 'DEF-foot.R', 'DEF-toe.R', 'DEF-spine.001', 'DEF-spine.002', 'DEF-spine.003',
                                  'DEF-shoulder.L', 'DEF-upper_arm.L', 'DEF-forearm.L', 'DEF-hand.L', 'DEF-spine.005', 'DEF-spine.006', None, None, 'DEF-shoulder.R', 'DEF-upper_arm.R', 'DEF-forearm.R', 'DEF-hand.R']))
 SRC += [('galaxia', os.path.join(S, 'ag2', 'Anime Girl Model 2', 'galaxia_anime_girl.glb'), BB.VRM, 'y')]     # 'Galaxia anime girl' by Tatenashi, CC-BY-4.0: one hairstyle only
+SRC += [('cat', os.path.join(S, 'ag3', 'cat_girl.glb'), BB.VRM, 'y'), ('maid', os.path.join(S, 'ag3', 'maid_vrchat.glb'), BB.MAIDT, 'zup')]     # 'Cat Girl' and 'Anime Maid Character Model' by VR Avatars, CC-BY-4.0: a hairstyle with ears, and the maid dress
 FACES = ['dancer', 'fit', 'ag']                   # face 0..2
-HAIRS = [('dancer', 'FA'), ('fit', 'FB'), ('ag', 'FC'), ('g3', 'FD'), ('g4', 'FE'), ('galaxia', 'FF')]        # donor, id prefix  (id + '0')
+HAIRS = [('dancer', 'FA'), ('fit', 'FB'), ('ag', 'FC'), ('g3', 'FD'), ('g4', 'FE'), ('galaxia', 'FF'), ('maid', 'FG'), ('cat', 'FH')]        # donor, id prefix  (id + '0')
 def load():
     d = {}
     for key, rel, tb, mode in SRC:
@@ -159,9 +160,20 @@ def blend_mask(p, rfun, c, inset=.0025, band=.07):
     nn = no * (1 - wn[:, None]) + rad * wn[:, None]; nn /= np.linalg.norm(nn, axis=1, keepdims=True) + 1e-9; q['nrm'] = (sg * nn).astype(p['nrm'].dtype); return q
 def scalp(hp, htx, body):
     """the strand cards of the donor hairstyles leave gaps: a thin hair shell covers the crown and the back of the skull (down to the nape), tapering to nothing at its lower edge, and carries a patch of the hairstyle's own strand texture (so it shades and dyes exactly like the hair, with no flat patches). It is merged into the back piece of the hairstyle, hairline and ears stay free"""
-    from scipy.ndimage import binary_erosion
+    from scipy.ndimage import binary_erosion, binary_dilation
     F = body['ix'].reshape(-1, 3); c = body['pos'][F].mean(1)
     m = ((c[:, 1] > 1.79) | ((c[:, 2] < -.015) & (c[:, 1] > 1.66)) | ((c[:, 1] > 1.765) & (np.abs(c[:, 0]) > .05))) & (c[:, 1] < 1.95)
+    HF = hp[0]['ix'].reshape(-1, 3); gp = np.concatenate([p['pos'][p['ix'].reshape(-1, 3)] for p in hp]); bw = np.array([[1/3, 1/3, 1/3], [.7, .15, .15], [.15, .7, .15], [.15, .15, .7], [.45, .45, .1], [.1, .45, .45], [.45, .1, .45]])
+    sm = np.einsum('sk,tkd->tsd', bw, gp).reshape(-1, 3); az = np.degrees(np.arctan2(sm[:, 0], sm[:, 2] + .04)); NA, NY = 120, 80
+    occ = np.zeros((NA, NY), bool); ia = np.clip(((az + 180) / 3).astype(int), 0, NA - 1); iy = np.clip(((sm[:, 1] - 1.6) / .005).astype(int), 0, NY - 1); occ[ia, iy] = True
+    from scipy.ndimage import binary_closing
+    pass
+    cax = np.degrees(np.arctan2(c[:, 0], c[:, 2] + .04)); cia = np.clip(((cax + 180) / 3).astype(int), 0, NA - 1); ciy = np.clip(((c[:, 1] - 1.6) / .005).astype(int), 0, NY - 1)
+    up = np.zeros_like(occ); dn = np.zeros_like(occ)
+    for k_ in range(1, 15): up[:, :-k_] |= occ[:, k_:]; dn[:, k_:] |= occ[:, :-k_]                  # a gap is only filled when hair lies above it AND below it (the forehead under a fringe stays open, the sliver between crown and fringe is closed)
+    gp_ = binary_dilation(~occ & up & dn, iterations=1); Pv = body['pos']; vaz = np.degrees(np.arctan2(Pv[:, 0], Pv[:, 2] + .04)); via = np.clip(((vaz + 180) / 3).astype(int), 0, NA - 1); viy = np.clip(((Pv[:, 1] - 1.6) / .005).astype(int), 0, NY - 1)
+    vg = gp_[via, viy] & (Pv[:, 1] > 1.755) & (Pv[:, 1] < 1.95) & (Pv[:, 2] > -.02) & (np.abs(vaz) < 100); gapm = vg[F].any(1) & (c[:, 1] > 1.75)
+    m = m | gapm
     cap = C.sub(body, m)
     tgt = max(hp, key=lambda p: len(p['pos'])); im = htx[tgt['srctex']].convert('RGBA'); a = np.asarray(im).astype(float); h, w = a.shape[:2]
     from scipy.ndimage import binary_dilation
@@ -216,6 +228,24 @@ def tuck_torso(p, k=.12, cz=.03):
     q = dict(p); Q = P.copy(); Q[:, 0] *= 1 - k * w; Q[:, 2] = cz + (P[:, 2] - cz) * (1 - k * w); q['pos'] = Q.astype(p['pos'].dtype); return q
 def _samp(im, uv):
     a = np.asarray(im.convert('RGB')).astype(float); h, w = a.shape[:2]; return a[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)]
+def maid_outfit(d, body, T, wp, advshoe):
+    """the maid dress of the VR Avatars maid (dress, apron and puffed sleeves, wrist cuffs) on our body; thigh-high stockings are cut from our own legs (so they fit exactly) and the boots are the wayfarer's"""
+    mraw, mwp, mtx = d['maid']; mtx = dict(mtx)
+    op = C.shift_by_joints(BB.name_native([p for p in mraw if p['key'] == 'Tops'], 'x', 'Maid'), mwp, wp)
+    for p in op: mtx[p['srctex']] = NO.opaque(mtx[p['srctex']])
+    out = [(p, mtx) for p in op]
+    tex = np.zeros((8, 8, 4), np.uint8); tex[..., :3] = (34, 34, 40); tex[..., 3] = 255; T[902] = Image.fromarray(tex, 'RGBA')
+    F = body['ix'].reshape(-1, 3); c = body['pos'][F].mean(1); by = body['pos'][F][:, :, 1]
+    m = (by.min(1) < HEM) & (by.max(1) > .085) & (c[:, 1] > .085)
+    q = C.clip_y(C.sub(body, m, 'Outfit_Maid_Bottoms'), HEM, False); q = C.clip_y(q, .085, True)
+    q['uv'] = np.zeros_like(q['uv']); q['srctex'] = 902
+    key = np.round(q['pos'] * 1e4).astype(np.int64); _, first, inv = np.unique(key, axis=0, return_index=True, return_inverse=True); inv = inv.reshape(-1)      # weld the texture seams of the body first (they would show the skin through a hairline gap), then ease the cloth outwards
+    for k in ('pos', 'uv', 'jj', 'ww'): q[k] = q[k][first]
+    q['ix'] = inv[q['ix']].astype(q['ix'].dtype); nn = BB.smooth_normals(q['pos'], q['ix'].reshape(-1, 3)); q['pos'] = q['pos'] + nn * (1 if np.mean(np.sum(nn * (q['pos'] - q['pos'].mean(0)), 1)) > 0 else -1) * .0045; q['nrm'] = BB.smooth_normals(q['pos'], q['ix'].reshape(-1, 3)).astype(q['nrm'].dtype)
+    sp, st = advshoe; st = dict(st); a = np.asarray(st[sp['srctex']].convert('RGBA')).astype(float); lum = a[..., :3].mean(2, keepdims=True); a[..., :3] = np.clip((.45 * a[..., :3] + .55 * lum) * .55, 0, 255)      # black leather boots for the maid
+    ti = max(st) + 1000; st[ti] = Image.fromarray(a.astype(np.uint8), 'RGBA'); out.append((q, T)); out.append((dict(sp, srctex=ti), st))
+    return out
+HEM = .80
 def main(out):
     d = load(); raw0, wp, tex0 = d['dancer']; pr0 = BB.name_native(raw0, 'FA0', 'Gown'); body = next(p for p in pr0 if p['mat'] == 'Skin_Body'); body = bridge_torso(body, tex0[body['srctex']]); pr0 = [body if p['mat'] == 'Skin_Body' else p for p in pr0]
     tex0 = dict(tex0); tex0[body['srctex']] = clean_body_tex(tex0[body['srctex']])
@@ -239,7 +269,7 @@ def main(out):
     ex = [((blend_mask(p, rfun, hc), t) if p['mat'].startswith('Face') and p['mat'].endswith('_Skin') else (p, t)) for p, t in ex]
     for dk, pre in HAIRS:
         hraw, hwp, htx = d[dk]; hp = [p for p in BB.name_native(hraw, pre + '0', 'x') if p['mat'].startswith('Hair_')]
-        hp = BB.move_hair(hp, hwp, wp); hp = scalp(hp, htx, body); ex += [(p, htx) for p in hp]
+        hp = BB.move_hair(hp, hwp, wp); hp = scalp(hp, htx, hb); ex += [(p, htx) for p in hp]
     ex += [(p, T) for p in under(body, T)]
     gown = [p for p in pr0 if p['mat'].startswith('Outfit_Gown_')]; ex += [(p, tex0) for p in gown]
     for dk, oid in (('witch', 'Adventurer'),):
@@ -250,6 +280,7 @@ def main(out):
         px = im[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)]; med = np.median(px, axis=0); uvs = uv[np.argmin(np.abs(px - med).sum(1))]
         BF = body['ix'].reshape(-1, 3); bc = body['pos'][BF].mean(1); by = body['pos'][BF][:, :, 1]; lm = (by.max(1) > 1.0) & (by.min(1) < 1.45) & (np.abs(bc[:, 0]) < .18)
         L = C.clip_y(C.clip_y(C.sub(body, lm, 'Outfit_%s_Lining' % oid), 1.0, True), 1.45, False); L['pos'] = L['pos'] - L['nrm'] * .011; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype); L['srctex'] = tp['srctex']; L['nrm'] = BB.smooth_normals(L['pos'], L['ix'].reshape(-1, 3)); op.append(L)
-        ex += [(p, otx) for p in op]
+        ex += [(p, otx) for p in op]; advshoe = (dict(next(p for p in op if p['mat'].endswith('_Shoes')), mat='Outfit_Maid_Shoes'), otx)
+    ex += maid_outfit(d, body, T, wp, advshoe)
     BB.assemble('girl', ex, wp, out)
 if __name__ == '__main__': main(sys.argv[1])

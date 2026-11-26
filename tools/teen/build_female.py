@@ -10,14 +10,18 @@ SRC = [('dancer', 'anime_dancer_-_fully_rigged_3d_model.glb', BB.VRM, 'vrm'), ('
        ('witch', 'x_medieval_witch_girl/scene.gltf', BB.RPM, 'y'), ('warr', 'x_medieval_warrior_girl/scene.gltf', BB.CC, 'ycm')]
 RIGIFY = dict(zip(BB.SHORT, ['DEF-spine', 'DEF-thigh.L', 'DEF-shin.L', 'DEF-foot.L', 'DEF-toe.L', 'DEF-thigh.R', 'DEF-shin.R', 'DEF-foot.R', 'DEF-toe.R', 'DEF-spine.001', 'DEF-spine.002', 'DEF-spine.003',
                                  'DEF-shoulder.L', 'DEF-upper_arm.L', 'DEF-forearm.L', 'DEF-hand.L', 'DEF-spine.005', 'DEF-spine.006', None, None, 'DEF-shoulder.R', 'DEF-upper_arm.R', 'DEF-forearm.R', 'DEF-hand.R']))
+SRC += [('galaxia', os.path.join(S, 'ag2', 'Anime Girl Model 2', 'galaxia_anime_girl.glb'), BB.VRM, 'y')]     # 'Galaxia anime girl' by Tatenashi, CC-BY-4.0: one hairstyle only
 FACES = ['dancer', 'fit', 'ag']                   # face 0..2
-HAIRS = [('dancer', 'FA'), ('fit', 'FB'), ('ag', 'FC'), ('g3', 'FD'), ('g4', 'FE')]        # donor, id prefix  (id + '0')
+HAIRS = [('dancer', 'FA'), ('fit', 'FB'), ('ag', 'FC'), ('g3', 'FD'), ('g4', 'FE'), ('galaxia', 'FF')]        # donor, id prefix  (id + '0')
 def load():
     d = {}
     for key, rel, tb, mode in SRC:
         mats0 = BB.MATS
         if key in ('kana', 'cuc'): BB.MATS = [('Material.003', 'Hair')]
         raw, wp, texs = BB.convert(os.path.join(G, rel), tb, mode, 512); BB.MATS = mats0
+        if key == 'annie':                                 # this export keeps its mesh in raw units (14 000 high): bring it to metres
+            k_ = 1.9486 / max(p['pos'][:, 1].max() for p in raw)
+            for p in raw: p['pos'] = p['pos'] * k_
         if key in ('kana', 'cuc'):                         # both donors face -Z (a half turn about the vertical axis from ours)
             fl = np.array([-1., 1., -1.]); wp = wp * fl
             for p in raw: p['pos'] = p['pos'] * fl; p['nrm'] = p['nrm'] * fl

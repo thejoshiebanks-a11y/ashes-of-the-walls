@@ -45,6 +45,11 @@ def load():
                             import cv2
                             a[..., :3] = (30, 22, 24); big = cv2.morphologyEx((mx > 120).astype(np.uint8), cv2.MORPH_OPEN, np.ones((7, 7), np.uint8)); big = cv2.dilate(big, np.ones((9, 9), np.uint8)); a[..., 3][big > 0] = 0; a[..., 3] = np.minimum(255, cv2.dilate(a[..., 3], np.ones((3, 3), np.uint8)).astype(np.int32) * 2).astype(np.uint8)
                         texs[p['tex']] = Image.fromarray(a, 'RGBA')
+        if key in ('dancer', 'fit', 'ag', 'cat', 'maid'):                        # lashes and lid lines are black on every female face (some sheets carried pale pink or white strokes)
+            texs = list(texs)
+            for p in raw:
+                if p['key'] == 'Eyeline' and p['tex'] is not None:
+                    a = np.asarray(texs[p['tex']].convert('RGBA')).copy(); a[..., :3] = (26, 19, 21); texs[p['tex']] = Image.fromarray(a, 'RGBA'); p['_dark'] = 1
         d[key] = (raw, wp, dict(enumerate(texs)))
     return d
 def bridge_torso(body, Tbody=None):

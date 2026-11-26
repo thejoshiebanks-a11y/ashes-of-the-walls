@@ -37,7 +37,7 @@ MODELS = {
     'ash': ('character_boy_2_fbx/scene.gltf', CC, 'cc', 'C0'),
 }
 MATS = [('Wolf3D_Avatar', 'Skin_Body'), ('Wolf3D_Body', 'Skin_Body'), ('Wolf3D_Skin', 'Skin_Face'), ('Wolf3D_Hair', 'Hair'), ('M_Hair_60', 'Hair'), ('Wolf3D_Eye', 'Iris'), ('Wolf3D_Teeth', 'Mouth'), ('Wolf3D_Outfit_Top', 'Tops'), ('Wolf3D_Outfit_Bottom', 'Bottoms'), ('Wolf3D_Outfit_Footwear', 'Shoes'), ('HairBack', 'HairBack'), ('Hair_00_HAIR', 'Hair'), ('Body_00_SKIN', 'Skin_Body'), ('Face_00_SKIN', 'Skin_Face'), ('EyeWhite', 'EyeWhite'), ('EyeIris', 'Iris'), ('EyeHighlight', 'EyeHL'),
-        ('FaceBrow', 'Brow'), ('FaceEyeline', 'Eyeline'), ('FaceEyelash', 'Eyeline'), ('FaceMouth', 'Mouth'), ('Tops', 'Tops'), ('Bottoms', 'Bottoms'), ('Shoes', 'Shoes'), ('Onepiece', 'Collar'), ('CatEar', 'HairBack')]
+        ('FaceBrow', 'Brow'), ('FaceEyeline', 'Eyeline'), ('FaceEyelash', 'Eyeline'), ('FaceMouth', 'Mouth'), ('Tops', 'Tops'), ('Bottoms', 'Bottoms'), ('Shoes', 'Shoes'), ('Onepiece', 'Collar')]
 
 def strip(n): return re.sub(r'_\d+$', '', n)
 def smooth_normals(P, F):

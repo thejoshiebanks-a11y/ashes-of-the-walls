@@ -43,7 +43,7 @@
     { id: 'FA0', name: 'Side-swept bob', f: 'FA0', k: 'FA0Back', g: 'f' }, { id: 'FB0', name: 'Long fringe', f: 'FB0', k: 'FB0Back', g: 'f' }, { id: 'FC0', name: 'Flowing locks', f: 'FC0', k: 'FC0Back', g: 'f' },
     { id: 'FD0', name: 'Short crop', f: 'FD0', k: 'FD0Back', g: 'f' }, { id: 'FE0', name: 'Bob and band', f: 'FE0', k: 'FE0Back', g: 'f' },
     { id: 'FF0', name: 'Soft cropped bob', f: 'FF0', k: 'FF0Back', g: 'f' },
-    { id: 'FG0', name: 'Straight hime cut', f: 'FG0', k: 'FG0Back', g: 'f' }, { id: 'FH0', name: 'Cat-ear bob and braids', f: 'FH0', k: 'FH0Back', g: 'f' }];
+    { id: 'FG0', name: 'Straight hime cut', f: 'FG0', k: 'FG0Back', g: 'f' }, { id: 'FH0', name: 'Bob with braids', f: 'FH0', k: 'FH0Back', g: 'f' }];
   T.baseOf = L => T.BASES[(L && L.base) | 0] || T.BASES[0];
   T.hairsFor = b => { const f = (T.BASES[b | 0] || T.BASES[0]).g === 'f'; return T.HAIR.map((h, i) => ({ h, i })).filter(x => x.h.bald || (x.h.g === 'f') === f); };
   T.outfitsFor = b => { const g = (T.BASES[b | 0] || T.BASES[0]).g || 'm'; return T.OUTFITS.map((o, i) => ({ o, i })).filter(x => !x.o.g || x.o.g === g); };

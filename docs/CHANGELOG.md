@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.37 (on top of 0.9.36)
+- Lashes and lid lines are black on every female face (some sheets carried pale or white strokes).
+- The cat ears are removed from the "Bob with braids" hairstyle (formerly "Cat-ear bob and braids").
+- Verified on renders only, never on a phone or the full 3D scene.
+
 ## 0.9.36 (on top of 0.9.35)
 - **Two new female faces (5 in total):** "Sharp" (Cat Girl) and "Gentle" (Anime Maid), both by VR Avatars (CC-BY 4.0, credited). Their brow and lash sheets arrive without transparency, so the lines are rebuilt as coverage maps (the maid's filled lid wash is removed, only the lash strokes stay). Each face goes through the same head-shell blend and tone match as the others.
 - Checked closed from front, side, back and top on magenta with the new faces on the new and old hairstyles; thumbnails ff_3 and ff_4 added.

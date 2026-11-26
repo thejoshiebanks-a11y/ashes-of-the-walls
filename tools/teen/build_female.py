@@ -77,6 +77,42 @@ def trim_top(p, y=1.80):
     """the donor face skin runs up over the crown; above the hairline the hair cap and the body dome take over"""
     F = p['ix'].reshape(-1, 3); cc = p['pos'][F].mean(1); keep = (cc[:, 1] <= y) & ~((cc[:, 1] > y - .035) & (np.abs(cc[:, 0]) > .05))
     q = dict(p); q['ix'] = F[keep].reshape(-1).astype(p['ix'].dtype); return q
+def head_fill(body, skins, cen=(0., 1.77, -.04), na=96, nt=40, tmax=140., inset=.004):
+    """the donor head is two open shells (a skull that stops short of the face, and a face mask that stops short of the skull): a thin closed skin shell, a radial surface that lies just beneath both, closes every gap between them (forehead, temples, crown, nape) so the bald head is one solid, continuous head"""
+    from scipy.ndimage import gaussian_filter, minimum_filter
+    c = np.array(cen); bp = body['pos']; pts = [bp[bp[:, 1] > 1.62]]; R = []
+    def grid(P):
+        d = P - c; r = np.linalg.norm(d, axis=1); th = np.degrees(np.arccos(np.clip(d[:, 1] / np.maximum(r, 1e-9), -1, 1))); ph = np.arctan2(d[:, 2], d[:, 0]) % (2 * np.pi)
+        m = th <= tmax; ia = np.minimum((ph[m] / (2 * np.pi) * na).astype(int), na - 1); it = np.minimum((th[m] / tmax * nt).astype(int), nt - 1)
+        G = np.zeros((nt, na)); np.maximum.at(G, (it, ia), r[m]); return G
+    Gs = []
+    for sk in skins:
+        P = np.concatenate([pts[0], sk[sk[:, 1] > 1.62]]); Gs.append(grid(P))
+    G = np.minimum.reduce(Gs) if len(Gs) > 1 else Gs[0]
+    for _ in range(200):                                                      # inpaint the empty cells from their neighbours
+        E = G <= 0
+        if not E.any(): break
+        Gp = np.pad(G, ((1, 1), (0, 0)), mode='edge'); nb = np.stack([Gp[:-2], Gp[2:], np.roll(G, 1, 1), np.roll(G, -1, 1)]); cn = (nb > 0).sum(0); sm = nb.sum(0) / np.maximum(cn, 1)
+        G = np.where(E & (cn > 0), sm, G)
+    G = np.where(G <= 0, .1, G)
+    G = minimum_filter(G, size=(3, 3), mode=('nearest', 'wrap')); G = gaussian_filter(G, 1.6, mode=('nearest', 'wrap')) - inset
+    th = (np.arange(nt) + .5) / nt * np.radians(tmax); ph = (np.arange(na)) / na * 2 * np.pi
+    TH, PH = np.meshgrid(th, ph, indexing='ij'); dirs = np.stack([np.sin(TH) * np.cos(PH), np.cos(TH), np.sin(TH) * np.sin(PH)], -1)
+    pos = (c + dirs * G[..., None]).reshape(-1, 3); out = (dirs).reshape(-1, 3)
+    pole = c + np.array([0, 1, 0]) * G[0].mean(); pos = np.vstack([pos, pole[None]]); out = np.vstack([out, [[0, 1, 0]]]); n0 = nt * na; pi = n0
+    F = []
+    for i in range(nt - 1):
+        for j in range(na):
+            a_, b_, c_, d_ = i * na + j, i * na + (j + 1) % na, (i + 1) * na + j, (i + 1) * na + (j + 1) % na; F += [[a_, c_, b_], [b_, c_, d_]]
+    for j in range(na): F.append([pi, j, (j + 1) % na])
+    F = np.array(F)
+    from scipy.spatial import cKDTree
+    hm = bp[:, 1] > 1.62; T = cKDTree(bp[hm]); dd, ii = T.query(pos, k=1); idx = np.where(hm)[0][ii]
+    out_n = out / np.linalg.norm(out, axis=1, keepdims=True)
+    n_old = len(bp); q = dict(body)
+    q['pos'] = np.vstack([bp, pos]); q['nrm'] = np.vstack([body['nrm'], -out_n]); q['uv'] = np.vstack([body['uv'], body['uv'][idx]]).astype(body['uv'].dtype)
+    q['jj'] = np.vstack([body['jj'], body['jj'][idx]]); q['ww'] = np.vstack([body['ww'], body['ww'][idx]])
+    q['ix'] = np.concatenate([body['ix'], (F + n_old).reshape(-1)]).astype(body['ix'].dtype); return q
 def scalp(hp, htx, body):
     """the strand cards of the donor hairstyles leave gaps: a thin hair shell covers the crown and the back of the skull (down to the nape), tapering to nothing at its lower edge, and carries a patch of the hairstyle's own strand texture (so it shades and dyes exactly like the hair, with no flat patches). It is merged into the back piece of the hairstyle, hairline and ears stay free"""
     from scipy.ndimage import binary_erosion
@@ -126,13 +162,15 @@ def main(out):
     T = dict(tex0); ex = []
     ex.append((body, tex0)); ex.append((dict(body, mat='Skin_BodyD'), tex0))        # the dressed-skin layer the game switches to under any outfit
     bt = BB.mean_skin(tex0[body['srctex']])
+    skp = []
     for k, fk in enumerate(FACES):
         fraw, fwp, ftx = d[fk]; fp = BB.name_native(fraw, 'x', 'x'); part = BB.face_set(fp, ftx, k)
         if fk != 'dancer': part = BB.move_hair(part, fwp, wp)
         ft = BB.mean_skin(ftx[next(p for p in fp if p['mat'] == 'Skin_Face')['srctex']]); newtex = dict(ftx)
         for p in part:
             if p['mat'].endswith('_Skin'): newtex[p['srctex']] = BB.tone_match(ftx[p['srctex']], ft, bt)
-        part = [trim_top(p) if p['mat'].endswith('_Skin') else p for p in part]; ex += [(p, newtex) for p in part]
+        part = [trim_top(p) if p['mat'].endswith('_Skin') else p for p in part]; ex += [(p, newtex) for p in part]; skp.append(next(p for p in part if p['mat'].endswith('_Skin'))['pos'])
+    hb = head_fill(body, skp); ex[0] = (hb, tex0); ex[1] = (dict(hb, mat='Skin_BodyD'), tex0)
     for dk, pre in HAIRS:
         hraw, hwp, htx = d[dk]; hp = [p for p in BB.name_native(hraw, pre + '0', 'x') if p['mat'].startswith('Hair_')]
         hp = BB.move_hair(hp, hwp, wp); hp = scalp(hp, htx, body); ex += [(p, htx) for p in hp]

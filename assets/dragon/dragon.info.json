@@ -9,7 +9,7 @@
  "height": 2.034632105550798,
  "ymin": -0.04937199946411691,
  "unit": 1.0,
- "bin_kb": 5488,
+ "bin_kb": 5489,
  "pelvis": [
   -6.157831956666535e-08,
   1.0619320389784968,
@@ -344,7 +344,7 @@
   ],
   "Outfit_Dragon_Bottoms": [
    788,
-   1288
+   1278
   ],
   "Outfit_Dragon_Shoes": [
    468,
@@ -360,7 +360,7 @@
   ],
   "Outfit_Ninja_Bottoms": [
    756,
-   1084
+   1025
   ],
   "Outfit_Ninja_Sash": [
    45,

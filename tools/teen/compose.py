@@ -98,17 +98,13 @@ def reweight(garments, body, k=8):
     for c in range(4): np.add.at(D, (np.arange(n), body['jj'][:, c]), body['ww'][:, c])
     tree = cKDTree(body['pos'])
     def drop_bridge(g):
-        if g['mat'].endswith('_Bottoms') and g['mat'][7:].split('_')[0] in ('Dragon', 'Ninja'):
-            # loose trousers: the crotch panel is kept (a hole would show) and follows the pelvis, so it never webs between the legs in a stride
-            P = g['pos']; t = np.clip(1 - (np.abs(P[:, 0]) - .05) / .06, 0, 1) * np.clip((P[:, 1] - .62) / .08, 0, 1)
-            jj = g['jj'].copy(); ww = g['ww'].astype(float) * (1 - t[:, None]); jj[:, 3] = 0; ww[:, 3] += t
-            sm = ww.sum(1, keepdims=True); ww /= np.maximum(sm, 1e-9); g['jj'] = jj.astype(g['jj'].dtype); g['ww'] = ww.astype(g['ww'].dtype); return
         # a few cloth faces bridge the crotch from one thigh to the other: they would be stretched into a web between the legs in every stride, so they are dropped
         L = (np.isin(g['jj'], [1, 2, 3, 4]) * g['ww']).sum(1); R = (np.isin(g['jj'], [5, 6, 7, 8]) * g['ww']).sum(1); t = R - L; F = g['ix'].reshape(-1, 3); ft = t[F]; P = g['pos'][F].mean(1)
         keep = ~(((ft.max(1) - ft.min(1)) > .45) & (np.abs(P[:, 0]) < .12) & (P[:, 1] > .5) & (P[:, 1] < 1.05))
         if (~keep).any(): g['ix'] = F[keep].reshape(-1).astype(g['ix'].dtype)
     for g in garments:
-        if g['mat'] not in TIGHT: drop_bridge(g); continue
+        loose = g['mat'].endswith('_Bottoms') and g['mat'][7:].split('_')[0] in ('Dragon', 'Ninja')      # the loose trousers are skinned from the legs beneath them like every other garment (a pelvis-bound crotch panel ballooned in a run)
+        if g['mat'] not in TIGHT and not loose: drop_bridge(g); continue
         d, ix = tree.query(g['pos'], k=k); w = 1 / (d + .004) ** 2; w /= w.sum(1, keepdims=True)
         A = (w[:, :, None] * D[ix]).sum(1)
         # relax the copied weights over the cloth itself (welded by position): neighbouring cloth vertices never get wildly different bone mixes, so no tiny edge is stretched into a spike

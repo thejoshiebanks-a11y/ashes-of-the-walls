@@ -141,6 +141,14 @@ def _bnd(p, tag):
     if not os.environ.get('DBG') or not p['mat'].endswith('_Bottoms'): return
     P = p['pos']; F = p['ix'].reshape(-1, 3); key = np.round(P * 1e4).astype(np.int64); _, inv = np.unique(key, axis=0, return_inverse=True); inv = inv.reshape(-1); Fv = inv[F]
     e = np.sort(np.r_[Fv[:, [0, 1]], Fv[:, [1, 2]], Fv[:, [2, 0]]], axis=1); u, c = np.unique(e, axis=0, return_counts=True); print('DBG', p['mat'], tag, len(F), 'bnd', (c == 1).sum())
+def shrinkwrap(p, body, caps=((1.1, .050), (.9, .046), (.78, .040), (.62, .042), (.40, .040), (.0, .036))):
+    """loose cloth that hangs far from the body (the crotch drape and the flared thighs of the donor trousers) is pulled in to a soft-fit distance of the body surface, so
+    that when the legs swing in a run nothing stretches into a bell or a balloon between them: every vertex stays within a few centimetres of the skin it is weighted to"""
+    from scipy.spatial import cKDTree
+    tr = cKDTree(body['pos']); X = p['pos'].astype(np.float64); d, i = tr.query(X); cap = np.interp(X[:, 1], [c[0] for c in caps][::-1], [c[1] for c in caps][::-1])
+    k = np.where(d > cap, cap / np.maximum(d, 1e-9), 1.0); B = body['pos'][i]; p['pos'] = (B + (X - B) * k[:, None]).astype(p['pos'].dtype); return p
+
+
 def new_outfits(T, body, wpl):
     out = []
     for oid, fn, off, parts, sxe, ssc, band in DONORS:
@@ -153,7 +161,7 @@ def new_outfits(T, body, wpl):
         res = []; tops_ref = None; pr = sorted(pr, key=lambda q: 0 if q['mat'].endswith('_Tops') else 1)
         for p in pr:
             if p['mat'].endswith('_Bottoms'):
-                p = p if os.environ.get('NOTRIM') else trim_hips(p, [(.84, 9), (.90, .160), (.96, .156), (1.04, .155), (1.10, .150), (1.16, .150)]); p = p if os.environ.get('NOSLIM') else slim_legs(p, body, margin=.011, keep=.15)
+                p = p if os.environ.get('NOTRIM') else trim_hips(p, [(.84, 9), (.90, .160), (.96, .156), (1.04, .155), (1.10, .150), (1.16, .150)]); p = p if os.environ.get('NOSLIM') else slim_legs(p, body, margin=.011, keep=.15); p = shrinkwrap(p, body)
             elif p['mat'].endswith('_Collar') and FAITH:
                 pass      # the donor's own collar and cuffs are kept exactly as modelled
             elif p['mat'].endswith('_Collar'):

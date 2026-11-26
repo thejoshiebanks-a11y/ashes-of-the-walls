@@ -12,7 +12,7 @@ RIGIFY = dict(zip(BB.SHORT, ['DEF-spine', 'DEF-thigh.L', 'DEF-shin.L', 'DEF-foot
                                  'DEF-shoulder.L', 'DEF-upper_arm.L', 'DEF-forearm.L', 'DEF-hand.L', 'DEF-spine.005', 'DEF-spine.006', None, None, 'DEF-shoulder.R', 'DEF-upper_arm.R', 'DEF-forearm.R', 'DEF-hand.R']))
 SRC += [('galaxia', os.path.join(S, 'ag2', 'Anime Girl Model 2', 'galaxia_anime_girl.glb'), BB.VRM, 'y')]     # 'Galaxia anime girl' by Tatenashi, CC-BY-4.0: one hairstyle only
 SRC += [('cat', os.path.join(S, 'ag3', 'cat_girl.glb'), BB.VRM, 'y'), ('maid', os.path.join(S, 'ag3', 'maid_vrchat.glb'), BB.MAIDT, 'zup')]     # 'Cat Girl' and 'Anime Maid Character Model' by VR Avatars, CC-BY-4.0: a hairstyle with ears, and the maid dress
-FACES = ['dancer', 'fit', 'ag']                   # face 0..2
+FACES = ['dancer', 'fit', 'ag', 'cat', 'maid']         # face 0..4
 HAIRS = [('dancer', 'FA'), ('fit', 'FB'), ('ag', 'FC'), ('g3', 'FD'), ('g4', 'FE'), ('galaxia', 'FF'), ('maid', 'FG'), ('cat', 'FH')]        # donor, id prefix  (id + '0')
 def load():
     d = {}
@@ -34,6 +34,17 @@ def load():
             for p in raw:
                 if p.get('tex') is None: p['tex'] = ti
         if key in ('g3', 'g4'): raw = BB.split_merged(raw, wp)
+        if key in ('cat', 'maid'):                         # these lash and brow sheets come out opaque (the alpha lives in the picture's brightness): the lines become the coverage
+            texs = list(texs)
+            for p in raw:
+                if p['key'] in ('Brow', 'Eyeline') and p['tex'] is not None:
+                    a = np.asarray(texs[p['tex']].convert('RGBA')).copy()
+                    if a[..., 3].min() == 255:
+                        mx = a[..., :3].max(2).astype(float); a[..., 3] = np.clip(mx * 3.5 - 4, 0, 255).astype(np.uint8)
+                        if p['key'] == 'Eyeline' and key == 'maid':          # the sheet is a grey-scale coverage map: lashes in dark brown-black, and its large filled shapes (a white lid wash) are dropped, only the strokes stay
+                            import cv2
+                            a[..., :3] = (30, 22, 24); big = cv2.morphologyEx((mx > 120).astype(np.uint8), cv2.MORPH_OPEN, np.ones((7, 7), np.uint8)); big = cv2.dilate(big, np.ones((9, 9), np.uint8)); a[..., 3][big > 0] = 0; a[..., 3] = np.minimum(255, cv2.dilate(a[..., 3], np.ones((3, 3), np.uint8)).astype(np.int32) * 2).astype(np.uint8)
+                        texs[p['tex']] = Image.fromarray(a, 'RGBA')
         d[key] = (raw, wp, dict(enumerate(texs)))
     return d
 def bridge_torso(body, Tbody=None):

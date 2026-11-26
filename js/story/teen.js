@@ -49,7 +49,7 @@
   T.outfitsFor = b => { const g = (T.BASES[b | 0] || T.BASES[0]).g || 'm'; return T.OUTFITS.map((o, i) => ({ o, i })).filter(x => !x.o.g || x.o.g === g); };
   T.baseHair = b => Math.max(0, T.HAIR.findIndex(h => h.f === (T.BASES[b | 0] || T.BASES[0]).hair));
   T.FACES = ['Calm', 'Fierce', 'Gentle', 'Bright', 'Sly', 'Soft'].map((n, i) => ({ id: 'Face' + i, name: n }));
-  T.facesFor = b => (T.BASES[b | 0] || T.BASES[0]).g === 'f' ? T.FACES.slice(0, 3).map((f, i) => ({ id: f.id, name: ['Soft', 'Bright', 'Calm'][i], i })) : T.FACES.map((f, i) => ({ id: f.id, name: f.name, i }));
+  T.facesFor = b => (T.BASES[b | 0] || T.BASES[0]).g === 'f' ? T.FACES.slice(0, 5).map((f, i) => ({ id: f.id, name: ['Soft', 'Bright', 'Calm', 'Sharp', 'Gentle'][i], i })) : T.FACES.map((f, i) => ({ id: f.id, name: f.name, i }));
   T.HAIRCOL = [C('Black', 24, 21, 22), C('Dark brown', 58, 42, 32), C('Brown', 92, 66, 48), C('Chestnut', 116, 80, 56), C('Auburn', 128, 64, 46), C('Ginger', 168, 94, 52), C('Blond', 200, 170, 112), C('Ash blond', 180, 166, 138), C('Silver', 190, 192, 204), C('Crimson', 150, 30, 40), C('Midnight', 30, 38, 84), { name: 'Original', c: null, css: 'linear-gradient(135deg,#c93030 33%,#3a3a3a 33% 66%,#4ec9a0 66%)' }];   // 'Original' keeps the colour the model was painted with
   T.EYES = [C('Black', 22, 18, 18), C('Dark brown', 82, 50, 30), C('Hazel', 132, 102, 42), C('Green', 62, 138, 82), C('Blue', 72, 112, 188), C('Grey', 134, 142, 154), C('Amber', 198, 140, 42)];
   T.SKIN = [C('Natural', 255, 255, 255), C('Warm', 250, 232, 214), C('Olive', 224, 205, 176), C('Tan', 200, 178, 152), C('Golden', 176, 150, 122), C('Brown', 150, 126, 108), C('Deep', 106, 90, 80), C('Sun', 238, 203, 176)];   // multipliers on the teen's own skin, kept close to neutral so the hue stays natural
@@ -80,7 +80,7 @@
       const oo = ['Under', 'Peasant', 'Peasant', 'Ranger', 'Scout'][k.outfit | 0]; k.outfit = Math.max(0, T.OUTFITS.findIndex(o => o.id === oo)); k.v = 3; }
     if (!T.BASES[k.base]) k.base = 0;
     if (!T.FACES[k.face]) k.face = 0; if (!T.HAIR[k.hair]) k.hair = 0; if (!T.OUTFITS[k.outfit]) k.outfit = 0; if (!T.BOXCOL[k.under]) k.under = 0;
-    { const g = (T.BASES[k.base].g) || 'm'; if (g === 'f' && k.face > 2) k.face = 0;
+    { const g = (T.BASES[k.base].g) || 'm'; if (g === 'f' && k.face > 4) k.face = 0;
       if (!T.hairsFor(k.base).some(x => x.i === k.hair)) k.hair = T.baseHair(k.base);
       if (!T.outfitsFor(k.base).some(x => x.i === k.outfit)) k.outfit = 0; }
     return k; };

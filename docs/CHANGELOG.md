@@ -1,4 +1,9 @@
 # Changelog
+## 0.9.36 (on top of 0.9.35)
+- **Two new female faces (5 in total):** "Sharp" (Cat Girl) and "Gentle" (Anime Maid), both by VR Avatars (CC-BY 4.0, credited). Their brow and lash sheets arrive without transparency, so the lines are rebuilt as coverage maps (the maid's filled lid wash is removed, only the lash strokes stay). Each face goes through the same head-shell blend and tone match as the others.
+- Checked closed from front, side, back and top on magenta with the new faces on the new and old hairstyles; thumbnails ff_3 and ff_4 added.
+- Known limit: the maid face has slightly lighter lashes than the others; verified on renders only, never on a phone or the full 3D scene.
+
 ## 0.9.35 (on top of 0.9.34)
 - **Open heads fixed at the root.** The hairband styles looked "open" because the donor hair leaves a bare strip of forehead between the crown and the fringe. The scalp cap is now built from the shell that closes the head and fills exactly the gaps that sit between hair above and hair below (never the forehead under a fringe, never the eyes). Checked from the front, side, back and top on magenta (any hole shows magenta) for every hairstyle with every face.
 - **New outfit "Maid dress"** (women) from the "Anime Maid Character Model - VR Chat" by VR Avatars (CC-BY 4.0): puffed-sleeve dress with apron, wrist cuffs, thigh-high stockings cut from our own legs (welded, no seam), black leather boots. The dress rides on the dressed torso layer like the gown.

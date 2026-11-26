@@ -8,12 +8,26 @@ S = os.environ['S']; G = os.path.join(S, 'gz', 'Anime Girl characters')
 SRC = [('dancer', 'anime_dancer_-_fully_rigged_3d_model.glb', BB.VRM, 'vrm'), ('fit', 'anime_fitness_girl_with_glasses.glb', BB.VRM, 'vrm'), ('ag', 'x_anime_girl_rigged_anime_model/scene.gltf', BB.MIX, 'y'),
        ('g3', 'character_girl_3_fbx.glb', BB.CC, 'cc'), ('g4', 'character_girl_4_fbx.glb', BB.CC, 'cc'),
        ('witch', 'x_medieval_witch_girl/scene.gltf', BB.RPM, 'y'), ('warr', 'x_medieval_warrior_girl/scene.gltf', BB.CC, 'ycm')]
+RIGIFY = dict(zip(BB.SHORT, ['DEF-spine', 'DEF-thigh.L', 'DEF-shin.L', 'DEF-foot.L', 'DEF-toe.L', 'DEF-thigh.R', 'DEF-shin.R', 'DEF-foot.R', 'DEF-toe.R', 'DEF-spine.001', 'DEF-spine.002', 'DEF-spine.003',
+                                 'DEF-shoulder.L', 'DEF-upper_arm.L', 'DEF-forearm.L', 'DEF-hand.L', 'DEF-spine.005', 'DEF-spine.006', None, None, 'DEF-shoulder.R', 'DEF-upper_arm.R', 'DEF-forearm.R', 'DEF-hand.R']))
 FACES = ['dancer', 'fit', 'ag']                   # face 0..2
 HAIRS = [('dancer', 'FA'), ('fit', 'FB'), ('ag', 'FC'), ('g3', 'FD'), ('g4', 'FE')]        # donor, id prefix  (id + '0')
 def load():
     d = {}
     for key, rel, tb, mode in SRC:
-        raw, wp, texs = BB.convert(os.path.join(G, rel), tb, mode, 512)
+        mats0 = BB.MATS
+        if key in ('kana', 'cuc'): BB.MATS = [('Material.003', 'Hair')]
+        raw, wp, texs = BB.convert(os.path.join(G, rel), tb, mode, 512); BB.MATS = mats0
+        if key in ('kana', 'cuc'):                         # both donors face -Z (a half turn about the vertical axis from ours)
+            fl = np.array([-1., 1., -1.]); wp = wp * fl
+            for p in raw: p['pos'] = p['pos'] * fl; p['nrm'] = p['nrm'] * fl
+        if key in ('kana', 'cuc'):                         # these hairs are plain-colour materials: give them a small shaded strand texture of their own colour so the dye and the shading work like the others
+            col = {'kana': (214, 168, 98), 'cuc': (196, 194, 200)}[key]; ti = len(texs); im = np.zeros((64, 64, 4), np.uint8); v = np.linspace(1.0, .78, 64)[:, None]
+            streak = 1 + .07 * np.sin(np.arange(64) * 2.1)[None, :] * np.cos(np.arange(64) * .37)[None, :]
+            for c in range(3): im[..., c] = np.clip(col[c] * v * streak, 0, 255)
+            im[..., 3] = 255; texs = list(texs) + [Image.fromarray(im, 'RGBA')]
+            for p in raw:
+                if p.get('tex') is None: p['tex'] = ti
         if key in ('g3', 'g4'): raw = BB.split_merged(raw, wp)
         d[key] = (raw, wp, dict(enumerate(texs)))
     return d
@@ -75,9 +89,9 @@ def bridge_torso(body, Tbody=None):
     d['ix'] = np.r_[body['ix'], T3.reshape(-1)].astype(body['ix'].dtype); return d
 def trim_top(p, y=1.80):
     """the donor face skin runs up over the crown; above the hairline the hair cap and the body dome take over"""
-    F = p['ix'].reshape(-1, 3); cc = p['pos'][F].mean(1); keep = (cc[:, 1] <= y) & ~((cc[:, 1] > y - .035) & (np.abs(cc[:, 0]) > .05))
+    F = p['ix'].reshape(-1, 3); cc = p['pos'][F].mean(1); keep = cc[:, 1] <= y
     q = dict(p); q['ix'] = F[keep].reshape(-1).astype(p['ix'].dtype); return q
-def head_fill(body, skins, cen=(0., 1.77, -.04), na=96, nt=40, tmax=140., inset=.004):
+def head_fill(body, skins, cen=(0., 1.77, -.04), na=96, nt=40, tmax=140., inset=.0025):
     """the donor head is two open shells (a skull that stops short of the face, and a face mask that stops short of the skull): a thin closed skin shell, a radial surface that lies just beneath both, closes every gap between them (forehead, temples, crown, nape) so the bald head is one solid, continuous head"""
     from scipy.ndimage import gaussian_filter, minimum_filter
     c = np.array(cen); bp = body['pos']; pts = [bp[bp[:, 1] > 1.62]]; R = []
@@ -109,10 +123,36 @@ def head_fill(body, skins, cen=(0., 1.77, -.04), na=96, nt=40, tmax=140., inset=
     from scipy.spatial import cKDTree
     hm = bp[:, 1] > 1.62; T = cKDTree(bp[hm]); dd, ii = T.query(pos, k=1); idx = np.where(hm)[0][ii]
     out_n = out / np.linalg.norm(out, axis=1, keepdims=True)
+    from scipy.ndimage import map_coordinates
+    def rfun(P):
+        d = P - c; r = np.linalg.norm(d, axis=1); th = np.degrees(np.arccos(np.clip(d[:, 1] / np.maximum(r, 1e-9), -1, 1))); ph = np.arctan2(d[:, 2], d[:, 0]) % (2 * np.pi)
+        ti = np.clip(th / tmax * nt - .5, 0, nt - 1); pj = ph / (2 * np.pi) * na
+        Gw = np.concatenate([G, G[:, :1]], 1); return map_coordinates(Gw, [ti, pj], order=1, mode='nearest') + 0 * r
     n_old = len(bp); q = dict(body)
     q['pos'] = np.vstack([bp, pos]); q['nrm'] = np.vstack([body['nrm'], -out_n]); q['uv'] = np.vstack([body['uv'], body['uv'][idx]]).astype(body['uv'].dtype)
     q['jj'] = np.vstack([body['jj'], body['jj'][idx]]); q['ww'] = np.vstack([body['ww'], body['ww'][idx]])
-    q['ix'] = np.concatenate([body['ix'], (F + n_old).reshape(-1)]).astype(body['ix'].dtype); return q
+    q['ix'] = np.concatenate([body['ix'], (F + n_old).reshape(-1)]).astype(body['ix'].dtype)
+    q['nrm'] = q['nrm'].copy(); cen_ = c
+    # skull vertices that lie on the shell surface take the shell's smooth radial normal, so skull, shell and mask shade as one head
+    hv = np.where(bp[:, 1] > 1.62)[0]; dv = bp[hv] - c; rr = np.linalg.norm(dv, axis=1); on = np.abs(rr - (rfun(bp[hv]) + inset)) < .012
+    q['nrm'][hv[on]] = -(dv[on] / rr[on, None]).astype(q['nrm'].dtype)
+    return q, rfun, c
+def blend_mask(p, rfun, c, inset=.0025, band=.07):
+    """melt the face mask into the head: its border eases down onto the head surface, and the flat forehead/temple normals take the head's smooth radial normal, so there is no step, plane or patch edge"""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import dijkstra
+    pos = p['pos'].astype(np.float64); n = len(pos); F = p['ix'].reshape(-1, 3); E = np.concatenate([F[:, [0, 1]], F[:, [1, 2]], F[:, [2, 0]]])
+    Es = np.sort(E, axis=1); u, cnt = np.unique(Es, axis=0, return_counts=True); bv = np.unique(u[cnt == 1])
+    L = np.linalg.norm(pos[u[:, 0]] - pos[u[:, 1]], axis=1); G = coo_matrix((np.r_[L, L], (np.r_[u[:, 0], u[:, 1]], np.r_[u[:, 1], u[:, 0]])), shape=(n, n)).tocsr()
+    bd = dijkstra(G, indices=bv, min_only=True); t = np.clip(bd / band, 0, 1); t = t * t * (3 - 2 * t)
+    ss = lambda x: (lambda y: y * y * (3 - 2 * y))(np.clip(x, 0, 1))
+    wy = ss((pos[:, 1] - 1.68) / .04); e = (1 - t) * wy
+    d = pos - c; r = np.linalg.norm(d, axis=1); rs = rfun(pos) + inset; rn = r - e * (r - rs)
+    q = dict(p); q['pos'] = (c + d * (rn / np.maximum(r, 1e-9))[:, None]).astype(p['pos'].dtype)
+    rad = d / np.maximum(r, 1e-9)[:, None]; sg = -1.0 if np.median((p['nrm'].astype(np.float64) * rad)[pos[:, 1] > 1.6].sum(1)) < 0 else 1.0; no = sg * p['nrm'].astype(np.float64); wn = ss((pos[:, 1] - 1.705) / .03) * .95
+    # only where the mask is close to the head surface (not on nose / lips / eyelids)
+    wn = wn * ss(1 - (r - rs) / .06)
+    nn = no * (1 - wn[:, None]) + rad * wn[:, None]; nn /= np.linalg.norm(nn, axis=1, keepdims=True) + 1e-9; q['nrm'] = (sg * nn).astype(p['nrm'].dtype); return q
 def scalp(hp, htx, body):
     """the strand cards of the donor hairstyles leave gaps: a thin hair shell covers the crown and the back of the skull (down to the nape), tapering to nothing at its lower edge, and carries a patch of the hairstyle's own strand texture (so it shades and dyes exactly like the hair, with no flat patches). It is merged into the back piece of the hairstyle, hairline and ears stay free"""
     from scipy.ndimage import binary_erosion
@@ -157,8 +197,24 @@ def under(body, T):
     q = C.clip_y(C.clip_y(C.sub(body, m, 'Outfit_Under_Tops'), 1.31, True), 1.45, False); n = -q['nrm']; b0 = q['pos'].astype(np.float64).copy(); q['pos'] = q['pos'] + n * .015; q['srctex'] = 901; q = lap_off(q, b0); import outfits_new as NO; q = NO.smooth_edges(q, 'y', lambda Q: Q[:, 1] > 1.42, win=11, reach=.03, arc='x'); out.append(q)
     for p in out: p['uv'] = np.zeros_like(p['uv']); p['nrm'] = BB.smooth_normals(p['pos'], p['ix'].reshape(-1, 3))
     return out
+def clean_body_tex(im):
+    """the donor body texture has black underwear painted on (bra, shorts): with those under a low neckline or open outfit it reads as a cut or hole in the torso, so repaint it as plain skin"""
+    import cv2
+    a = np.asarray(im.convert('RGBA')).copy(); lum = a[..., :3].astype(float).mean(2); h, w = lum.shape
+    clear = a[..., 3] < 250; big = ((lum < 204) & (a[..., 3] > 0)) | clear; big[:int(h * .02)] = False; big = cv2.morphologyEx(big.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8)).astype(bool)
+    mk = cv2.dilate(big.astype(np.uint8), np.ones((7, 7), np.uint8))
+    out = cv2.inpaint(np.ascontiguousarray(a[..., :3]), mk * 255, 9, cv2.INPAINT_TELEA); bl = cv2.GaussianBlur(out, (0, 0), 3)
+    sel = mk.astype(bool); a[..., :3][sel] = bl[sel]; a[..., 3] = 255; return Image.fromarray(a, 'RGBA')
+def tuck_torso(p, k=.12, cz=.03):
+    """under a dress the torso skin must sit inside the cloth (the gown and the adventurer bodice hug the waist tighter than the bare body): draw the waist-to-bust band radially inwards a little, fading out at the hips, the bust top and the arms"""
+    ss = lambda x: (lambda y: y * y * (3 - 2 * y))(np.clip(x, 0, 1))
+    P = p['pos'].astype(np.float64); y = P[:, 1]; w = ss((y - .96) / .22) * (1 - ss((y - 1.42) / .10)) * (1 - ss((np.abs(P[:, 0]) - .22) / .05))
+    q = dict(p); Q = P.copy(); Q[:, 0] *= 1 - k * w; Q[:, 2] = cz + (P[:, 2] - cz) * (1 - k * w); q['pos'] = Q.astype(p['pos'].dtype); return q
+def _samp(im, uv):
+    a = np.asarray(im.convert('RGB')).astype(float); h, w = a.shape[:2]; return a[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)]
 def main(out):
     d = load(); raw0, wp, tex0 = d['dancer']; pr0 = BB.name_native(raw0, 'FA0', 'Gown'); body = next(p for p in pr0 if p['mat'] == 'Skin_Body'); body = bridge_torso(body, tex0[body['srctex']]); pr0 = [body if p['mat'] == 'Skin_Body' else p for p in pr0]
+    tex0 = dict(tex0); tex0[body['srctex']] = clean_body_tex(tex0[body['srctex']])
     T = dict(tex0); ex = []
     ex.append((body, tex0)); ex.append((dict(body, mat='Skin_BodyD'), tex0))        # the dressed-skin layer the game switches to under any outfit
     bt = BB.mean_skin(tex0[body['srctex']])
@@ -168,9 +224,15 @@ def main(out):
         if fk != 'dancer': part = BB.move_hair(part, fwp, wp)
         ft = BB.mean_skin(ftx[next(p for p in fp if p['mat'] == 'Skin_Face')['srctex']]); newtex = dict(ftx)
         for p in part:
-            if p['mat'].endswith('_Skin'): newtex[p['srctex']] = BB.tone_match(ftx[p['srctex']], ft, bt)
-        part = [trim_top(p) if p['mat'].endswith('_Skin') else p for p in part]; ex += [(p, newtex) for p in part]; skp.append(next(p for p in part if p['mat'].endswith('_Skin'))['pos'])
-    hb = head_fill(body, skp); ex[0] = (hb, tex0); ex[1] = (dict(hb, mat='Skin_BodyD'), tex0)
+            if p['mat'].endswith('_Skin'):
+                nt = BB.tone_match(ftx[p['srctex']], ft, bt); P = p['pos']; mm = (P[:, 1] > 1.72) & (P[:, 1] < 1.80)
+                if mm.sum() > 20:                                  # meet the skull exactly where the mask ends (forehead / temples), not only on average
+                    gain = np.clip(_samp(tex0[body['srctex']], body['uv'][(body['pos'][:, 1] > 1.70) & (body['pos'][:, 1] < 1.80) & (body['pos'][:, 2] > -.09)]).mean(0) / _samp(nt, p['uv'][mm]).mean(0), .9, 1.1)
+                    a = np.asarray(nt.convert('RGBA')).astype(np.float64); a[..., :3] = np.clip(a[..., :3] * gain, 0, 255); nt = BB.Image.fromarray(a.astype(np.uint8), 'RGBA') if hasattr(BB, 'Image') else __import__('PIL.Image', fromlist=['x']).fromarray(a.astype(np.uint8), 'RGBA')
+                newtex[p['srctex']] = nt
+        part = [trim_top(p, 1.80) if p['mat'].endswith('_Skin') else p for p in part]; ex += [(p, newtex) for p in part]; skp.append(next(p for p in part if p['mat'].endswith('_Skin'))['pos'])
+    hb, rfun, hc = head_fill(body, skp); ex[0] = (hb, tex0); ex[1] = (tuck_torso(dict(hb, mat='Skin_BodyD')), tex0)
+    ex = [((blend_mask(p, rfun, hc), t) if p['mat'].startswith('Face') and p['mat'].endswith('_Skin') else (p, t)) for p, t in ex]
     for dk, pre in HAIRS:
         hraw, hwp, htx = d[dk]; hp = [p for p in BB.name_native(hraw, pre + '0', 'x') if p['mat'].startswith('Hair_')]
         hp = BB.move_hair(hp, hwp, wp); hp = scalp(hp, htx, body); ex += [(p, htx) for p in hp]
@@ -182,8 +244,8 @@ def main(out):
         for p in op: otx[p['srctex']] = NO.opaque(otx[p['srctex']])
         tp = next(p for p in op if p['mat'].endswith('_Tops')); im = np.asarray(otx[tp['srctex']].convert('RGB')).astype(float); h, w = im.shape[:2]; uv = tp['uv']
         px = im[np.clip((uv[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uv[:, 0] % 1 * w).astype(int), 0, w - 1)]; med = np.median(px, axis=0); uvs = uv[np.argmin(np.abs(px - med).sum(1))]
-        BF = body['ix'].reshape(-1, 3); bc = body['pos'][BF].mean(1); by = body['pos'][BF][:, :, 1]; lm = (by.max(1) > 1.12) & (by.min(1) < 1.45) & (np.abs(bc[:, 0]) < .18)
-        L = C.clip_y(C.clip_y(C.sub(body, lm, 'Outfit_%s_Lining' % oid), 1.12, True), 1.45, False); L['pos'] = L['pos'] - L['nrm'] * .011; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype); L['srctex'] = tp['srctex']; L['nrm'] = BB.smooth_normals(L['pos'], L['ix'].reshape(-1, 3)); op.append(L)
+        BF = body['ix'].reshape(-1, 3); bc = body['pos'][BF].mean(1); by = body['pos'][BF][:, :, 1]; lm = (by.max(1) > 1.0) & (by.min(1) < 1.45) & (np.abs(bc[:, 0]) < .18)
+        L = C.clip_y(C.clip_y(C.sub(body, lm, 'Outfit_%s_Lining' % oid), 1.0, True), 1.45, False); L['pos'] = L['pos'] - L['nrm'] * .011; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype); L['srctex'] = tp['srctex']; L['nrm'] = BB.smooth_normals(L['pos'], L['ix'].reshape(-1, 3)); op.append(L)
         ex += [(p, otx) for p in op]
     BB.assemble('girl', ex, wp, out)
 if __name__ == '__main__': main(sys.argv[1])

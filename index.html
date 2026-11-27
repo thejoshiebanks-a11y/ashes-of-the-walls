@@ -45,6 +45,7 @@
 ['gesturestart','gesturechange','gestureend'].forEach(function(n){d.addEventListener(n,pv,o);});
 d.addEventListener('touchmove',function(e){if(e.touches&&e.touches.length>1||(e.scale&&e.scale!==1))e.preventDefault();},o);
 d.addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault();},o);
+d.addEventListener('dblclick',pv,o);d.addEventListener('touchstart',function(e){if(e.touches&&e.touches.length>1)e.preventDefault();},o);
 d.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&(e.key==='+'||e.key==='-'||e.key==='='||e.key==='0'))e.preventDefault();},true);
 })();</script>
 <script src="js/boot.js?v=0.9.10"></script>

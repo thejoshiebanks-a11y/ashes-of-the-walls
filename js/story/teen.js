@@ -21,8 +21,8 @@
     { key: 'girl', g: 'f', name: 'Sakura', note: 'Soft eyes · side-swept bob', face: 0, hair: 'FA0' },
     { key: 'girl', g: 'f', name: 'Hana', note: 'Bright eyes · long fringe', face: 1, hair: 'FB0' },
     { key: 'girl', g: 'f', name: 'Yuki', note: 'Calm eyes · long flowing hair', face: 2, hair: 'FC0' },
-    { key: 'girl', g: 'f', name: 'Rin', note: 'Soft eyes · short crop', face: 0, hair: 'FD0' },
-    { key: 'girl', g: 'f', name: 'Mio', note: 'Bright eyes · bob and hairband', face: 1, hair: 'FE0' }];
+    { key: 'girl', g: 'f', name: 'Rin', note: 'Sharp eyes · short crop', face: 3, hair: 'FD0' },
+    { key: 'girl', g: 'f', name: 'Mio', note: 'Gentle eyes · bob and hairband', face: 4, hair: 'FE0' }];
   T.isFemale = L => (T.BASES[(L && L.base) | 0] || {}).g === 'f';
   T.OUTFITS = [                                          // medieval only. Casual outfits are dyeable; armour and the uniform are earned in the story
     { id: 'Under', name: 'Underclothes', locked: false, dye: true },
@@ -30,10 +30,10 @@
     { id: 'Ranger', name: 'Traveller armour', locked: true, flag: 'ranger_unlocked', note: 'Unlocks during missions', g: 'm' },
     { id: 'Scout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions', g: 'm' },
     { id: 'Dragon', name: 'Dragon-guard vest', locked: false, dye: true, legs: true, g: 'm' },
-    { id: 'Ninja', name: 'Shinobi garb', locked: false, dye: true, legs: true, g: 'm' },
     { id: 'Gown', name: 'Noble gown', locked: false, dye: true, g: 'f' },
-    { id: 'Adventurer', name: 'Wayfarer corset', locked: false, dye: true, g: 'f' },
-    { id: 'Maid', name: 'Maid dress', locked: false, dye: true, g: 'f' }];
+    { id: 'Adventurer', name: 'Wayfarer corset', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions', dye: false, g: 'f' },
+    { id: 'Maid', name: 'Maid dress', locked: false, dye: true, g: 'f' },
+    { id: 'FScout', name: 'Scout Regiment', locked: true, flag: 'scout_unlocked', note: 'Unlocks during missions', g: 'f' }];
   T.GEARLOCK = { flag: 'odm_unlocked', note: 'Unlocks after you finish training' };
   T.gearUnlocked = () => !!(S.flag && S.flag(T.GEARLOCK.flag));
   T.HAIR = [{ id: 'B0', name: 'Short fringe', f: 'B0', k: 'B0Back' }, { id: 'D0', name: 'Spiked crop', f: 'D0', k: 'D0Back' },
@@ -59,7 +59,7 @@
   T.VOICES = [{ id: 'gentle', name: 'Gentle' }, { id: 'steady', name: 'Steady' }, { id: 'bold', name: 'Bold' }, { id: 'sharp', name: 'Sharp' }];
   T.CRESTS = ['tower', 'flame', 'key', 'rose', 'anvil', 'feather'];
   T.CRESTNAMES = ['The Wall', 'The Ember', 'The Key', 'The Rose', 'The Anvil', 'The Feather'];
-  T.DEF = { v: 3, base: 0, face: 0, outfit: 0, hair: 0, hairCol: 0, shade: .5, eyes: 0, skin: 7, top: 0, pants: 0, under: 0, boots: 0, accent: 0, gear: 0, cloak: 1, crest: 0, showCrest: 1, height: .5, build: .5, head: .5, bodyType: 1 };
+  T.DEF = { v: 4, base: 0, face: 0, outfit: 0, hair: 0, hairCol: 0, shade: .5, eyes: 0, skin: 7, top: 0, pants: 0, under: 0, boots: 0, accent: 0, gear: 0, cloak: 1, crest: 0, showCrest: 1, height: .5, build: .5, head: .5, bodyType: 1 };
 
   /* ---------- sizes ---------- */
   const DOOR_OVER_LEVI = 0.70, DOOR_DIVISOR = 2;           // the player is (door height / 2). The door is read from the reference screenshot (~0.70 x Levi).
@@ -77,7 +77,9 @@
     if ((src.v == null && src.hairCol != null) || (src.v != null && src.v < 3)) {                                                    // saves from before the single-body rebuild: keep base, colours, sliders; remap the removed ids
       const oldBase = k.base | 0; k.base = oldBase < 4 ? oldBase : 0; k.face = Math.min(5, k.face | 0);
       const oh = ['B0', 'B0', 'D0', 'D0', 'Y0', 'Y0', 'L0', 'L0', 'C0', 'C0', 'Bald'][k.hair | 0] || 'B0'; k.hair = Math.max(0, T.HAIR.findIndex(h => h.id === oh || h.f === oh));
-      const oo = ['Under', 'Peasant', 'Peasant', 'Ranger', 'Scout'][k.outfit | 0]; k.outfit = Math.max(0, T.OUTFITS.findIndex(o => o.id === oo)); k.v = 3; }
+      const oo = ['Under', 'Peasant', 'Peasant', 'Ranger', 'Scout'][k.outfit | 0]; k.outfit = Math.max(0, T.OUTFITS.findIndex(o => o.id === oo)); k.v = 4; }
+    if (k.v === 3) {                                                                                                                // v3 -> v4: the Shinobi garb left the catalogue; later outfits moved up one place
+      const o3 = ['Under', 'Peasant', 'Ranger', 'Scout', 'Dragon', 'Ninja', 'Gown', 'Adventurer', 'Maid'][k.outfit | 0] || 'Under'; k.outfit = Math.max(0, T.OUTFITS.findIndex(o => o.id === (o3 === 'Ninja' ? 'Peasant' : o3))); k.v = 4; }
     if (!T.BASES[k.base]) k.base = 0;
     if (!T.FACES[k.face]) k.face = 0; if (!T.HAIR[k.hair]) k.hair = 0; if (!T.OUTFITS[k.outfit]) k.outfit = 0; if (!T.BOXCOL[k.under]) k.under = 0;
     { const g = (T.BASES[k.base].g) || 'm'; if (g === 'f' && k.face > 4) k.face = 0;
@@ -121,6 +123,7 @@
     const rv = T.reveal ? T.reveal.st : 3;                    // creator intro: 0 clay mannequin, 1 skin + eyes, 2 hair, 3 everything
     const hood = rv > 2 && outfit === 'Ranger' && k.cloak, cloak = rv > 2 && outfit === 'Scout' && k.cloak;
     const clayOutfit = 'Under', gearOn = !!k.gear && T.gearUnlocked();
+    a.armOut = T.isFemale(k) ? ({ Gown: .32, Maid: .3, Adventurer: .14, FScout: .05 }[outfit] || 0) : 0;      // at rest the arms stand clear of a flared skirt, so the hands never sink into the gown
     a.skipRe = { test: m => {
       if (m === 'Skin_Neck') return false;
       if (m === 'Skin_Body') return rv >= 3 && outfit !== clayOutfit;      // bare body with the boxers; a body pressed in under the cloth for every other outfit

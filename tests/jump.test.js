@@ -29,3 +29,10 @@ t('the contact pose (frame 39) is only reached when the feet are on the floor, f
     assert(air.slice(0,air.length-12).every(x=>x.f<=34),'no early landing pose while still high '+vy+'/'+ground+' '+air.slice(0,air.length-12).map(x=>x.f).join(','))}});
 t('frames never run backwards or jump in the air phase',()=>{const {log}=sim(4.7,-4,false);const f=log.filter(x=>!x.g&&x.fc==='M:Jump').map(x=>x.f);for(let i=1;i<f.length;i++)assert(f[i]>=f[i-1]-0&&f[i]-f[i-1]<=2,'smooth '+f[i-1]+'>'+f[i])});
 console.log('jump tests:',pass,'passed');
+// hop limits: a plain jump never carries the player far and never builds up speed in the air
+{const k0=src.indexOf('function startHop'),k1=src.indexOf('\n',k0),fn=src.slice(k0,k1);
+ const mk=()=>new Function('P','v',`let jAir=0;${fn};return {start:()=>{startHop();return jAir},get:()=>jAir,set:x=>{jAir=x}}`);
+ t('a sprinting jump is cut to the hop speed (about 1.2 m of travel, not 2.5 m)',()=>{const v=[0,0,4.9],h=mk()({hop:2.3},v);h.start();assert(Math.hypot(v[0],v[2])<=2.3+1e-9);assert(Math.hypot(v[0],v[2])*0.52<1.25)});
+ t('a standing jump keeps a small drift allowance and a walking jump keeps its own speed',()=>{const v=[0,0,1],h=mk()({hop:2.3},v);h.start();assert(Math.abs(v[2]-1)<1e-9&&h.get()>=1.6)});
+ t('source: air steering is weak and capped while hopping, cleared by hook/gas/landing',()=>{assert(/jAir\?P\.steer\*\.3/.test(src));assert(/if\(h_>jAir\)/.test(src));assert(/jAir=0;\/\* a plain jump/.test(src));assert(/v\[1\]=0;jAir=0;/.test(src))});
+}

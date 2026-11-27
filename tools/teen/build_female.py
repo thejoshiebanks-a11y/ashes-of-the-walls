@@ -1,6 +1,6 @@
 """The young woman pack (assets/girl): one shared anime body (the VRoid dancer's), five faces, hairstyles from every donor, black underclothes and the medieval outfits.
 usage: python3 -I build_female.py <outdir>   (needs the uploaded girl models unzipped under $S/gz)"""
-import sys, os, numpy as np
+import re, sys, os, numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_bases as BB, compose as C, outfits_new as NO
 from PIL import Image
@@ -157,6 +157,16 @@ def head_fill(body, skins, cen=(0., 1.77, -.04), na=96, nt=40, tmax=140., inset=
     # skull vertices that lie on the shell surface take the shell's smooth radial normal, so skull, shell and mask shade as one head
     hv = np.where(bp[:, 1] > 1.62)[0]; dv = bp[hv] - c; rr = np.linalg.norm(dv, axis=1); on = np.abs(rr - (rfun(bp[hv]) + inset)) < .012
     q['nrm'][hv[on]] = -(dv[on] / rr[on, None]).astype(q['nrm'].dtype)
+    # the donor skull is an open shell too: its open edge (the arc across the forehead and temples) is eased down onto the closed shell exactly like the face mask's border, so no step or ridge is left
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import dijkstra
+    Fb = body['ix'].reshape(-1, 3); Eb = np.sort(np.concatenate([Fb[:, [0, 1]], Fb[:, [1, 2]], Fb[:, [2, 0]]]), axis=1); ub, cb = np.unique(Eb, axis=0, return_counts=True)
+    bvs = np.unique(ub[cb == 1]); bvs = bvs[(bp[bvs, 1] > 1.66)]
+    if len(bvs):
+        Lb = np.linalg.norm(bp[ub[:, 0]] - bp[ub[:, 1]], axis=1); Gb = coo_matrix((np.r_[Lb, Lb], (np.r_[ub[:, 0], ub[:, 1]], np.r_[ub[:, 1], ub[:, 0]])), shape=(len(bp), len(bp))).tocsr()
+        bd = dijkstra(Gb, indices=bvs, min_only=True, limit=.09); t = np.clip(bd / .06, 0, 1); t = t * t * (3 - 2 * t); ss_ = lambda x: (lambda y: y * y * (3 - 2 * y))(np.clip(x, 0, 1))
+        e = (1 - t)[hv] * ss_((bp[hv, 1] - 1.66) / .04); rs_ = rfun(bp[hv]) + .0007; rn = np.where(rr > rs_, rr - e * (rr - rs_), rr)
+        q['pos'][hv] = (c + dv * (rn / np.maximum(rr, 1e-9))[:, None]).astype(q['pos'].dtype)
     return q, rfun, c
 def blend_mask(p, rfun, c, inset=.0025, band=.07):
     """melt the face mask into the head: its border eases down onto the head surface, and the flat forehead/temple normals take the head's smooth radial normal, so there is no step, plane or patch edge"""
@@ -170,7 +180,7 @@ def blend_mask(p, rfun, c, inset=.0025, band=.07):
     wy = ss((pos[:, 1] - 1.68) / .04); e = (1 - t) * wy
     d = pos - c; r = np.linalg.norm(d, axis=1); rs = rfun(pos) + inset; rn = r - e * (r - rs)
     q = dict(p); q['pos'] = (c + d * (rn / np.maximum(r, 1e-9))[:, None]).astype(p['pos'].dtype)
-    rad = d / np.maximum(r, 1e-9)[:, None]; sg = -1.0 if np.median((p['nrm'].astype(np.float64) * rad)[pos[:, 1] > 1.6].sum(1)) < 0 else 1.0; no = sg * p['nrm'].astype(np.float64); wn = ss((pos[:, 1] - 1.705) / .03) * .95
+    rad = d / np.maximum(r, 1e-9)[:, None]; sg = -1.0 if np.median((p['nrm'].astype(np.float64) * rad)[pos[:, 1] > 1.6].sum(1)) < 0 else 1.0; no = sg * p['nrm'].astype(np.float64); wn = ss((pos[:, 1] - 1.69) / .10) * .97
     # only where the mask is close to the head surface (not on nose / lips / eyelids)
     wn = wn * ss(1 - (r - rs) / .06)
     nn = no * (1 - wn[:, None]) + rad * wn[:, None]; nn /= np.linalg.norm(nn, axis=1, keepdims=True) + 1e-9; q['nrm'] = (sg * nn).astype(p['nrm'].dtype); return q
@@ -261,6 +271,49 @@ def maid_outfit(d, body, T, wp, advshoe):
     sp, st = advshoe; st = dict(st); a = np.asarray(st[sp['srctex']].convert('RGBA')).astype(float); lum = a[..., :3].mean(2, keepdims=True); a[..., :3] = np.clip((.45 * a[..., :3] + .55 * lum) * .55, 0, 255)      # black leather boots for the maid
     ti = max(st) + 1000; st[ti] = Image.fromarray(a.astype(np.uint8), 'RGBA'); out.append((q, T)); out.append((dict(sp, srctex=ti), st))
     return out
+
+def scout_outfit(S_, body, T, wp):
+    """female Scout Regiment uniform from the 'Aotwa Mikasa Ackerman' model by Prime Slayer3D (CC-BY-4.0): cropped jacket with the Wings emblem, scarf, white shirt, black skirt-flap, white trousers with the leg harness and tall boots, fitted to our body. A thin lining cut from our own body, in the cloth colours, closes every hairline where the donor's thinner shapes would show skin"""
+    import scout_probe as SP
+    raw, mwp, mtx = SP.mikasa(); mtx = dict(mtx)
+    sel = [p for p in raw if p['key'] in ('Tops', 'Shoes')]
+    op = C.shift_by_joints(BB.name_native(sel, 'x', 'FScout'), mwp, wp)
+    ob = dict(body, nrm=-body['nrm'])
+    from scipy.spatial import cKDTree
+    bt = cKDTree(ob['pos']); allp = np.concatenate([p['pos'] for p in op]); gt = cKDTree(allp)
+    # the donor model is a bulkier figure than ours: every vertex keeps its order above our body (monotone map of its height above the skin) but the garment is drawn in toward the body, so the uniform stays slim instead of padded
+    KS = float(os.environ.get('KS', '.50'))
+    allp = np.concatenate([p['pos'] for p in op]); d, ix = bt.query(allp, k=3); wgt = 1 / (d + 1e-4); wgt /= wgt.sum(1, keepdims=True)
+    nn = (ob['nrm'][ix] * wgt[..., None]).sum(1); nn /= np.linalg.norm(nn, axis=1, keepdims=True) + 1e-9; bp = (ob['pos'][ix] * wgt[..., None]).sum(1)
+    sd = ((allp - bp) * nn).sum(1); new = .004 + KS * np.maximum(sd + .02, 0); act = (d[:, 0] < .35) & (allp[:, 1] > .08)
+    delta = np.where(act, np.where(allp[:, 1] < .11, np.clip(new - sd, -.03, .025 * (allp[:, 1] > .05)), new - sd), 0.)
+    gt = cKDTree(allp); nb = gt.query_ball_point(allp, .02); delta = np.array([delta[i].mean() for i in nb])
+    k = 0
+    for p in op:
+        n = len(p['pos']); p['pos'] = p['pos'] + nn[k:k + n] * delta[k:k + n, None]; p['nrm'] = BB.smooth_normals(p['pos'], p['ix'].reshape(-1, 3)).astype(p['nrm'].dtype); k += n
+    tp0 = next(p for p in op if p['mat'].endswith('_Tops')); im0 = np.asarray(mtx[tp0['srctex']].convert('RGB')).astype(float); h0, w0 = im0.shape[:2]
+    pc = im0[np.clip((tp0['uv'][:, 1] % 1 * h0).astype(int), 0, h0 - 1), np.clip((tp0['uv'][:, 0] % 1 * w0).astype(int), 0, w0 - 1)].mean(1); F0 = tp0['ix'].reshape(-1, 3)
+    cc = tp0['pos'][F0].mean(1); bad = (pc[F0].min(1) > 150) & (cc[:, 1] > .99) & (cc[:, 1] < 1.05) & (np.abs(cc[:, 0]) < .12) & (cc[:, 2] > 0)    # white trouser scraps that poke through the front of the black skirt wrap
+    if bad.any(): tp0['ix'] = F0[~bad].reshape(-1).astype(tp0['ix'].dtype)
+    for p in op: mtx[p['srctex']] = NO.opaque(mtx[p['srctex']])
+    out = [(p, mtx) for p in op]
+    tp = next(p for p in op if p['mat'].endswith('_Tops')); im = np.asarray(mtx[tp['srctex']].convert('RGB')).astype(float); h, w = im.shape[:2]
+    P0 = tp['pos']; uvs = tp['uv']; px = im[np.clip((uvs[:, 1] % 1 * h).astype(int), 0, h - 1), np.clip((uvs[:, 0] % 1 * w).astype(int), 0, w - 1)]
+    def col(m, f=None):
+        q = px[m & f] if f is not None and (m & f).sum() > 20 else px[m]
+        return np.median(q, axis=0) if len(q) else np.array([200., 200., 200.])
+    brown = (px[:, 0] - px[:, 2] > 30) & (px[:, 0] > 90)
+    arm = (np.abs(P0[:, 0]) > .26) & (P0[:, 1] > 1.35); leg = (P0[:, 1] < .90) & (P0[:, 1] > .7); hip = (P0[:, 1] > .97) & (P0[:, 1] < 1.10) & (px.mean(1) < 70); tor = (np.abs(P0[:, 0]) < .2) & (P0[:, 1] > 1.0) & (P0[:, 1] < 1.4)
+    sp_ = next(p for p in op if p['mat'].endswith('_Shoes')); imb = np.asarray(mtx[sp_['srctex']].convert('RGB')).astype(float); hb_, wb_ = imb.shape[:2]; uvb = sp_['uv']; pxb = imb[np.clip((uvb[:, 1] % 1 * hb_).astype(int), 0, hb_ - 1), np.clip((uvb[:, 0] % 1 * wb_).astype(int), 0, wb_ - 1)]; bootc = np.median(pxb[sp_['pos'][:, 1] > .3], axis=0)
+    F = body['ix'].reshape(-1, 3); c = body['pos'][F].mean(1); by = body['pos'][F][:, :, 1]
+    white = px.mean(1) > 170
+    regs = [('foot', (c[:, 1] > -.01) & (c[:, 1] <= .125), bootc * .8, None), ('boot', (c[:, 1] > .12) & (c[:, 1] <= .64), bootc, None), ('arm', (np.abs(c[:, 0]) > .17) & (np.abs(c[:, 0]) < .575) & (c[:, 1] > 1.3), col(arm, brown), None), ('tor', (np.abs(c[:, 0]) <= .2) & (c[:, 1] > 1.13) & (c[:, 1] < 1.44), col(tor, white), None), ('hip', (c[:, 1] > .93) & (c[:, 1] <= 1.13) & (np.abs(c[:, 0]) <= .3), col(hip), None), ('leg', (c[:, 1] > .64) & (c[:, 1] <= .93), col(leg, white), None)]
+    for i, (nm, m, rgb, _) in enumerate(regs):
+        if not m.any(): continue
+        L = C.sub(body, m, 'Outfit_FScout_Lining'); L['pos'] = L['pos'] - L['nrm'] * (.007 if nm == 'foot' else .002); L['nrm'] = L['nrm'] * float(os.environ.get('LN', '1'))
+        tex = np.zeros((8, 8, 4), np.uint8); tex[..., :3] = (np.clip(rgb * .96, 0, 255).astype(np.uint8) if not os.environ.get('LR') else np.array([255, 0, 0], np.uint8)); tex[..., 3] = 255; T[910 + i] = Image.fromarray(tex, 'RGBA'); L['uv'] = np.zeros_like(L['uv']); L['srctex'] = 910 + i
+        out.append((L, T))
+    return out
 HEM = .80
 def main(out):
     d = load(); raw0, wp, tex0 = d['dancer']; pr0 = BB.name_native(raw0, 'FA0', 'Gown'); body = next(p for p in pr0 if p['mat'] == 'Skin_Body'); body = bridge_torso(body, tex0[body['srctex']]); pr0 = [body if p['mat'] == 'Skin_Body' else p for p in pr0]
@@ -282,7 +335,7 @@ def main(out):
                 newtex[p['srctex']] = nt
         part = [trim_top(p, 1.80) if p['mat'].endswith('_Skin') else p for p in part]; ex += [(p, newtex) for p in part]; skp.append(next(p for p in part if p['mat'].endswith('_Skin'))['pos'])
     hb, rfun, hc = head_fill(body, skp); ex[0] = (hb, tex0); ex[1] = (tuck_torso(dict(hb, mat='Skin_BodyD')), tex0)
-    ex = [((blend_mask(p, rfun, hc), t) if p['mat'].startswith('Face') and p['mat'].endswith('_Skin') else (p, t)) for p, t in ex]
+    ex = [((blend_mask(p, rfun, hc, inset=.0007), t) if p['mat'].startswith('Face') and p['mat'].endswith('_Skin') else (p, t)) for p, t in ex]
     for dk, pre in HAIRS:
         hraw, hwp, htx = d[dk]; hp = [p for p in BB.name_native(hraw, pre + '0', 'x') if p['mat'].startswith('Hair_')]
         hp = BB.move_hair(hp, hwp, wp); hp = scalp(hp, htx, hb); ex += [(p, htx) for p in hp]
@@ -298,5 +351,7 @@ def main(out):
         L = C.clip_y(C.clip_y(C.sub(body, lm, 'Outfit_%s_Lining' % oid), 1.0, True), 1.45, False); L['pos'] = L['pos'] - L['nrm'] * .011; L['uv'] = np.tile(uvs, (len(L['pos']), 1)).astype(L['uv'].dtype); L['srctex'] = tp['srctex']; L['nrm'] = BB.smooth_normals(L['pos'], L['ix'].reshape(-1, 3)); op.append(L)
         ex += [(p, otx) for p in op]; advshoe = (dict(next(p for p in op if p['mat'].endswith('_Shoes')), mat='Outfit_Maid_Shoes'), otx)
     ex += maid_outfit(d, body, T, wp, advshoe)
+    ex += scout_outfit(None, body, T, wp)
+    ex = [(p, t) for p, t in ex if not re.search(r'_(EyeWhite|EyeHL)$', p['mat'])]      # no white sclera plate or sparkle highlights: the eyes are the iris, the lash line and the skin around them
     BB.assemble('girl', ex, wp, out)
 if __name__ == '__main__': main(sys.argv[1])

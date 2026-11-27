@@ -118,7 +118,7 @@
       full: { dist: 4.3, h: 1.0, el: .0, fov: .78, az: .2 } };
     const AUTO = { base: 'default', face: 'close', hair: 'close', eyes: 'close', body: 'full', clothing: 'full', gear: 'full', emblem: 'default', voice: 'default', options: 'default' };
     const cam = { dist: 5.5, h: 1.0, el: .45, fov: .8, az: .0, panX: 0, panY: 0, zoom: 1, zoomT: 1, shift: .0, t: PRE.default };
-    let a = null, yaw = stage.yaw + .35, yawT = yaw, swing = 0, spinOn = false, spinP = 0, pop = 0, popT = 0, last = performance.now(), raf = 0, introT = 0;
+    let portraitMode = false, a = null, yaw = stage.yaw + .35, yawT = yaw, swing = 0, spinOn = false, spinP = 0, pop = 0, popT = 0, last = performance.now(), raf = 0, introT = 0;
     const actor = () => A.player;
     function setCamMode(id, fromUser) { camMode = id; cam.t = PRE[id]; for (const k in camBtns) camBtns[k].classList.toggle('on', k === id); if (!fromUser) manual = false; }
     function freeShift() {                                       // NDC x of the middle of the free area between the option panel and the right column
@@ -136,7 +136,7 @@
         const worldH = a.baseScale ? a.baseScale * T.bodyHeight(a.key) : .3, hs = worldH / 1.649, k = 1 - Math.exp(-dt * 4.2), t = cam.t;
         introT = Math.min(1, introT + dt / 5.8); const ik = ease(introT);
         cam.dist += (t.dist - cam.dist) * k; cam.h += (t.h - cam.h) * k; cam.el += (t.el - cam.el) * k; cam.fov += (t.fov - cam.fov) * k; cam.az += (t.az - cam.az) * k; cam.zoom += (cam.zoomT - cam.zoom) * k;
-        const sh = freeShift(); cam.shift += (sh - cam.shift) * k;
+        const sh = portraitMode ? 0 : freeShift(); cam.shift += (sh - cam.shift) * k;
         const intro = (1 - ik), dist = Math.max((cam.dist * cam.zoom + intro * 3.8) * hs, .36), el_ = cam.el + intro * .3, fov = cam.fov + intro * .32;
         const tgt = [stage.x, stage.gy + (cam.h + cam.panY * .4) * hs, stage.z], az = stage.yaw + cam.az + intro * 1.5, ce = Math.cos(el_);
         let pos = [tgt[0] + Math.sin(az) * ce * dist, tgt[1] + Math.sin(el_) * dist, tgt[2] + Math.cos(az) * ce * dist];
@@ -305,7 +305,18 @@
     function finish() {
       if (!d.name.trim()) { setTab('base'); const n = doc.getElementById('tc-name'); if (n) { n.classList.add('bad'); n.focus(); } confirm.classList.remove('shake'); void confirm.offsetWidth; confirm.classList.add('shake'); toast2('Enter a name to continue.'); return; }
       const O = T.OUTFITS[L.outfit]; if ((O && O.locked && !T.isUnlocked(O)) || (L.gear && !T.gearUnlocked())) { L.outfit = O && O.locked && !T.isUnlocked(O) ? 0 : L.outfit; L.gear = T.gearUnlocked() ? L.gear : 0; sync(); }
-      AU.select && AU.select(); equipFx(2); confirm.classList.add('done'); setTimeout(() => leave(true), 520);
+      AU.select && AU.select(); equipFx(2); confirm.classList.add('done');
+      grabPortrait().then(p => { if (p) d.portrait = p; setTimeout(() => leave(true), 380); });
+    }
+    /* the HUD portrait: the camera glides to the face close-up (centred, no panel offset) and one frame of the real scene is cut to a round-friendly square, so the corner of the screen shows the character the player actually made */
+    function grabPortrait() {
+      return new Promise(res => {
+        let done = false; const fin = v => { if (!done) { done = true; portraitMode = false; res(v); } };
+        try {
+          portraitMode = true; cam.t = PRE.close; cam.zoomT = 1; cam.panX = cam.panY = 0; turn = false; yawT = stage.yaw + .2; if (!root.__E) return fin(null);
+          setTimeout(() => { root.__shot = { cb: fin }; setTimeout(() => fin(null), 900); }, 760);
+        } catch (e) { fin(null); }
+      });
     }
     function keys(e) {
       if (e.target && /input|textarea/i.test(e.target.tagName)) { if (e.key === 'Enter') { e.target.blur(); } return; }

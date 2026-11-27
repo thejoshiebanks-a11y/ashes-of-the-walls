@@ -1,4 +1,13 @@
 # Changelog
+## 0.9.38 (on top of 0.9.37)
+- **Ninja outfit removed** permanently from the male creator (saved characters wearing it become Peasant).
+- **Jump:** hop speed capped, weaker air steering, and the floor probe now sweeps from low so no "invisible stairs" after a joystick jump.
+- **HUD portrait** (top left) now shows the created character.
+- **Camera** can no longer enter the body (minimum distance, body hidden when too close).
+- **Zoom:** double-tap and pinch zoom disabled.
+- **Female:** new locked Scout Regiment outfit (slim, from the Mikasa reference, credited) and locked Adventurer; no white plates around the eyes; perfectly smooth bald head; Rin and Mio bases use the new faces; arms spread slightly in gown/maid idle so hands stay out of the skirt.
+- Verified on renders and unit tests only, never on a phone or the full 3D scene.
+
 ## 0.9.37 (on top of 0.9.36)
 - Lashes and lid lines are black on every female face (some sheets carried pale or white strokes).
 - The cat ears are removed from the "Bob with braids" hairstyle (formerly "Cat-ear bob and braids").

@@ -114,7 +114,7 @@
   const KIDS = [['eren', -1.25, 0.2], ['armin', 0.05, 1.05], ['mikasa', 1.2, 0.15]];
   async function ensureModels(keys) { try { await ACT.ensure(keys); } catch (e) { console.warn('[story] models unavailable, using markers only', e); } }
   async function spawnCast() {
-    const pl = S.state.player; ACT.clearAll(); root.__hudPortrait = pl && pl.body === 'teen' && pl.look ? 'assets/teen/ui/base_' + ((pl.look.base | 0) % 6) + '.webp' : null;
+    const pl = S.state.player; ACT.clearAll(); root.__hudPortrait = pl && pl.body === 'teen' && pl.look ? (pl.portrait || 'assets/teen/ui/base_' + ((pl.look.base | 0) % 11) + '.webp') : null;   // the HUD face is a snapshot of the character the player made (old saves fall back to the base thumbnail)
     const need = new Set(['fuse_man', 'fuse_woman', 'eren', 'armin', 'mikasa']); if (pl && pl.body === 'teen') { need.add('teen'); S.teen.want = [S.teen.keyFor(pl.look)]; } await ensureModels([...need]);
     tryA(() => {
       const me = G.pos(); ACT.spawnPlayer(pl, me.x, me.z, root.__st.wyaw, true);
@@ -255,7 +255,7 @@
 
   /* ================= the registry ================= */
   const defaultDraft = () => ({ name: '', gender: 'm', body: 'teen', voice: 'steady', difficulty: 'soldier', wear: 0, look: Object.assign({}, S.teen.DEF) });
-  const buildPlayer = (d, dest) => ({ name: d.name.trim(), gender: d.gender, body: d.body, voice: d.voice, difficulty: d.difficulty, wear: d.wear, look: Object.assign({}, d.look),
+  const buildPlayer = (d, dest) => ({ name: d.name.trim(), gender: d.gender, body: d.body, voice: d.voice, difficulty: d.difficulty, wear: d.wear, look: Object.assign({}, d.look), portrait: d.portrait || null,
     bloodline: dest.bloodline, family: dest.family, destinySeed: dest.seed, anchor: Object.assign({}, dest.anchor) });
   async function openCreator() {
     AU.select(); await coldOpen();

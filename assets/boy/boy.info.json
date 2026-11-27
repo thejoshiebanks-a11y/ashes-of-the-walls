@@ -1,15 +1,15 @@
 {
  "key": "boy",
  "bodyHeight": 1.9486433267593384,
- "bodyYmin": -0.04937199946411691,
+ "bodyYmin": -0.04272047572858978,
  "joints": 24,
- "prims": 90,
- "tex": 75,
- "verts": 237668,
- "height": 2.034632105550798,
- "ymin": -0.04937199946411691,
+ "prims": 84,
+ "tex": 70,
+ "verts": 229854,
+ "height": 2.027980581815271,
+ "ymin": -0.04272047572858978,
  "unit": 1.0,
- "bin_kb": 5486,
+ "bin_kb": 5277,
  "pelvis": [
   -6.157831956666535e-08,
   1.0619320389784968,
@@ -27,8 +27,8 @@
    55430
   ],
   "Skin_BodyD": [
-   11552,
-   22896
+   11554,
+   22900
   ],
   "Skin_BodyL": [
    5024,
@@ -332,7 +332,7 @@
   ],
   "Outfit_Dragon_Lining": [
    5424,
-   10575
+   10573
   ],
   "Outfit_Dragon_Tops": [
    1614,
@@ -343,36 +343,12 @@
    442
   ],
   "Outfit_Dragon_Bottoms": [
-   788,
-   1278
+   778,
+   1270
   ],
   "Outfit_Dragon_Shoes": [
    468,
    570
-  ],
-  "Outfit_Ninja_Lining": [
-   5060,
-   9831
-  ],
-  "Outfit_Ninja_Tops": [
-   1323,
-   2361
-  ],
-  "Outfit_Ninja_Bottoms": [
-   756,
-   1025
-  ],
-  "Outfit_Ninja_Sash": [
-   45,
-   55
-  ],
-  "Outfit_Ninja_Shoes": [
-   248,
-   254
-  ],
-  "Outfit_Ninja_Collar": [
-   374,
-   607
   ]
  }
 }

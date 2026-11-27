@@ -3,13 +3,13 @@
  "bodyHeight": 1.9486433267593384,
  "bodyYmin": -0.0035507009324036963,
  "joints": 24,
- "prims": 70,
- "tex": 67,
- "verts": 192627,
+ "prims": 68,
+ "tex": 65,
+ "verts": 204161,
  "height": 2.0320140755056912,
  "ymin": -0.0035507009324036963,
  "unit": 1.0,
- "bin_kb": 4065,
+ "bin_kb": 4277,
  "pelvis": [
   1.8316320717809468e-17,
   1.088344719750862,
@@ -38,17 +38,9 @@
    212,
    368
   ],
-  "Face0_EyeHL": [
-   200,
-   309
-  ],
   "Face0_Skin": [
    2266,
    3896
-  ],
-  "Face0_EyeWhite": [
-   290,
-   528
   ],
   "Face0_Brow": [
    52,
@@ -66,17 +58,9 @@
    158,
    260
   ],
-  "Face1_EyeHL": [
-   130,
-   128
-  ],
   "Face1_Skin": [
    1967,
    3390
-  ],
-  "Face1_EyeWhite": [
-   290,
-   528
   ],
   "Face1_Brow": [
    54,
@@ -94,17 +78,9 @@
    212,
    368
   ],
-  "Face2_EyeHL": [
-   26,
-   20
-  ],
   "Face2_Skin": [
    2266,
    3892
-  ],
-  "Face2_EyeWhite": [
-   290,
-   528
   ],
   "Face2_Brow": [
    50,
@@ -122,17 +98,9 @@
    252,
    446
   ],
-  "Face3_EyeHL": [
-   71,
-   87
-  ],
   "Face3_Skin": [
    2266,
    3892
-  ],
-  "Face3_EyeWhite": [
-   290,
-   528
   ],
   "Face3_Brow": [
    52,
@@ -150,17 +118,9 @@
    212,
    368
   ],
-  "Face4_EyeHL": [
-   26,
-   20
-  ],
   "Face4_Skin": [
    2266,
    3892
-  ],
-  "Face4_EyeWhite": [
-   290,
-   528
   ],
   "Face4_Brow": [
    48,
@@ -273,6 +233,18 @@
   "Outfit_Maid_Shoes": [
    654,
    1000
+  ],
+  "Outfit_FScout_Tops": [
+   7671,
+   8062
+  ],
+  "Outfit_FScout_Shoes": [
+   1124,
+   1512
+  ],
+  "Outfit_FScout_Lining": [
+   356,
+   602
   ]
  }
 }

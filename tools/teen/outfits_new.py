@@ -9,7 +9,6 @@ FAITH = os.environ.get('FAITH', '1') == '1'
 DONORS = [
     # id, file, texture offset, {prim vertex count: part name}, sleeve end x (T-pose arm), sleeve thickness scale, cuff/wrap band (x lo, x hi, arm end x)
     ('Dragon', '4e1db34a-anime_boy_dragon_guider.glb', 60000, {386: 'Collar', 1614: 'Tops', 788: 'Bottoms', 468: 'Shoes'}, .77, 1.0, (.655, .735, .775)),
-    ('Ninja', 'aefe6b70-anime_boy_ninja_character_-_fully_rigged.glb', 61000, {374: 'Collar', 1323: 'Tops', 45: 'Sash', 756: 'Bottoms', 248: 'Shoes'}, .66, 1.0, (.62, .745, .785)),
 ]
 
 def trim_hips(p, cap_pts):
@@ -24,7 +23,7 @@ def slim_legs(p, body, margin=.014, keep=.28):
     for sg in (1, -1):
         ys = np.arange(.04, 1.02, .03); cx = []; cz = []; rb = []
         for y in ys:
-            b = B[(np.abs(B[:, 1] - y) < .03) & (B[:, 0] * sg > .015) & (np.abs(B[:, 0]) < .30)]
+            b = B[(np.abs(B[:, 1] - y) < .03) & (B[:, 0] * sg > .015) & (np.abs(B[:, 0]) < .19)]
             if len(b) < 5: cx.append(np.nan); cz.append(np.nan); rb.append(np.nan); continue
             c = [(b[:, 0].max() + b[:, 0].min()) / 2, (b[:, 2].max() + b[:, 2].min()) / 2]; cx.append(c[0]); cz.append(c[1]); rb.append(max((b[:, 0].max() - b[:, 0].min()), (b[:, 2].max() - b[:, 2].min())) / 2)
         cx, cz, rb = map(np.array, (cx, cz, rb)); ok = ~np.isnan(cx); ys2 = ys[ok]
@@ -39,10 +38,10 @@ def slim_legs(p, body, margin=.014, keep=.28):
 def slim_torso(p, body, margin=.024):
     """jackets flare below the waist: each height's half-width is held to the body's own plus cloth"""
     P = p['pos'].copy(); B = body['pos']; y = P[:, 1]; ys = np.arange(.86, 1.34, .02)
-    hb = np.array([np.abs(B[(np.abs(B[:, 1] - v) < .03) & (np.abs(B[:, 0]) < .30)][:, 0]).max() for v in ys])
+    hb = np.array([np.abs(B[(np.abs(B[:, 1] - v) < .03) & (np.abs(B[:, 0]) < .19)][:, 0]).max() for v in ys])
     hg = np.array([np.abs(P[(np.abs(y - v) < .03) & (np.abs(P[:, 0]) < .40)][:, 0]).max() if ((np.abs(y - v) < .03) & (np.abs(P[:, 0]) < .40)).any() else 0 for v in ys])
     k = np.interp(y, ys, np.minimum(1, (hb + margin) / np.maximum(hg, 1e-6))); k = np.where(y < .86, k[y < .86].min() if (y < .86).any() else 1, k); k = np.where(y > 1.34, 1, k)
-    zb = np.array([(B[(np.abs(B[:, 1] - v) < .03) & (np.abs(B[:, 0]) < .30)][:, 2].max() - B[(np.abs(B[:, 1] - v) < .03) & (np.abs(B[:, 0]) < .30)][:, 2].min()) / 2 for v in ys]); P[:, 0] *= k
+    zb = np.array([(B[(np.abs(B[:, 1] - v) < .03) & (np.abs(B[:, 0]) < .19)][:, 2].max() - B[(np.abs(B[:, 1] - v) < .03) & (np.abs(B[:, 0]) < .19)][:, 2].min()) / 2 for v in ys]); P[:, 0] *= k
     q = dict(p); q['pos'] = P; q['nrm'] = BB.smooth_normals(P, p['ix'].reshape(-1, 3)).astype(p['nrm'].dtype); return q
 
 def keep_x(p, lo, hi):
@@ -149,6 +148,55 @@ def shrinkwrap(p, body, caps=((1.1, .050), (.9, .046), (.78, .040), (.62, .042),
     k = np.where(d > cap, cap / np.maximum(d, 1e-9), 1.0); B = body['pos'][i]; p['pos'] = (B + (X - B) * k[:, None]).astype(p['pos'].dtype); return p
 
 
+def body_trousers(body, T, tag, rgb, tid, hem=.075, top=1.0, n=32):
+    """clean trousers lofted around our own legs (no frayed donor edges, no seams): at every height each leg's cross-section is measured on the body and an ellipse of loose-fit cloth is grown around it (snug at the hip, roomy at the knee, drawn in at the ankle, soft pleats); in the thigh the two legs overlap along the inner seam so no sliver of skin shows between them. Skin weights are copied from the nearest body vertex"""
+    from scipy.spatial import cKDTree
+    B = body['pos'].astype(np.float64); ys = np.arange(hem, top + 1e-6, .02); rings = []; ang = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    prof = lambda y: np.interp(y, [hem, .20, .45, .62, .85, top], [.026, .024, .034, .036, .030, .014])
+    def ring(sg, y, prev):
+        sel = (np.abs(B[:, 1] - y) < .014) & (B[:, 0] * sg > -.012) & (np.abs(B[:, 0]) < .19)
+        if sel.sum() < 6: return prev
+        q = B[sel]; xo = (q[:, 0] * sg).max(); xi = (q[:, 0] * sg).min(); z0, z1 = q[:, 2].min(), q[:, 2].max()
+        pr = prof(y); xi2 = max(xi - pr, .004) if y > .50 else xi - pr; xo2 = xo + pr; rx = (xo2 - xi2) / 2; cx = sg * (xo2 + xi2) / 2; rz = (z1 - z0) / 2 + pr; cz = (z0 + z1) / 2
+        return (cx, cz, rx, rz)
+    from scipy.ndimage import gaussian_filter1d
+    P = []; UV = []; F = []; side = []
+    for sg in (1, -1):
+        prev = None; base = len(P); RR = []
+        for y in ys:
+            prev = ring(sg, y, prev); RR.append(prev)
+        RR = gaussian_filter1d(np.array(RR, float), 1.6, axis=0, mode='nearest')
+        for k, y in enumerate(ys):
+            cx, cz, rx, rz = RR[k]
+            hw = np.clip((y - hem) / .10, 0, 1) * np.clip((.95 - y) / .1, 0, 1); pl = .0035 * np.sin(6 * ang + y * 9) * hw
+            hm = 1 + (0.0 if y > hem + .02 else -.035)
+            for a, pa in zip(ang, pl): P.append([cx + (rx + pa) * np.cos(a) * hm, y, cz + (rz + pa) * np.sin(a) * hm])
+            UV += [[(a / (2 * np.pi)) * .9 + .05, np.clip((y - hem) / (top - hem), 0, 1) * .9 + .05] for a in ang]
+        for k in range(len(ys) - 1):
+            for a in range(n):
+                a2 = (a + 1) % n; i0 = base + k * n + a; i1 = base + k * n + a2; i2 = base + (k + 1) * n + a; i3 = base + (k + 1) * n + a2
+                F += [[i0, i2, i1], [i1, i2, i3]] if sg > 0 else [[i0, i1, i2], [i1, i3, i2]]
+    P = np.array(P); F = np.array(F); nn = BB.smooth_normals(P, F); tr = cKDTree(B); _, nb = tr.query(P)
+    cen = np.array([0, P[:, 1].mean(), 0]); outw = np.mean(np.sum(nn * (P - cen), 1)) > 0
+    if not outw: F = F[:, [0, 2, 1]]; nn = BB.smooth_normals(P, F)
+    q = {k: v for k, v in body.items()}; dt = body['pos'].dtype
+    q.update(pos=P.astype(dt), nrm=nn.astype(body['nrm'].dtype), uv=np.array(UV).astype(body['uv'].dtype), ix=F.reshape(-1).astype(body['ix'].dtype), jj=body['jj'][nb], ww=body['ww'][nb], mat='Outfit_%s_Bottoms' % tag)
+    t = np.zeros((64, 64, 4), np.uint8); v = np.linspace(0, 1, 64)[:, None]; u = np.arange(64)[None, :]
+    wv = 1 + .05 * np.sin(u * 1.9) * np.cos(v * 40) + .03 * np.sin(v * 70 + u); col = np.array(rgb, float)
+    for ch in range(3): t[..., ch] = np.clip(col[ch] * wv * np.where(v < .05, .55, 1) * np.where((v > .045) & (v < .075), .8, 1), 0, 255)
+    t[..., 3] = 255; T[tid] = Image.fromarray(t, 'RGBA'); q['srctex'] = tid; q['tex'] = tid; return q
+
+
+def drop_tiny(p, n=12):
+    """stray little islands of cloth (a triangle or two left over from the donor) are removed"""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+    P = p['pos']; F = p['ix'].reshape(-1, 3); key = np.round(P * 1e4).astype(np.int64); _, inv = np.unique(key, axis=0, return_inverse=True); inv = inv.reshape(-1); Fv = inv[F]; m = inv.max() + 1
+    e = np.r_[Fv[:, [0, 1]], Fv[:, [1, 2]]]; g = coo_matrix((np.ones(len(e)), (e[:, 0], e[:, 1])), shape=(m, m)); _, lab = connected_components(g, directed=False)
+    cnt = np.bincount(lab[Fv[:, 0]], minlength=lab.max() + 1); keep = cnt[lab[Fv[:, 0]]] >= n
+    return p if keep.all() else C.sub(p, keep, p['mat'])
+
+
 def new_outfits(T, body, wpl):
     out = []
     for oid, fn, off, parts, sxe, ssc, band in DONORS:
@@ -160,6 +208,9 @@ def new_outfits(T, body, wpl):
         [_bnd(p, 'raw') for p in pr]; pr = C.shift_by_joints(pr, wp, wpl); C.align_z(pr, body); C.align_legs_x(pr, body); [_bnd(p, 'aligned') for p in pr]
         res = []; tops_ref = None; pr = sorted(pr, key=lambda q: 0 if q['mat'].endswith('_Tops') else 1)
         for p in pr:
+            if p['mat'].endswith('_Bottoms') and oid == 'Ninja' and not os.environ.get('NINJA_DONOR_LEGS'):
+                im = np.asarray(T[p['srctex']].convert('RGB')).astype(float).reshape(-1, 3); lum = im.sum(1); sel = (lum > np.percentile(lum, 35)) & (lum < np.percentile(lum, 92)); rgb = np.median(im[sel], 0)
+                p = body_trousers(body, T, 'Ninja', rgb, 62000); res.append(p); continue
             if p['mat'].endswith('_Bottoms'):
                 p = p if os.environ.get('NOTRIM') else trim_hips(p, [(.84, 9), (.90, .160), (.96, .156), (1.04, .155), (1.10, .150), (1.16, .150)]); p = p if os.environ.get('NOSLIM') else slim_legs(p, body, margin=.011, keep=.15); p = shrinkwrap(p, body)
             elif p['mat'].endswith('_Collar') and FAITH:
@@ -177,6 +228,8 @@ def new_outfits(T, body, wpl):
             if p['mat'].endswith('_Bottoms'): p = smooth_edges(p, 'y', lambda Q: Q[:, 1] < .62, win=11, reach=.05)     # trouser hems
             elif p['mat'].endswith('_Tops'): p = smooth_edges(p, 'y', lambda Q: (Q[:, 1] < 1.12) & (Q[:, 1] > .80), win=13, reach=.05)      # jacket hem
             elif p['mat'].endswith('_Collar') and oid == 'Ninja': p = smooth_edges(p, 'x', lambda Q: np.ones(len(Q), bool), win=9, reach=.03)       # wrist wrap
+            if p['mat'].endswith('_Sash'): continue      # the donor's loose sash tails are flat strips that hang through the trousers: the jacket's own tied wrap is kept
+            p = drop_tiny(p)
             _bnd(p, 'final'); res.append(p)
         out += res
     C.TIGHT = tuple(C.TIGHT) + tuple(p['mat'] for p in out)

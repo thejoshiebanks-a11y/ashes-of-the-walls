@@ -2,6 +2,7 @@
 /* layout: full-bleed WebGL canvas; glass HUD pinned to edges; bookmark rail along the bottom */
 :root{--ink:#16231d;--ink2:#22362c;--bone:#efe6d2;--bone2:#cfc5ad;--rust:#c2552f;--moss:#7fa06a;--line:rgba(239,230,210,.22);
  --serif:'Spectral',Georgia,serif;--cond:'Barlow Condensed','Arial Narrow',sans-serif;--sans:'Barlow',system-ui,sans-serif}
+*{touch-action:pan-x pan-y}  /* no pinch- or double-tap-zoom on any element; elements that set their own touch-action (none / pan-y) keep it */
 html,body{height:100%;margin:0;background:#16231d;color:var(--bone);font-family:var(--sans);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;outline:none}
 canvas#c:active{cursor:grabbing}
